@@ -132,26 +132,26 @@ const ScoreList = () => {
 
   return (
     <div className="space-y-4 print:space-y-2 flex flex-col h-full">
-      <div className="flex justify-between items-center print:hidden">
+      <div className="flex justify-between items-center print:hidden mb-2">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            Score List - {currentClass?.name} (Q{state.currentQuarter})
+          <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-600 drop-shadow-sm">
+            Score List - {currentClass?.name} <span className="text-indigo-400 font-bold">(Q{state.currentQuarter})</span>
           </h2>
-          <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+          <div className="text-sm text-gray-500 flex items-center gap-2 mt-2">
             {saveStatus === 'saving' ? (
-              <span className="text-yellow-600">Saving...</span>
+              <span className="text-amber-600 bg-amber-50 px-2 py-1 rounded-full font-medium">Saving...</span>
             ) : (
-              <span className="text-green-600 flex items-center gap-1"><CheckCircle size={14}/> All changes saved</span>
+              <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full flex items-center gap-1 font-medium"><CheckCircle size={14}/> All changes saved</span>
             )}
           </div>
         </div>
         
-        <div className="flex gap-2">
-          <button onClick={handlePrint} className="flex items-center gap-2 bg-gray-600 text-white px-3 py-1.5 rounded hover:bg-gray-700">
+        <div className="flex gap-3">
+          <button onClick={handlePrint} className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-full font-semibold hover:bg-gray-50 shadow-sm transition-all active:scale-95">
             <Printer size={16} /> Print
           </button>
-          <button onClick={handleExport} className="flex items-center gap-2 bg-green-600 text-white px-3 py-1.5 rounded hover:bg-green-700">
-            <Download size={16} /> Export
+          <button onClick={handleExport} className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-4 py-2 rounded-full font-semibold hover:from-emerald-600 hover:to-teal-600 shadow-md transition-all active:scale-95">
+            <Download size={16} /> Export Excel
           </button>
         </div>
       </div>
@@ -303,8 +303,18 @@ const ScoreList = () => {
                     <td className="p-1 border-r text-center">{renderNumberInput(student.id, score, 'test2', settings.maxScores.test)}</td>
                     <td className="p-2 border-r text-center bg-gray-50/50 font-medium text-gray-600">{calculated.testTotal}</td>
 
-                    <td className="p-2 border-r text-center bg-indigo-50/50 font-bold text-indigo-700">{calculated.overallScore}</td>
-                    <td className="p-2 border-r text-center bg-indigo-50/50 font-bold text-indigo-900 text-lg">{calculated.letterGrade}</td>
+                    <td className="p-2 border-r text-center bg-indigo-50/50 font-bold text-indigo-700 text-lg">{calculated.overallScore}</td>
+                    <td className="p-2 border-r text-center bg-indigo-50/50 font-bold text-lg">
+                      <span className={`inline-block px-3 py-1 rounded-full text-white shadow-sm ${
+                        ['A+', 'A', 'A-'].includes(calculated.letterGrade) ? 'bg-emerald-500' :
+                        ['B+', 'B', 'B-'].includes(calculated.letterGrade) ? 'bg-blue-500' :
+                        ['C+', 'C', 'C-'].includes(calculated.letterGrade) ? 'bg-amber-500' :
+                        ['D+', 'D', 'D-'].includes(calculated.letterGrade) ? 'bg-orange-500' :
+                        'bg-rose-500'
+                      }`}>
+                        {calculated.letterGrade}
+                      </span>
+                    </td>
 
                     {/* Auto-Generated Feedback */}
                     <td className="p-1 border-r">{renderAutoTextInput(student.id, score, 'achievement', calculated.autoAchievement)}</td>

@@ -36,11 +36,11 @@ const Header = () => {
   };
 
   return (
-    <header className="h-16 bg-white border-b flex items-center justify-between px-6 shrink-0">
-      <div className="flex items-center space-x-4 w-1/2">
+    <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-200/80 flex items-center justify-between px-8 shrink-0 z-10 sticky top-0">
+      <div className="flex items-center space-x-3 w-1/2">
         {/* Context Selectors */}
         <select 
-          className="border rounded-md px-3 py-1.5 text-sm bg-gray-50"
+          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
           value={state.currentYearId || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_YEAR', payload: e.target.value || null })}
         >
@@ -51,7 +51,7 @@ const Header = () => {
         </select>
 
         <select 
-          className="border rounded-md px-3 py-1.5 text-sm bg-gray-50"
+          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
           value={state.currentClassId || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_CLASS', payload: e.target.value || null })}
         >
@@ -64,7 +64,7 @@ const Header = () => {
         </select>
 
         <select 
-          className="border rounded-md px-3 py-1.5 text-sm bg-gray-50"
+          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
           value={state.currentQuarter || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_QUARTER', payload: e.target.value ? Number(e.target.value) as Quarter : null })}
         >
@@ -76,38 +76,38 @@ const Header = () => {
         </select>
       </div>
 
-      <div className="w-1/2 flex justify-end items-center space-x-4">
+      <div className="w-1/2 flex justify-end items-center space-x-5">
         
         {/* Auto-save indicator & Manual Save Button */}
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center text-sm font-medium transition-opacity duration-300 ${showSaved ? 'text-green-600 opacity-100' : 'text-gray-400 opacity-0'}`}>
-            <Check size={16} className="mr-1" /> Cloud Synced
+        <div className="flex items-center">
+          <div className={`flex items-center text-sm font-medium transition-all duration-500 ${showSaved ? 'text-emerald-500 translate-y-0 opacity-100' : 'text-gray-400 translate-y-1 opacity-0'}`}>
+            <Check size={16} className="mr-1.5" /> Synced
           </div>
         </div>
 
-        <form onSubmit={handleSearch} className="relative w-48">
+        <form onSubmit={handleSearch} className="relative w-56">
           <input
             type="text"
             placeholder="Search student..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border rounded-full pl-10 pr-4 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
+            className="w-full border border-gray-200 rounded-full pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-gray-50/50 hover:bg-white transition-colors shadow-inner"
           />
-          <Search className="absolute left-3 top-2 text-gray-400" size={16} />
+          <Search className="absolute left-3.5 top-2.5 text-gray-400" size={16} />
         </form>
 
         {/* User Profile */}
         {currentUser && (
-          <div className="flex items-center gap-3 border-l pl-4 ml-2">
+          <div className="flex items-center gap-3 border-l border-gray-200 pl-5 ml-1">
             <img 
               src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.email}`} 
               alt="Profile" 
-              className="w-8 h-8 rounded-full border border-gray-200"
+              className="w-9 h-9 rounded-full border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
               title={currentUser.email || ''}
             />
             <button 
               onClick={() => logout()}
-              className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+              className="text-sm font-semibold text-gray-500 hover:text-rose-500 transition-colors"
             >
               Log out
             </button>

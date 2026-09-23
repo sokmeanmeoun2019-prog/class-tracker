@@ -71,15 +71,17 @@ const RecordParticipation = () => {
       
       {/* Header Area */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">Record Participation</h1>
+        <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-600 mb-6 drop-shadow-sm">
+          Record Participation
+        </h1>
         
-        <div className="flex flex-wrap gap-6 items-center text-gray-700 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+        <div className="flex flex-wrap gap-6 items-center text-gray-700 bg-white/60 backdrop-blur-md p-5 rounded-2xl shadow-sm border border-white/50">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Class:</span>
+            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Class:</span>
             <select 
               value={state.currentClassId || ''}
               onChange={(e) => dispatch({ type: 'SET_CURRENT_CLASS', payload: e.target.value || null })}
-              className="border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent pb-1"
+              className="font-bold text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 cursor-pointer"
             >
               {state.classes.filter(c => c.academicYearId === state.currentYearId).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -88,11 +90,11 @@ const RecordParticipation = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Quarter:</span>
+            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Quarter:</span>
             <select 
               value={state.currentQuarter || ''}
               onChange={(e) => dispatch({ type: 'SET_CURRENT_QUARTER', payload: Number(e.target.value) as Quarter })}
-              className="border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent pb-1"
+              className="font-bold text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 cursor-pointer"
             >
               <option value={1}>Quarter 1</option>
               <option value={2}>Quarter 2</option>
@@ -102,101 +104,115 @@ const RecordParticipation = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="font-semibold">Date:</span>
-            <span>{format(new Date(), 'MMMM d, yyyy')}</span>
+            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Date:</span>
+            <span className="font-bold text-indigo-900 border-b-2 border-transparent pb-1">{format(new Date(), 'MMM d, yyyy')}</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
             {isActivityActive ? (
-              <>
-                <span className="font-semibold">Activity:</span>
-                <span className="text-blue-600 font-medium">{activityName || 'Unnamed Activity'}</span>
-                <button onClick={() => { setIsActivityActive(false); setActivityName(''); }} className="ml-2 text-sm text-red-600 hover:underline">
-                  Finish Activity
+              <div className="bg-indigo-50/80 px-4 py-1.5 rounded-full flex items-center border border-indigo-100">
+                <span className="font-semibold text-sm text-indigo-900/60 mr-2">Activity:</span>
+                <span className="text-indigo-700 font-bold mr-3">{activityName || 'Unnamed Activity'}</span>
+                <button onClick={() => { setIsActivityActive(false); setActivityName(''); }} className="text-xs font-bold text-rose-500 hover:text-rose-700 uppercase tracking-wider">
+                  Finish
                 </button>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <input 
                   type="text" 
-                  placeholder="Optional Activity..." 
+                  placeholder="Activity Name..." 
                   value={activityName}
                   onChange={e=>setActivityName(e.target.value)}
-                  className="border-b border-gray-300 focus:outline-none focus:border-blue-500 bg-transparent pb-1 w-32 text-sm"
+                  className="border-b-2 border-gray-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 w-40 text-sm font-medium"
                 />
-                <button onClick={() => setIsActivityActive(true)} className="text-sm text-blue-600 font-medium hover:underline">
-                  Start Activity
+                <button onClick={() => setIsActivityActive(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-md transition-transform hover:scale-105 active:scale-95">
+                  Start
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>
       </div>
 
       {/* Summary Bar */}
-      <div className="bg-gray-100 border border-gray-200 p-4 rounded-lg flex flex-wrap gap-8 items-center text-lg font-medium text-gray-800">
-        <div>Students: <span className="text-blue-600">{classStudents.length}</span></div>
-        <div>Today's Participation: <span className="text-blue-600">{todaysRecords.length}</span></div>
-        <div>Quarter Total: <span className="text-blue-600">{quarterTotal}</span></div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Students</span>
+          <span className="text-2xl font-black text-indigo-900">{classStudents.length}</span>
+        </div>
+        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Today's Points</span>
+          <span className="text-2xl font-black text-emerald-500">{todaysRecords.length}</span>
+        </div>
+        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
+          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Quarter Total</span>
+          <span className="text-2xl font-black text-indigo-600">{quarterTotal}</span>
+        </div>
       </div>
 
-      {/* Vertical List Layout for Students */}
-      <div className="flex-1 overflow-y-auto pb-8">
-        <div className="flex flex-col gap-3 max-w-4xl">
+      {/* Responsive Grid Layout for Students */}
+      <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {classStudents.map(student => {
             const count = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
             const isJustClicked = lastClickedId === student.id;
             
+            // Generate a color based on the display number to make it vibrant and unique
+            const colors = ['bg-rose-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-fuchsia-500'];
+            const badgeColor = colors[student.displayNum % colors.length];
+
             return (
               <div 
                 key={student.id}
                 onClick={() => handleRecord(student.id)}
-                className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 cursor-pointer flex items-center justify-between select-none transition-all duration-150 ease-in-out ${
-                  isJustClicked ? 'ring-2 ring-blue-500 bg-blue-50 transform scale-[1.01]' : 'hover:border-blue-300 hover:shadow-md'
+                className={`relative bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-white/40 p-5 cursor-pointer flex flex-col justify-between select-none transition-all duration-200 ease-out active:scale-95 overflow-hidden ${
+                  isJustClicked ? 'ring-4 ring-indigo-300 bg-indigo-50/90' : 'hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1'
                 }`}
               >
-                {/* Left: Student Name Revealed Vertically */}
-                <div className="flex items-center gap-4 flex-1">
-                  <h3 className="font-bold text-gray-900 text-lg sm:text-xl">
-                    <span className="text-gray-400 mr-2">#{student.displayNum}</span> 
-                    {student.name}
-                  </h3>
+                {/* Decorative Background Blob */}
+                <div className={`absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-10 blur-2xl ${badgeColor}`}></div>
+
+                <div className="flex justify-between items-start mb-4 z-10">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${badgeColor}`}>
+                      {student.displayNum}
+                    </div>
+                    <h3 className="font-bold text-gray-800 text-lg sm:text-xl line-clamp-2 leading-tight">
+                      {student.name}
+                    </h3>
+                  </div>
                 </div>
                 
-                {/* Right: Count and Actions */}
-                <div className="flex items-center gap-6">
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={(e) => handleUndo(student.id, e)}
-                      className="text-gray-400 hover:text-red-500 font-bold text-2xl px-2 leading-none rounded hover:bg-gray-100"
-                      title="Subtract 1 participation"
-                    >
-                      −
-                    </button>
-                    
-                    <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                      <span className="text-sm text-gray-500 font-bold uppercase tracking-wider">Count</span>
-                      <div className="text-3xl font-black text-blue-600 relative">
-                        {count}
-                        {isJustClicked && (
-                          <span className="absolute -top-6 -right-4 text-green-500 text-lg animate-ping opacity-75">
-                            +1
-                          </span>
-                        )}
-                      </div>
+                <div className="flex items-end justify-between mt-auto z-10">
+                  <button 
+                    onClick={(e) => handleUndo(student.id, e)}
+                    className="text-gray-400 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100"
+                    title="Subtract 1 participation"
+                  >
+                    −
+                  </button>
+                  
+                  <div className="flex flex-col items-end">
+                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Score</span>
+                    <div className="text-4xl font-black text-indigo-900 relative">
+                      {count}
+                      {isJustClicked && (
+                        <span className="absolute -top-8 -right-6 text-emerald-500 font-black text-2xl animate-float-up opacity-0 drop-shadow-md">
+                          +1
+                        </span>
+                      )}
                     </div>
                   </div>
-
-                  <div className="border-l pl-4 flex items-center">
-                    <button
-                      onClick={(e) => handleDeleteStudent(student.id, student.name, e)}
-                      className="text-gray-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
-                      title="Delete Student"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </div>
                 </div>
+
+                <button
+                  onClick={(e) => handleDeleteStudent(student.id, student.name, e)}
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 hover:opacity-100 text-rose-300 hover:text-rose-600 p-2 rounded-full hover:bg-rose-50 transition-all z-20"
+                  title="Delete Student"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             );
           })}

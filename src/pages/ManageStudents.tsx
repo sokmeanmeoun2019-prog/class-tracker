@@ -64,16 +64,18 @@ const ManageStudents = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800">Manage Students</h2>
+    <div className="space-y-8">
+      <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-600 drop-shadow-sm">
+        Manage Students
+      </h2>
       
-      <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4">
+      <div className="glass-card p-6 rounded-3xl space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Select Class to Manage</label>
+          <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Select Class to Manage</label>
           <select
             value={selectedClassId}
             onChange={(e) => setSelectedClassId(e.target.value)}
-            className="border rounded-md px-4 py-2 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="border-2 border-indigo-100 rounded-xl px-4 py-3 w-full max-w-md focus:outline-none focus:border-indigo-500 bg-white/50 shadow-sm font-medium text-gray-800"
           >
             <option value="">Select a class...</option>
             {state.classes.map(c => (
@@ -86,28 +88,30 @@ const ManageStudents = () => {
       {selectedClassId && (
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="col-span-1 space-y-6">
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium mb-4">Add Single Student</h3>
-              <form onSubmit={handleAddStudent} className="space-y-4">
+            <div className="glass-card p-6 rounded-3xl">
+              <h3 className="text-xl font-bold text-indigo-900 mb-6">Add Single Student</h3>
+              <form onSubmit={handleAddStudent} className="space-y-5">
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Name</label>
-                  <input type="text" required value={name} onChange={e=>setName(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Name</label>
+                  <input type="text" required value={name} onChange={e=>setName(e.target.value)} className="w-full border-2 border-indigo-50 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 bg-white/50 shadow-inner" />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-600 mb-1">Student ID (Optional)</label>
-                  <input type="text" value={studentIdStr} onChange={e=>setStudentIdStr(e.target.value)} className="w-full border rounded px-3 py-2" />
+                  <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Student ID (Optional)</label>
+                  <input type="text" value={studentIdStr} onChange={e=>setStudentIdStr(e.target.value)} className="w-full border-2 border-indigo-50 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 bg-white/50 shadow-inner" />
                 </div>
-                <button type="submit" className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Student</button>
+                <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold px-4 py-3 rounded-xl hover:from-indigo-700 hover:to-purple-700 shadow-md active:scale-95 transition-all">
+                  Add Student
+                </button>
               </form>
             </div>
 
-            <div className="bg-white p-6 rounded-lg shadow-sm border">
-              <h3 className="text-lg font-medium mb-4">Import via Excel/CSV</h3>
-              <p className="text-sm text-gray-500 mb-4">Upload a file with a <strong>Name</strong> column.</p>
-              <label className="flex items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+            <div className="glass-card p-6 rounded-3xl">
+              <h3 className="text-xl font-bold text-indigo-900 mb-2">Import via Excel</h3>
+              <p className="text-sm text-gray-500 mb-6">Upload a file with a <strong>Name</strong> column.</p>
+              <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-indigo-200 rounded-2xl cursor-pointer hover:bg-indigo-50/50 hover:border-indigo-400 transition-all group">
                 <div className="flex flex-col items-center">
-                  <Upload className="text-gray-400 mb-2" />
-                  <span className="text-sm text-gray-600">Click to upload Excel</span>
+                  <Upload className="text-indigo-300 group-hover:text-indigo-500 mb-3 transition-colors" size={32} />
+                  <span className="text-sm font-bold text-indigo-900">Click to upload Excel</span>
                 </div>
                 <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleFileUpload} />
               </label>
