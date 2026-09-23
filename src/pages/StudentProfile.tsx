@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../store/DataContext';
 import { getStudentQuarterTotal, getStudentSemesterTotal, getStudentYearTotal, getClassRoster, calculateStudentGrades } from '../utils/calculations';

@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useData } from '../store/DataContext';
 import { getClassQuarterTotal, getClassSemesterTotal, getClassYearTotal } from '../utils/calculations';
 

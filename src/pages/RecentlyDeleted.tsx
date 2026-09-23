@@ -1,7 +1,6 @@
-import React from 'react';
 import { useData } from '../store/DataContext';
 import { RefreshCcw, Trash2, AlertCircle } from 'lucide-react';
-import { formatDistanceToNow, differenceInDays } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 const RecentlyDeleted = () => {
   const { state, dispatch } = useData();

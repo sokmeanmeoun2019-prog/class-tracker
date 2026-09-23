@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useData } from '../store/DataContext';
 import { getClassRoster, getStudentQuarterTotal, calculateStudentGrades } from '../utils/calculations';
 import { exportScoreList } from '../utils/export';
@@ -116,31 +116,6 @@ const ScoreList = () => {
     );
   };
 
-  const renderTextInput = (studentId: string, score: ScoreRecord | undefined, field: keyof ScoreRecord) => {
-    const val = score?.[field] as string;
-    return (
-      <input 
-        type="text" 
-        className="w-32 p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded"
-        value={val || ''}
-        onChange={(e) => handleScoreChange(studentId, field, e.target.value)}
-      />
-    );
-  };
-
-  const renderDropdown = (studentId: string, score: ScoreRecord | undefined, field: keyof ScoreRecord, options: string[]) => {
-    const val = score?.[field] as string;
-    return (
-      <select 
-        className="w-28 p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-sm"
-        value={val || ''}
-        onChange={(e) => handleScoreChange(studentId, field, e.target.value)}
-      >
-        <option value=""></option>
-        {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-      </select>
-    );
-  };
 
   const renderAutoTextInput = (studentId: string, score: ScoreRecord | undefined, field: keyof ScoreRecord, autoVal: string) => {
     const val = score?.[field] as string | undefined;

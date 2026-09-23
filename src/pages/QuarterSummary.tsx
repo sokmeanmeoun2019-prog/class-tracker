@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useData } from '../store/DataContext';
 import { getClassQuarterTotal, getAverageParticipation, getClassRoster, getStudentQuarterTotal } from '../utils/calculations';
 import { exportQuarterSummary } from '../utils/export';

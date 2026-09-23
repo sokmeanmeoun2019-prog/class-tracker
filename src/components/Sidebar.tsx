@@ -1,4 +1,3 @@
-import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, CheckCircle, Users, BookOpen, BarChart3, Clock, Settings, GraduationCap, Trash2, ClipboardList } from 'lucide-react';
 

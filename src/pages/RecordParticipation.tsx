@@ -12,7 +12,6 @@ const RecordParticipation = () => {
   const [isActivityActive, setIsActivityActive] = useState(false);
   const [lastClickedId, setLastClickedId] = useState<string | null>(null);
 
-  const currentClass = state.classes.find(c => c.id === state.currentClassId);
   const classStudents = state.currentClassId ? getClassRoster(state.students, state.currentClassId) : [];
 
   useEffect(() => {
