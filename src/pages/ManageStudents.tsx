@@ -27,7 +27,7 @@ const ManageStudents = () => {
         id: uuidv4(),
         classId: selectedClassId,
         name: name.trim(),
-        studentId: studentIdStr.trim() || undefined
+        studentId: studentIdStr.trim() || ""
       }
     });
     setName('');
@@ -53,7 +53,7 @@ const ManageStudents = () => {
         id: uuidv4(),
         classId: selectedClassId,
         name: row['Name'] || row['Student Name'] || 'Unknown',
-        studentId: row['Student ID'] || row['ID'] || undefined
+        studentId: row['Student ID'] || row['ID'] || ""
       }));
       dispatch({ type: 'IMPORT_STUDENTS', payload: newStudents });
       alert(`Imported ${newStudents.length} students successfully.`);

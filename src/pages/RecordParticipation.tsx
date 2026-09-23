@@ -38,8 +38,8 @@ const RecordParticipation = () => {
       quarter: state.currentQuarter!,
       date: format(now, 'yyyy-MM-dd'),
       time: format(now, 'HH:mm:ss'),
-      activityName: isActivityActive ? activityName : undefined,
       participationType: 'Class Participation',
+      ...(isActivityActive && activityName ? { activityName } : {})
     };
     
     dispatch({ type: 'ADD_RECORD', payload: record });

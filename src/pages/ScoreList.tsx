@@ -75,7 +75,7 @@ const ScoreList = () => {
 
     // If it's a number field, parse it
     if (typeof value === 'string' && value === '') {
-       (updatedScore as any)[field] = undefined;
+       delete (updatedScore as any)[field];
     } else if (['conduct', 'cpScore', 'hw1', 'hw2', 'hw3', 'quiz1', 'quiz2', 'quiz3', 'test1', 'test2'].includes(field)) {
       (updatedScore as any)[field] = Number(value);
     } else {
