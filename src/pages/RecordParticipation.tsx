@@ -153,7 +153,7 @@ const RecordParticipation = () => {
 
       {/* Responsive Grid Layout for Students */}
       <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {classStudents.map(student => {
             const count = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
             const isJustClicked = lastClickedId === student.id;
@@ -166,39 +166,37 @@ const RecordParticipation = () => {
               <div 
                 key={student.id}
                 onClick={() => handleRecord(student.id)}
-                className={`relative bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] border border-white/40 p-5 cursor-pointer flex flex-col justify-between select-none transition-all duration-200 ease-out active:scale-95 overflow-hidden ${
-                  isJustClicked ? 'ring-4 ring-indigo-300 bg-indigo-50/90' : 'hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1'
+                className={`group relative bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] border border-white/40 p-4 cursor-pointer flex items-center justify-between select-none transition-all duration-200 ease-out active:scale-95 overflow-hidden ${
+                  isJustClicked ? 'ring-2 ring-indigo-300 bg-indigo-50/90' : 'hover:shadow-[0_8px_20px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-0.5'
                 }`}
               >
                 {/* Decorative Background Blob */}
-                <div className={`absolute -top-10 -right-10 w-24 h-24 rounded-full opacity-10 blur-2xl ${badgeColor}`}></div>
+                <div className={`absolute -left-6 -top-6 w-20 h-20 rounded-full opacity-10 blur-2xl ${badgeColor}`}></div>
 
-                <div className="flex justify-between items-start mb-4 z-10">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ${badgeColor}`}>
-                      {student.displayNum}
-                    </div>
-                    <h3 className="font-bold text-gray-800 text-lg sm:text-xl line-clamp-2 leading-tight">
-                      {student.name}
-                    </h3>
+                <div className="flex items-center gap-4 z-10 flex-1">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0 ${badgeColor}`}>
+                    {student.displayNum}
                   </div>
+                  <h3 className="font-bold text-gray-800 text-lg sm:text-xl line-clamp-1 pr-2">
+                    {student.name}
+                  </h3>
                 </div>
                 
-                <div className="flex items-end justify-between mt-auto z-10">
+                <div className="flex items-center gap-5 z-10">
                   <button 
                     onClick={(e) => handleUndo(student.id, e)}
-                    className="text-gray-400 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100"
+                    className="text-gray-400 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100 shadow-sm"
                     title="Subtract 1 participation"
                   >
                     −
                   </button>
                   
-                  <div className="flex flex-col items-end">
-                    <span className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-1">Score</span>
-                    <div className="text-4xl font-black text-indigo-900 relative">
+                  <div className="flex flex-col items-end min-w-[50px]">
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Score</span>
+                    <div className="text-3xl font-black text-indigo-900 relative">
                       {count}
                       {isJustClicked && (
-                        <span className="absolute -top-8 -right-6 text-emerald-500 font-black text-2xl animate-float-up opacity-0 drop-shadow-md">
+                        <span className="absolute -top-6 -right-4 text-emerald-500 font-black text-xl animate-float-up opacity-0 drop-shadow-md">
                           +1
                         </span>
                       )}
@@ -208,10 +206,10 @@ const RecordParticipation = () => {
 
                 <button
                   onClick={(e) => handleDeleteStudent(student.id, student.name, e)}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 opacity-0 hover:opacity-100 text-rose-300 hover:text-rose-600 p-2 rounded-full hover:bg-rose-50 transition-all z-20"
+                  className="absolute bottom-1 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 text-rose-300 hover:text-rose-600 p-1 rounded-full hover:bg-rose-50 transition-all z-20"
                   title="Delete Student"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} />
                 </button>
               </div>
             );
