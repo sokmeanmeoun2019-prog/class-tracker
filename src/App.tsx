@@ -15,6 +15,9 @@ import StudentProfile from './pages/StudentProfile';
 import RecentlyDeleted from './pages/RecentlyDeleted';
 import ScoreList from './pages/ScoreList';
 
+import { AuthProvider, useAuth } from './store/AuthContext';
+import Login from './pages/Login';
+
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
@@ -33,28 +36,45 @@ function AppLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { currentUser } = useAuth();
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
+
 function App() {
   return (
-    <DataProvider>
-      <Router>
-        <AppLayout>
+    <AuthProvider>
+      <DataProvider>
+        <Router>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/record" element={<RecordParticipation />} />
-            <Route path="/scores" element={<ScoreList />} />
-            <Route path="/classes" element={<ManageClasses />} />
-            <Route path="/students" element={<ManageStudents />} />
-            <Route path="/quarter-summary" element={<QuarterSummary />} />
-            <Route path="/semester-summary" element={<SemesterSummary />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/trash" element={<RecentlyDeleted />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/student/:id" element={<StudentProfile />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/*" element={
+              <ProtectedRoute>
+                <AppLayout>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/record" element={<RecordParticipation />} />
+                    <Route path="/scores" element={<ScoreList />} />
+                    <Route path="/classes" element={<ManageClasses />} />
+                    <Route path="/students" element={<ManageStudents />} />
+                    <Route path="/quarter-summary" element={<QuarterSummary />} />
+                    <Route path="/semester-summary" element={<SemesterSummary />} />
+                    <Route path="/history" element={<History />} />
+                    <Route path="/trash" element={<RecentlyDeleted />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/student/:id" element={<StudentProfile />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </AppLayout>
+              </ProtectedRoute>
+            } />
           </Routes>
-        </AppLayout>
-      </Router>
-    </DataProvider>
+        </Router>
+      </DataProvider>
+    </AuthProvider>
   );
 }
 

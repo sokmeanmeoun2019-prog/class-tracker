@@ -3,12 +3,14 @@ import { useData } from '../store/DataContext';
 import { Quarter } from '../types';
 import { Search, Save, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../store/AuthContext';
 
 const Header = () => {
   const { state, dispatch } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSaved, setShowSaved] = useState(false);
   const navigate = useNavigate();
+  const { currentUser, logout } = useAuth();
 
   // Show a brief "Saved!" checkmark whenever state changes to prove autosave is working
   useEffect(() => {
@@ -74,22 +76,16 @@ const Header = () => {
         </select>
       </div>
 
-      <div className="w-1/2 flex justify-end items-center space-x-6">
+      <div className="w-1/2 flex justify-end items-center space-x-4">
         
         {/* Auto-save indicator & Manual Save Button */}
         <div className="flex items-center gap-3">
           <div className={`flex items-center text-sm font-medium transition-opacity duration-300 ${showSaved ? 'text-green-600 opacity-100' : 'text-gray-400 opacity-0'}`}>
-            <Check size={16} className="mr-1" /> Autosaved
+            <Check size={16} className="mr-1" /> Cloud Synced
           </div>
-          <button 
-            onClick={handleManualSave}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700 text-sm font-medium shadow-sm active:scale-95 transition-transform"
-          >
-            <Save size={16} /> Save Data
-          </button>
         </div>
 
-        <form onSubmit={handleSearch} className="relative w-64">
+        <form onSubmit={handleSearch} className="relative w-48">
           <input
             type="text"
             placeholder="Search student..."
@@ -99,6 +95,24 @@ const Header = () => {
           />
           <Search className="absolute left-3 top-2 text-gray-400" size={16} />
         </form>
+
+        {/* User Profile */}
+        {currentUser && (
+          <div className="flex items-center gap-3 border-l pl-4 ml-2">
+            <img 
+              src={currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.email}`} 
+              alt="Profile" 
+              className="w-8 h-8 rounded-full border border-gray-200"
+              title={currentUser.email || ''}
+            />
+            <button 
+              onClick={() => logout()}
+              className="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
+            >
+              Log out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

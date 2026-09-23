@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
 import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from './AuthContext';
 type Action =
   | { type: 'SET_STATE'; payload: AppState }
   | { type: 'ADD_YEAR'; payload: AcademicYear }
@@ -202,32 +204,66 @@ const reducer = (state: AppState, action: Action): AppState => {
 };
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(reducer, defaultState, (initial) => {
-    try {
-      const stored = localStorage.getItem('class-participation-tracker-data');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (!parsed.trash) parsed.trash = []; // Migration
-        if (!parsed.scores) parsed.scores = []; // Migration
-        if (!parsed.gradingSettings) parsed.gradingSettings = defaultGradingSettings; // Migration
-        return { ...initial, ...parsed };
-      }
-    } catch (e) {
-      console.error('Failed to load state', e);
-    }
-    return initial;
-  });
+  const { currentUser } = useAuth();
+  const isRemoteUpdate = React.useRef(false);
+  const isInitialized = React.useRef(false);
 
+  const [state, dispatch] = useReducer(reducer, defaultState);
+
+  // Sync from Firebase
   useEffect(() => {
-    localStorage.setItem('class-participation-tracker-data', JSON.stringify(state));
-  }, [state]);
+    if (!currentUser) {
+      dispatch({ type: 'CLEAR_ALL_DATA' });
+      isInitialized.current = false;
+      return;
+    }
+
+    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
+      if (docSnap.exists()) {
+        // If the update came from the server (not our own local write), update local state
+        if (!docSnap.metadata.hasPendingWrites) {
+          isRemoteUpdate.current = true;
+          const data = docSnap.data() as AppState;
+          // Apply migrations if missing
+          if (!data.trash) data.trash = [];
+          if (!data.scores) data.scores = [];
+          if (!data.gradingSettings) data.gradingSettings = defaultGradingSettings;
+          
+          dispatch({ type: 'SET_STATE', payload: data });
+        }
+      } else {
+        // First time login, create the empty document
+        setDoc(doc(db, 'users', currentUser.uid), defaultState);
+      }
+      isInitialized.current = true;
+    });
+
+    return unsub;
+  }, [currentUser]);
+
+  // Sync to Firebase
+  useEffect(() => {
+    if (currentUser && isInitialized.current) {
+      if (isRemoteUpdate.current) {
+        // State changed because of remote sync, don't write back
+        isRemoteUpdate.current = false;
+      } else {
+        // State changed because of local user action, save to cloud
+        setDoc(doc(db, 'users', currentUser.uid), state).catch(err => {
+          console.error("Failed to save to cloud:", err);
+        });
+      }
+    }
+  }, [state, currentUser]);
 
   // Cleanup old trash items on load
   useEffect(() => {
-    dispatch({ type: 'CLEANUP_OLD_TRASH' });
-  }, []);
+    if (currentUser && isInitialized.current) {
+      dispatch({ type: 'CLEANUP_OLD_TRASH' });
+    }
+  }, [currentUser]);
 
-  // Egrade migration: if the user's maxScores.hw is still 20 (old default), update to egrade scale
+  // Egrade migration
   useEffect(() => {
     if (state.gradingSettings?.maxScores?.hw === 20 || state.gradingSettings?.maxScores?.hw === 0) {
       dispatch({
