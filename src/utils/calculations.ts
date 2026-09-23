@@ -176,3 +176,63 @@ export const calculateStudentGrades = (
     ...autoFeedback
   };
 };
+
+import { AttendanceRecord, AttendanceSettings, Quarter as QuarterType } from '../types';
+
+export const getStudentAttendanceQuarter = (
+  records: AttendanceRecord[], 
+  studentId: string, 
+  quarter: QuarterType
+) => {
+  const quarterRecords = records.filter(r => r.studentId === studentId && r.quarter === quarter);
+  
+  const present = quarterRecords.filter(r => r.status === 'Present').length;
+  const excused = quarterRecords.filter(r => r.status === 'Excused').length;
+  const unexcused = quarterRecords.filter(r => r.status === 'Unexcused').length;
+  const total = quarterRecords.length;
+
+  const rate = total > 0 ? ((present + excused) / total) * 100 : 0;
+  
+  return { present, excused, unexcused, total, rate: Number(rate.toFixed(2)) };
+};
+
+export const getStudentAttendanceSemester = (
+  records: AttendanceRecord[], 
+  studentId: string, 
+  semester: 1 | 2
+) => {
+  const quarters = semester === 1 ? [1, 2] : [3, 4];
+  const semesterRecords = records.filter(r => r.studentId === studentId && quarters.includes(r.quarter));
+  
+  const present = semesterRecords.filter(r => r.status === 'Present').length;
+  const excused = semesterRecords.filter(r => r.status === 'Excused').length;
+  const unexcused = semesterRecords.filter(r => r.status === 'Unexcused').length;
+  const total = semesterRecords.length;
+
+  const rate = total > 0 ? ((present + excused) / total) * 100 : 0;
+  
+  return { present, excused, unexcused, total, rate: Number(rate.toFixed(2)) };
+};
+
+export const getClassAttendanceQuarter = (
+  records: AttendanceRecord[],
+  classId: string,
+  quarter: QuarterType
+) => {
+  const quarterRecords = records.filter(r => r.classId === classId && r.quarter === quarter);
+  
+  const present = quarterRecords.filter(r => r.status === 'Present').length;
+  const excused = quarterRecords.filter(r => r.status === 'Excused').length;
+  const unexcused = quarterRecords.filter(r => r.status === 'Unexcused').length;
+  
+  // A 'class' happens when at least one student is recorded on a unique date
+  const uniqueDates = new Set(quarterRecords.map(r => r.date)).size;
+  
+  return { present, excused, unexcused, totalClasses: uniqueDates };
+};
+
+export const getAttendanceAlertStatus = (unexcused: number, settings: AttendanceSettings): 'Normal' | 'Warning' | 'Alert' => {
+  if (unexcused >= settings.alertThreshold) return 'Alert';
+  if (unexcused >= settings.warningThreshold) return 'Warning';
+  return 'Normal';
+};

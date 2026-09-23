@@ -4,6 +4,8 @@ import { LayoutDashboard, CheckCircle, Users, BookOpen, BarChart3, Clock, Settin
 const Sidebar = () => {
   const links = [
     { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+    { to: '/record-attendance', label: 'Record Attendance', icon: <ClipboardList size={20} /> },
+    { to: '/attendance', label: 'Attendance List', icon: <Users size={20} /> },
     { to: '/record', label: 'Record Participation', icon: <CheckCircle size={20} /> },
     { to: '/scores', label: 'Score List', icon: <ClipboardList size={20} /> },
     { to: '/classes', label: 'Classes & Years', icon: <BookOpen size={20} /> },

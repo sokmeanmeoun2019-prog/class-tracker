@@ -37,6 +37,32 @@ const Dashboard = () => {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+          <h3 className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Total Present</h3>
+          <p className="text-3xl font-black text-emerald-500 mt-2">{state.attendanceRecords.filter(r => r.status === 'Present').length}</p>
+        </div>
+        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+          <h3 className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Total Excused</h3>
+          <p className="text-3xl font-black text-amber-500 mt-2">{state.attendanceRecords.filter(r => r.status === 'Excused').length}</p>
+        </div>
+        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+          <h3 className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Total Unexcused</h3>
+          <p className="text-3xl font-black text-rose-500 mt-2">{state.attendanceRecords.filter(r => r.status === 'Unexcused').length}</p>
+        </div>
+        <div className="glass-card p-5 rounded-2xl relative overflow-hidden group">
+          <h3 className="text-gray-500 text-[11px] font-bold uppercase tracking-wider">Attendance Alerts</h3>
+          <p className="text-3xl font-black text-rose-700 mt-2">
+            {
+              state.students.filter(student => {
+                const unexcused = state.attendanceRecords.filter(r => r.studentId === student.id && r.status === 'Unexcused' && r.quarter === state.currentQuarter).length;
+                return unexcused >= (state.attendanceSettings?.alertThreshold || 6);
+              }).length
+            }
+          </p>
+        </div>
+      </div>
+
       {!state.currentClassId || !state.currentQuarter ? (
         <div className="bg-gradient-to-r from-amber-100 to-amber-50 border border-amber-200 p-6 rounded-3xl shadow-sm">
           <p className="text-amber-800 text-lg">

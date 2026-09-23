@@ -4,6 +4,8 @@ import { DataProvider } from './store/DataContext';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
+import RecordAttendance from './pages/RecordAttendance';
+import AttendanceList from './pages/AttendanceList';
 import RecordParticipation from './pages/RecordParticipation';
 import ManageClasses from './pages/ManageClasses';
 import ManageStudents from './pages/ManageStudents';
@@ -56,6 +58,8 @@ function App() {
                 <AppLayout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
+                    <Route path="/record-attendance" element={<RecordAttendance />} />
+                    <Route path="/attendance" element={<AttendanceList />} />
                     <Route path="/record" element={<RecordParticipation />} />
                     <Route path="/scores" element={<ScoreList />} />
                     <Route path="/classes" element={<ManageClasses />} />

@@ -195,6 +195,48 @@ const Settings = () => {
         </label>
       </div>
 
+      <div className="bg-white p-6 rounded-lg shadow-sm border space-y-4 mt-8">
+        <h3 className="text-lg font-bold border-b pb-2 text-indigo-900">Attendance Alert Configuration</h3>
+        <p className="text-gray-600 text-sm mb-4">
+          Set the threshold for Unexcused Absences. Excused absences will not count towards this alert.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-6">
+          <div className="flex-1">
+            <label className="block text-sm font-bold text-gray-700 mb-1">Warning Threshold</label>
+            <p className="text-xs text-gray-500 mb-2">Number of unexcused absences before showing a warning.</p>
+            <input 
+              type="number" 
+              min="0"
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full max-w-[150px] font-bold focus:border-indigo-500 focus:outline-none"
+              value={state.attendanceSettings?.warningThreshold || 5}
+              onChange={(e) => {
+                dispatch({ 
+                  type: 'UPDATE_ATTENDANCE_SETTINGS', 
+                  payload: { ...state.attendanceSettings, warningThreshold: Number(e.target.value) } 
+                });
+              }}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-sm font-bold text-gray-700 mb-1">Alert Threshold</label>
+            <p className="text-xs text-gray-500 mb-2">Number of unexcused absences before triggering a red alert.</p>
+            <input 
+              type="number" 
+              min="0"
+              className="border border-gray-300 rounded-lg px-3 py-2 w-full max-w-[150px] font-bold focus:border-indigo-500 focus:outline-none text-rose-600"
+              value={state.attendanceSettings?.alertThreshold || 6}
+              onChange={(e) => {
+                dispatch({ 
+                  type: 'UPDATE_ATTENDANCE_SETTINGS', 
+                  payload: { ...state.attendanceSettings, alertThreshold: Number(e.target.value) } 
+                });
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
       <div className="bg-red-50 p-6 rounded-lg shadow-sm border border-red-200 mt-8">
         <h3 className="text-lg font-bold text-red-700 border-b border-red-200 pb-2 mb-4 flex items-center gap-2">
           <AlertTriangle size={20} /> Danger Zone

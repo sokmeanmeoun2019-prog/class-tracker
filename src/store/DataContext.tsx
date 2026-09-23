@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
-import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings } from '../types';
+import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -28,13 +28,21 @@ type Action =
   | { type: 'RESTORE_TRASH_ITEM'; payload: string }
   | { type: 'DELETE_TRASH_ITEM'; payload: string }
   | { type: 'EMPTY_TRASH' }
-  | { type: 'CLEANUP_OLD_TRASH' };
+  | { type: 'CLEANUP_OLD_TRASH' }
+  | { type: 'SET_ATTENDANCE_RECORDS'; payload: AttendanceRecord[] }
+  | { type: 'UPDATE_ATTENDANCE_RECORD'; payload: AttendanceRecord }
+  | { type: 'UPDATE_ATTENDANCE_SETTINGS'; payload: AttendanceSettings };
 
 const defaultGradingSettings: GradingSettings = {
   maxScores: { conduct: 10, hw: 100, quiz: 100, test: 100, cp: 10 },
   weights: { conduct: 10, hw: 20, quiz: 20, test: 40, cp: 10 },
   achievementOptions: ['Excellent', 'Very Good', 'Good', 'Satisfactory', 'Needs Improvement'],
   attitudeOptions: ['Excellent', 'Very Good', 'Good', 'Satisfactory', 'Needs Improvement'],
+};
+
+const defaultAttendanceSettings: AttendanceSettings = {
+  warningThreshold: 5,
+  alertThreshold: 6,
 };
 
 const defaultState: AppState = {
@@ -44,7 +52,9 @@ const defaultState: AppState = {
   sessions: [],
   records: [],
   scores: [],
+  attendanceRecords: [],
   gradingSettings: defaultGradingSettings,
+  attendanceSettings: defaultAttendanceSettings,
   trash: [],
   currentYearId: null,
   currentClassId: null,
@@ -70,13 +80,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       const students = state.students.filter(s => classIds.includes(s.classId));
       const records = state.records.filter(r => classIds.includes(r.classId));
       const scores = state.scores.filter(s => classIds.includes(s.classId));
+      const attendanceRecords = state.attendanceRecords.filter(a => classIds.includes(a.classId));
       
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'YEAR',
         name: `Academic Year: ${year.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { year, classes, students, records, scores }
+        payload: { year, classes, students, records, scores, attendanceRecords }
       };
 
       return { 
@@ -86,6 +97,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         students: state.students.filter(s => !classIds.includes(s.classId)),
         records: state.records.filter(r => !classIds.includes(r.classId)),
         scores: state.scores.filter(s => !classIds.includes(s.classId)),
+        attendanceRecords: state.attendanceRecords.filter(a => !classIds.includes(a.classId)),
         trash: [...(state.trash || []), trashItem],
         currentYearId: state.currentYearId === action.payload ? null : state.currentYearId
       };
@@ -98,13 +110,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       const students = state.students.filter(s => s.classId === action.payload);
       const records = state.records.filter(r => r.classId === action.payload);
       const scores = state.scores.filter(s => s.classId === action.payload);
+      const attendanceRecords = state.attendanceRecords.filter(a => a.classId === action.payload);
 
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'CLASS',
         name: `Class: ${cls.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { classes: [cls], students, records, scores }
+        payload: { classes: [cls], students, records, scores, attendanceRecords }
       };
 
       return {
@@ -113,6 +126,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         students: state.students.filter(s => s.classId !== action.payload),
         records: state.records.filter(r => r.classId !== action.payload),
         scores: state.scores.filter(s => s.classId !== action.payload),
+        attendanceRecords: state.attendanceRecords.filter(a => a.classId !== action.payload),
         trash: [...(state.trash || []), trashItem],
         currentClassId: state.currentClassId === action.payload ? null : state.currentClassId
       };
@@ -126,13 +140,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       if (!student) return state;
       const records = state.records.filter(r => r.studentId === action.payload);
       const scores = state.scores.filter(s => s.studentId === action.payload);
+      const attendanceRecords = state.attendanceRecords.filter(a => a.studentId === action.payload);
       
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'STUDENT',
         name: `Student: ${student.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { students: [student], records, scores }
+        payload: { students: [student], records, scores, attendanceRecords }
       };
 
       return { 
@@ -140,6 +155,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         students: state.students.filter(s => s.id !== action.payload),
         records: state.records.filter(r => r.studentId !== action.payload),
         scores: state.scores.filter(s => s.studentId !== action.payload),
+        attendanceRecords: state.attendanceRecords.filter(a => a.studentId !== action.payload),
         trash: [...(state.trash || []), trashItem]
       };
     }
@@ -163,6 +179,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         students: [...state.students, ...(item.payload.students || [])],
         records: [...state.records, ...(item.payload.records || [])],
         scores: [...(state.scores || []), ...(item.payload.scores || [])],
+        attendanceRecords: [...(state.attendanceRecords || []), ...(item.payload.attendanceRecords || [])],
         trash: state.trash.filter(t => t.id !== action.payload)
       };
     }
@@ -196,6 +213,17 @@ const reducer = (state: AppState, action: Action): AppState => {
       return { ...state, currentClassId: action.payload };
     case 'SET_CURRENT_QUARTER':
       return { ...state, currentQuarter: action.payload };
+    case 'SET_ATTENDANCE_RECORDS':
+      return { ...state, attendanceRecords: [...state.attendanceRecords, ...action.payload.filter(nr => !state.attendanceRecords.some(r => r.id === nr.id))] };
+    case 'UPDATE_ATTENDANCE_RECORD': {
+      const existing = state.attendanceRecords.find(a => a.id === action.payload.id);
+      if (existing) {
+        return { ...state, attendanceRecords: state.attendanceRecords.map(a => a.id === action.payload.id ? action.payload : a) };
+      }
+      return { ...state, attendanceRecords: [...state.attendanceRecords, action.payload] };
+    }
+    case 'UPDATE_ATTENDANCE_SETTINGS':
+      return { ...state, attendanceSettings: action.payload };
     case 'CLEAR_ALL_DATA':
       return defaultState;
     default:
@@ -227,7 +255,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           // Apply migrations if missing
           if (!data.trash) data.trash = [];
           if (!data.scores) data.scores = [];
+          if (!data.attendanceRecords) data.attendanceRecords = [];
           if (!data.gradingSettings) data.gradingSettings = defaultGradingSettings;
+          if (!data.attendanceSettings) data.attendanceSettings = defaultAttendanceSettings;
           
           dispatch({ type: 'SET_STATE', payload: data });
         }

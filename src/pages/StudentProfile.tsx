@@ -1,9 +1,8 @@
-
 import { useParams, Link } from 'react-router-dom';
 import { useData } from '../store/DataContext';
-import { getStudentQuarterTotal, getStudentSemesterTotal, getStudentYearTotal, getClassRoster, calculateStudentGrades } from '../utils/calculations';
+import { getStudentQuarterTotal, getStudentSemesterTotal, getStudentYearTotal, getClassRoster, calculateStudentGrades, getStudentAttendanceQuarter, getStudentAttendanceSemester, getAttendanceAlertStatus } from '../utils/calculations';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertCircle, AlertTriangle } from 'lucide-react';
 
 const StudentProfile = () => {
   const { id } = useParams();
@@ -64,6 +63,47 @@ const StudentProfile = () => {
     );
   };
 
+  const renderQuarterAttendance = (q: 1|2|3|4) => {
+    const att = getStudentAttendanceQuarter(state.attendanceRecords, student.id, q);
+    if (att.total === 0) return <div className="text-gray-400 italic text-sm mt-2">No attendance recorded</div>;
+    
+    const alertStatus = getAttendanceAlertStatus(att.unexcused, state.attendanceSettings);
+
+    return (
+      <div className="text-sm mt-3 space-y-2">
+        <div className="grid grid-cols-2 gap-y-2 text-gray-700">
+          <div>Present: <strong>{att.present}</strong></div>
+          <div>Excused: <strong>{att.excused}</strong></div>
+          <div>Unexcused: <strong>{att.unexcused}</strong></div>
+          <div>Total Classes: <strong>{att.total}</strong></div>
+        </div>
+        <div className="pt-1 text-indigo-700">Attendance Rate: <strong>{att.rate}%</strong></div>
+        
+        {alertStatus === 'Alert' && (
+          <div className="mt-2 bg-rose-50 border border-rose-200 text-rose-700 p-2 rounded flex items-start gap-2">
+            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div>
+              <strong>Attendance Alert</strong>
+              <div className="text-xs">{att.unexcused} Unexcused Absences</div>
+            </div>
+          </div>
+        )}
+        {alertStatus === 'Warning' && (
+          <div className="mt-2 bg-amber-50 border border-amber-200 text-amber-700 p-2 rounded flex items-start gap-2">
+            <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+            <div>
+              <strong>Warning</strong>
+              <div className="text-xs">{att.unexcused} Unexcused Absences</div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const sem1Att = getStudentAttendanceSemester(state.attendanceRecords, student.id, 1);
+  const sem2Att = getStudentAttendanceSemester(state.attendanceRecords, student.id, 2);
+
   return (
     <div className="space-y-6">
       <Link to="/students" className="inline-flex items-center text-blue-600 hover:underline">
@@ -109,6 +149,49 @@ const StudentProfile = () => {
             <div className="flex justify-between font-medium"><span className="text-gray-600">Quarter 4</span><span>{q4}</span></div>
             <div className="flex justify-between font-bold text-green-600 border-t pt-2"><span >Semester 2 Total</span><span>{sem2}</span></div>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 className="text-xl font-bold mb-6 border-b pb-2">Attendance Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <h4 className="font-bold text-lg text-gray-800 border-b pb-2">Quarter 1</h4>
+            {renderQuarterAttendance(1)}
+          </div>
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <h4 className="font-bold text-lg text-gray-800 border-b pb-2">Quarter 2</h4>
+            {renderQuarterAttendance(2)}
+          </div>
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <h4 className="font-bold text-lg text-gray-800 border-b pb-2">Quarter 3</h4>
+            {renderQuarterAttendance(3)}
+          </div>
+          <div className="bg-gray-50 border rounded-lg p-4">
+            <h4 className="font-bold text-lg text-gray-800 border-b pb-2">Quarter 4</h4>
+            {renderQuarterAttendance(4)}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
+              <h4 className="font-bold text-lg text-blue-900 border-b border-blue-200 pb-2 mb-3">Semester 1 Total</h4>
+              <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-700">
+                <div>Present: <strong>{sem1Att.present}</strong></div>
+                <div>Excused: <strong>{sem1Att.excused}</strong></div>
+                <div>Unexcused: <strong>{sem1Att.unexcused}</strong></div>
+                <div>Rate: <strong>{sem1Att.rate}%</strong></div>
+              </div>
+           </div>
+           <div className="bg-green-50/50 border border-green-100 rounded-lg p-4">
+              <h4 className="font-bold text-lg text-green-900 border-b border-green-200 pb-2 mb-3">Semester 2 Total</h4>
+              <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-700">
+                <div>Present: <strong>{sem2Att.present}</strong></div>
+                <div>Excused: <strong>{sem2Att.excused}</strong></div>
+                <div>Unexcused: <strong>{sem2Att.unexcused}</strong></div>
+                <div>Rate: <strong>{sem2Att.rate}%</strong></div>
+              </div>
+           </div>
         </div>
       </div>
 

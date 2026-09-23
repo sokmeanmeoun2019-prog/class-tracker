@@ -95,6 +95,22 @@ export interface GradingSettings {
   attitudeOptions: string[];
 }
 
+export type AttendanceStatus = 'Present' | 'Excused' | 'Unexcused';
+
+export interface AttendanceRecord {
+  id: string; // usually `${classId}-${date}-${studentId}`
+  classId: string;
+  studentId: string;
+  quarter: Quarter;
+  date: string;
+  status: AttendanceStatus;
+}
+
+export interface AttendanceSettings {
+  warningThreshold: number;
+  alertThreshold: number;
+}
+
 export interface TrashItem {
   id: string;
   type: 'YEAR' | 'CLASS' | 'STUDENT';
@@ -106,6 +122,7 @@ export interface TrashItem {
     students?: Student[];
     records?: ParticipationRecord[];
     scores?: ScoreRecord[];
+    attendanceRecords?: AttendanceRecord[];
   };
 }
 
@@ -116,7 +133,9 @@ export interface AppState {
   sessions: ActivitySession[];
   records: ParticipationRecord[];
   scores: ScoreRecord[];
+  attendanceRecords: AttendanceRecord[];
   gradingSettings: GradingSettings;
+  attendanceSettings: AttendanceSettings;
   trash: TrashItem[];
   
   currentYearId: string | null;
