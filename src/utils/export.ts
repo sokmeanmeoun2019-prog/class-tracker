@@ -58,11 +58,13 @@ export const exportScoreList = (
 ) => {
   const sortedStudents = getClassRoster(students, classObj.id);
 
+  const classScores = scores.filter(s => s.classId === classObj.id && s.quarter === quarter);
+  
   const data = sortedStudents.map(student => {
     const score = scores.find(s => s.studentId === student.id && s.quarter === quarter);
     const rawCp = getStudentQuarterTotal(records, student.id, quarter);
     const cappedRawCp = Math.min(rawCp, settings.maxScores.cp);
-    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter);
+    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
 
     return {
       'No.': student.displayNum,

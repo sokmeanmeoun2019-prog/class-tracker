@@ -106,7 +106,9 @@ export const calculateStudentGrades = (
   rawCp: number, 
   settings: GradingSettings,
   studentId: string = '',
-  quarter: number = 1
+  quarter: number = 1,
+  className: string = '',
+  classScores: ScoreRecord[] = []
 ) => {
   const safeNum = (val: number | undefined) => (typeof val === 'number' && !isNaN(val)) ? val : 0;
   
@@ -120,17 +122,29 @@ export const calculateStudentGrades = (
   const quizTotal = safeNum(score?.quiz1) + safeNum(score?.quiz2) + safeNum(score?.quiz3);
   const testTotal = safeNum(score?.test1) + safeNum(score?.test2);
 
+  // Dynamic counts based on actual inputs in the class
+  const hasHw3 = classScores.some(s => typeof s.hw3 === 'number');
+  const hasQuiz3 = classScores.some(s => typeof s.quiz3 === 'number');
+  const hasTest2 = classScores.some(s => typeof s.test2 === 'number');
+
+  // Fallback to class name if no scores exist yet
+  const isLowerGrade = className.match(/\b(7|8|9|10|11)\b/i) || className.toLowerCase().match(/grade (7|8|9|10|11)/);
+
+  const hwCount = classScores.length > 0 ? (hasHw3 ? 3 : 2) : (isLowerGrade ? 2 : 3);
+  const quizCount = classScores.length > 0 ? (hasQuiz3 ? 3 : 2) : (isLowerGrade ? 2 : 3);
+  const testCount = classScores.length > 0 ? (hasTest2 ? 2 : 1) : (isLowerGrade ? 1 : 2);
+
   // Percentages based on max score
   const conductPct = settings.maxScores.conduct > 0 ? (conduct / settings.maxScores.conduct) : 0;
   const cpPct = settings.maxScores.cp > 0 ? (cp / settings.maxScores.cp) : 0;
   
-  const hwMax = settings.maxScores.hw * 3;
+  const hwMax = settings.maxScores.hw * hwCount;
   const hwPct = hwMax > 0 ? (hwTotal / hwMax) : 0;
   
-  const quizMax = settings.maxScores.quiz * 3;
+  const quizMax = settings.maxScores.quiz * quizCount;
   const quizPct = quizMax > 0 ? (quizTotal / quizMax) : 0;
   
-  const testMax = settings.maxScores.test * 2;
+  const testMax = settings.maxScores.test * testCount;
   const testPct = testMax > 0 ? (testTotal / testMax) : 0;
 
   // Weighted overall score out of 100

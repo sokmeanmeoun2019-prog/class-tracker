@@ -37,10 +37,12 @@ const ScoreList = () => {
   let lowest = 999;
   let completedCount = 0;
 
+  const classScores = state.scores.filter(s => s.classId === state.currentClassId && s.quarter === state.currentQuarter);
+  
   displayStudents.forEach(student => {
     const score = state.scores.find(s => s.studentId === student.id && s.quarter === state.currentQuarter);
     const rawCp = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
-    const calculated = calculateStudentGrades(score, rawCp, settings);
+    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
 
     if (calculated.overallScore > highest) highest = calculated.overallScore;
     if (calculated.overallScore < lowest) lowest = calculated.overallScore;
@@ -239,7 +241,7 @@ const ScoreList = () => {
                 const score = state.scores.find(s => s.studentId === student.id && s.quarter === state.currentQuarter);
                 const rawCp = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
                 const cappedRawCp = Math.min(rawCp, settings.maxScores.cp);
-                const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!);
+                const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
                 
                 return (
                   <tr key={student.id} className="border-b border-gray-200 hover:bg-yellow-50 group print:break-inside-avoid">
