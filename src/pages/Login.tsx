@@ -12,8 +12,8 @@ const Login = () => {
   const handleLogin = async () => {
     try {
       await signInWithGoogle();
-    } catch (error) {
-      alert("Failed to log in. Please try again.");
+    } catch (error: any) {
+      alert("Error: " + (error.message || "Failed to log in."));
     }
   };
 
