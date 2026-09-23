@@ -48,12 +48,13 @@ const RecordAttendance = () => {
   };
 
   const handleSaveAttendance = () => {
-    if (!state.currentClassId || !state.currentQuarter) return;
+    const { currentClassId, currentQuarter } = state;
+    if (!currentClassId || !currentQuarter) return;
 
     classStudents.forEach(student => {
       const status = attendanceMap[student.id];
       const existingRecord = state.attendanceRecords.find(
-        r => r.classId === state.currentClassId && r.studentId === student.id && r.date === selectedDate && r.quarter === state.currentQuarter
+        r => r.classId === currentClassId && r.studentId === student.id && r.date === selectedDate && r.quarter === currentQuarter
       );
 
       if (existingRecord) {
@@ -68,9 +69,9 @@ const RecordAttendance = () => {
         // Create new record
         const newRecord: AttendanceRecord = {
           id: uuidv4(),
-          classId: state.currentClassId,
+          classId: currentClassId,
           studentId: student.id,
-          quarter: state.currentQuarter,
+          quarter: currentQuarter,
           date: selectedDate,
           status
         };
