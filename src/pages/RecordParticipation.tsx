@@ -151,9 +151,9 @@ const RecordParticipation = () => {
         </div>
       </div>
 
-      {/* Responsive Grid Layout for Students */}
+      {/* Strict Vertical List Layout for Students */}
       <div className="flex-1 overflow-y-auto pb-8 custom-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-3 max-w-4xl mx-auto">
           {classStudents.map(student => {
             const count = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
             const isJustClicked = lastClickedId === student.id;
