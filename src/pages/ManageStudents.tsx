@@ -49,12 +49,23 @@ const ManageStudents = () => {
 
     try {
       const data = await parseExcelStudents(file);
-      const newStudents = data.map((row: any) => ({
-        id: uuidv4(),
-        classId: selectedClassId,
-        name: row['Name'] || row['Student Name'] || 'Unknown',
-        studentId: row['Student ID'] || row['ID'] || ""
-      }));
+      const newStudents = data
+        .filter((row: any) => {
+          const nameVal = row['Name'] || row['Student Name'];
+          return nameVal && typeof nameVal === 'string' && nameVal.trim().length > 0;
+        })
+        .map((row: any) => ({
+          id: uuidv4(),
+          classId: selectedClassId,
+          name: (row['Name'] || row['Student Name']).trim(),
+          studentId: (row['Student ID'] || row['ID'] || "").toString().trim()
+        }));
+        
+      if (newStudents.length === 0) {
+        alert("No valid students found. Make sure your column is named exactly 'Name'.");
+        return;
+      }
+
       dispatch({ type: 'IMPORT_STUDENTS', payload: newStudents });
       alert(`Imported ${newStudents.length} students successfully.`);
     } catch (error) {
