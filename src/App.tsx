@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider } from './store/DataContext';
 import Sidebar from './components/Sidebar';
@@ -24,7 +24,7 @@ import { AuthProvider, useAuth } from './store/AuthContext';
 import Login from './pages/Login';
 
 import { Menu, X } from 'lucide-react';
-import React, { useState } from 'react';
+
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
