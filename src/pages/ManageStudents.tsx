@@ -65,9 +65,20 @@ const ManageStudents = () => {
         alert("No valid students found. Make sure your column is named exactly 'Name'.");
         return;
       }
+      
+      const existingStudents = state.students.filter(s => s.classId === selectedClassId);
+      if (existingStudents.length > 0) {
+        const confirmMsg = `WARNING: Importing this file will DELETE the ${existingStudents.length} existing students in this class and wipe all of their scores/records.\n\nAre you sure you want to replace the class roster?`;
+        if (!window.confirm(confirmMsg)) {
+           // Clear file input
+           e.target.value = '';
+           return;
+        }
+      }
 
       dispatch({ type: 'IMPORT_STUDENTS', payload: newStudents });
-      alert(`Imported ${newStudents.length} students successfully.`);
+      alert(`Successfully replaced class roster with ${newStudents.length} new students.`);
+      e.target.value = ''; // clear input
     } catch (error) {
       console.error(error);
       alert('Failed to parse Excel file. Ensure it has a "Name" column.');

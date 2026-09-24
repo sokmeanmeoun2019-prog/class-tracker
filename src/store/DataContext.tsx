@@ -208,8 +208,30 @@ const reducer = (state: AppState, action: Action): AppState => {
         trash: (state.trash || []).filter(t => new Date(t.deletedAt) > thirtyDaysAgo)
       };
     }
-    case 'IMPORT_STUDENTS':
-      return { ...state, students: [...state.students, ...action.payload] };
+    case 'IMPORT_STUDENTS': {
+      if (action.payload.length === 0) return state;
+      const targetClassId = action.payload[0].classId;
+      
+      // Get IDs of students being removed to clean up their records
+      const removedStudentIds = state.students
+        .filter(s => s.classId === targetClassId)
+        .map(s => s.id);
+        
+      const otherStudents = state.students.filter(s => s.classId !== targetClassId);
+      const otherRecords = state.records.filter(r => !removedStudentIds.includes(r.studentId));
+      const otherScores = state.scores.filter(s => !removedStudentIds.includes(s.studentId));
+      const otherAttendance = state.attendanceRecords.filter(a => !removedStudentIds.includes(a.studentId));
+      const otherPtc = state.ptcRecords.filter(p => !removedStudentIds.includes(p.studentId));
+
+      return { 
+        ...state, 
+        students: [...otherStudents, ...action.payload],
+        records: otherRecords,
+        scores: otherScores,
+        attendanceRecords: otherAttendance,
+        ptcRecords: otherPtc
+      };
+    }
     case 'ADD_SESSION':
       return { ...state, sessions: [...state.sessions, action.payload] };
     case 'END_SESSION':
