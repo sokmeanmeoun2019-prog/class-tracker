@@ -184,18 +184,18 @@ const RecordParticipation = () => {
                   </h3>
                 </div>
                 
-                <div className="flex items-center gap-5 z-10">
+                <div className="flex items-center gap-3 z-10">
                   <button 
                     onClick={(e) => handleUndo(student.id, e)}
-                    className="text-gray-400 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100 shadow-sm"
-                    title="Subtract 1 participation"
+                    className="text-gray-400 hover:text-rose-500 bg-gray-50 hover:bg-rose-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100 shadow-sm shrink-0"
+                    title="Subtract point"
                   >
                     −
                   </button>
                   
-                  <div className="flex flex-col items-end min-w-[50px]">
+                  <div className="flex flex-col items-center min-w-[44px]">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Score</span>
-                    <div className="text-3xl font-black text-indigo-900 relative">
+                    <div className="text-3xl font-black text-indigo-900 relative leading-none">
                       {count}
                       {isJustClicked && (
                         <span className="absolute -top-6 -right-4 text-emerald-500 font-black text-xl animate-float-up opacity-0 drop-shadow-md">
@@ -204,6 +204,14 @@ const RecordParticipation = () => {
                       )}
                     </div>
                   </div>
+
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleRecord(student.id); }}
+                    className="text-gray-400 hover:text-emerald-500 bg-gray-50 hover:bg-emerald-50 w-10 h-10 rounded-full flex items-center justify-center font-bold text-2xl transition-colors border border-gray-100 shadow-sm shrink-0"
+                    title="Add point"
+                  >
+                    +
+                  </button>
                 </div>
 
                 <button
