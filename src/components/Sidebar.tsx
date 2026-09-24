@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, CheckCircle, Users, BookOpen, BarChart3, Clock, Settings, GraduationCap, Trash2, ClipboardList } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ onNavClick }: { onNavClick?: () => void }) => {
   const links = [
     { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { to: '/record-attendance', label: 'Record Attendance', icon: <ClipboardList size={20} /> },
@@ -38,6 +38,7 @@ const Sidebar = () => {
             <NavLink
               key={link.to}
               to={link.to}
+              onClick={onNavClick}
               className={({ isActive }) =>
                 `flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                   isActive

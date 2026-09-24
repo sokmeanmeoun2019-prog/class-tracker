@@ -23,17 +23,39 @@ import SemesterExam from './pages/SemesterExam';
 import { AuthProvider, useAuth } from './store/AuthContext';
 import Login from './pages/Login';
 
+import { Menu, X } from 'lucide-react';
+import React, { useState } from 'react';
+
 function AppLayout({ children }: { children: React.ReactNode }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
     <div className="flex h-screen bg-transparent overflow-hidden print:overflow-visible print:h-auto">
-      <div className="print:hidden h-full">
-        <Sidebar />
+      {/* Mobile Sidebar Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      
+      <div className={`fixed inset-y-0 left-0 z-50 transform ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 md:relative md:translate-x-0 print:hidden h-full`}>
+        <Sidebar onNavClick={() => setMobileMenuOpen(false)} />
       </div>
-      <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible relative">
-        <div className="print:hidden">
-          <Header />
+
+      <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible relative w-full">
+        <div className="print:hidden flex items-center md:block">
+          <button 
+            className="md:hidden p-4 text-gray-700 hover:text-indigo-600 bg-white"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+          <div className="flex-1">
+            <Header />
+          </div>
         </div>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto print:overflow-visible p-6 md:p-8 print:p-0">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto print:overflow-visible p-4 sm:p-6 md:p-8 print:p-0">
           {children}
         </main>
       </div>

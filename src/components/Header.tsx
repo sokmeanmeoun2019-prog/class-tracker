@@ -36,11 +36,11 @@ const Header = () => {
   };
 
   return (
-    <header className="h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-200/80 flex items-center justify-between px-8 shrink-0 z-10 sticky top-0">
-      <div className="flex items-center space-x-3 w-1/2">
+    <header className="py-3 md:h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-200/80 flex flex-col md:flex-row items-center justify-between px-4 md:px-8 shrink-0 z-10 sticky top-0 gap-3 md:gap-0">
+      <div className="flex flex-wrap items-center gap-2 md:space-x-3 w-full md:w-auto">
         {/* Context Selectors */}
         <select 
-          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
+          className="border border-gray-200 rounded-full px-3 py-1.5 md:px-4 md:py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer flex-1 min-w-[110px]"
           value={state.currentYearId || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_YEAR', payload: e.target.value || null })}
         >
@@ -51,7 +51,7 @@ const Header = () => {
         </select>
 
         <select 
-          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
+          className="border border-gray-200 rounded-full px-3 py-1.5 md:px-4 md:py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer flex-1 min-w-[110px]"
           value={state.currentClassId || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_CLASS', payload: e.target.value || null })}
         >
@@ -64,7 +64,7 @@ const Header = () => {
         </select>
 
         <select 
-          className="border border-gray-200 rounded-full px-4 py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer"
+          className="border border-gray-200 rounded-full px-3 py-1.5 md:px-4 md:py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer flex-1 min-w-[110px]"
           value={state.currentQuarter || ''}
           onChange={(e) => dispatch({ type: 'SET_CURRENT_QUARTER', payload: e.target.value ? Number(e.target.value) as Quarter : null })}
         >
@@ -76,16 +76,16 @@ const Header = () => {
         </select>
       </div>
 
-      <div className="w-1/2 flex justify-end items-center space-x-5">
+      <div className="w-full md:w-auto flex justify-between md:justify-end items-center md:space-x-5">
         
         {/* Auto-save indicator & Manual Save Button */}
-        <div className="flex items-center">
+        <div className="flex items-center hidden sm:flex">
           <div className={`flex items-center text-sm font-medium transition-all duration-500 ${showSaved ? 'text-emerald-500 translate-y-0 opacity-100' : 'text-gray-400 translate-y-1 opacity-0'}`}>
             <Check size={16} className="mr-1.5" /> Synced
           </div>
         </div>
 
-        <form onSubmit={handleSearch} className="relative w-56">
+        <form onSubmit={handleSearch} className="relative w-full max-w-[160px] sm:max-w-[200px] md:w-56">
           <input
             type="text"
             placeholder="Search student..."
