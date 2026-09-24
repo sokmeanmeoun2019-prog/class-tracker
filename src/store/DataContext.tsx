@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
-import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings } from '../types';
+import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -31,7 +31,8 @@ type Action =
   | { type: 'CLEANUP_OLD_TRASH' }
   | { type: 'SET_ATTENDANCE_RECORDS'; payload: AttendanceRecord[] }
   | { type: 'UPDATE_ATTENDANCE_RECORD'; payload: AttendanceRecord }
-  | { type: 'UPDATE_ATTENDANCE_SETTINGS'; payload: AttendanceSettings };
+  | { type: 'UPDATE_ATTENDANCE_SETTINGS'; payload: AttendanceSettings }
+  | { type: 'UPDATE_PTC_RECORD'; payload: PTCRecord };
 
 const defaultGradingSettings: GradingSettings = {
   maxScores: { conduct: 10, hw: 100, quiz: 100, test: 100, cp: 10 },
@@ -53,6 +54,7 @@ const defaultState: AppState = {
   records: [],
   scores: [],
   attendanceRecords: [],
+  ptcRecords: [],
   gradingSettings: defaultGradingSettings,
   attendanceSettings: defaultAttendanceSettings,
   trash: [],
@@ -81,13 +83,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       const records = state.records.filter(r => classIds.includes(r.classId));
       const scores = state.scores.filter(s => classIds.includes(s.classId));
       const attendanceRecords = state.attendanceRecords.filter(a => classIds.includes(a.classId));
+      const ptcRecords = state.ptcRecords.filter(p => classIds.includes(p.classId));
       
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'YEAR',
         name: `Academic Year: ${year.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { year, classes, students, records, scores, attendanceRecords }
+        payload: { year, classes, students, records, scores, attendanceRecords, ptcRecords }
       };
 
       return { 
@@ -98,6 +101,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         records: state.records.filter(r => !classIds.includes(r.classId)),
         scores: state.scores.filter(s => !classIds.includes(s.classId)),
         attendanceRecords: state.attendanceRecords.filter(a => !classIds.includes(a.classId)),
+        ptcRecords: state.ptcRecords.filter(p => !classIds.includes(p.classId)),
         trash: [...(state.trash || []), trashItem],
         currentYearId: state.currentYearId === action.payload ? null : state.currentYearId
       };
@@ -111,13 +115,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       const records = state.records.filter(r => r.classId === action.payload);
       const scores = state.scores.filter(s => s.classId === action.payload);
       const attendanceRecords = state.attendanceRecords.filter(a => a.classId === action.payload);
+      const ptcRecords = state.ptcRecords.filter(p => p.classId === action.payload);
 
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'CLASS',
         name: `Class: ${cls.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { classes: [cls], students, records, scores, attendanceRecords }
+        payload: { classes: [cls], students, records, scores, attendanceRecords, ptcRecords }
       };
 
       return {
@@ -127,6 +132,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         records: state.records.filter(r => r.classId !== action.payload),
         scores: state.scores.filter(s => s.classId !== action.payload),
         attendanceRecords: state.attendanceRecords.filter(a => a.classId !== action.payload),
+        ptcRecords: state.ptcRecords.filter(p => p.classId !== action.payload),
         trash: [...(state.trash || []), trashItem],
         currentClassId: state.currentClassId === action.payload ? null : state.currentClassId
       };
@@ -141,13 +147,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       const records = state.records.filter(r => r.studentId === action.payload);
       const scores = state.scores.filter(s => s.studentId === action.payload);
       const attendanceRecords = state.attendanceRecords.filter(a => a.studentId === action.payload);
+      const ptcRecords = state.ptcRecords.filter(p => p.studentId === action.payload);
       
       const trashItem: TrashItem = {
         id: uuidv4(),
         type: 'STUDENT',
         name: `Student: ${student.name}`,
         deletedAt: new Date().toISOString(),
-        payload: { students: [student], records, scores, attendanceRecords }
+        payload: { students: [student], records, scores, attendanceRecords, ptcRecords }
       };
 
       return { 
@@ -156,6 +163,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         records: state.records.filter(r => r.studentId !== action.payload),
         scores: state.scores.filter(s => s.studentId !== action.payload),
         attendanceRecords: state.attendanceRecords.filter(a => a.studentId !== action.payload),
+        ptcRecords: state.ptcRecords.filter(p => p.studentId !== action.payload),
         trash: [...(state.trash || []), trashItem]
       };
     }
@@ -180,6 +188,7 @@ const reducer = (state: AppState, action: Action): AppState => {
         records: [...state.records, ...(item.payload.records || [])],
         scores: [...(state.scores || []), ...(item.payload.scores || [])],
         attendanceRecords: [...(state.attendanceRecords || []), ...(item.payload.attendanceRecords || [])],
+        ptcRecords: [...(state.ptcRecords || []), ...(item.payload.ptcRecords || [])],
         trash: state.trash.filter(t => t.id !== action.payload)
       };
     }
@@ -224,6 +233,13 @@ const reducer = (state: AppState, action: Action): AppState => {
     }
     case 'UPDATE_ATTENDANCE_SETTINGS':
       return { ...state, attendanceSettings: action.payload };
+    case 'UPDATE_PTC_RECORD': {
+      const existing = state.ptcRecords.find(p => p.id === action.payload.id);
+      if (existing) {
+        return { ...state, ptcRecords: state.ptcRecords.map(p => p.id === action.payload.id ? action.payload : p) };
+      }
+      return { ...state, ptcRecords: [...state.ptcRecords, action.payload] };
+    }
     case 'CLEAR_ALL_DATA':
       return defaultState;
     default:
@@ -256,6 +272,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           if (!data.trash) data.trash = [];
           if (!data.scores) data.scores = [];
           if (!data.attendanceRecords) data.attendanceRecords = [];
+          if (!data.ptcRecords) data.ptcRecords = [];
           if (!data.gradingSettings) data.gradingSettings = defaultGradingSettings;
           if (!data.attendanceSettings) data.attendanceSettings = defaultAttendanceSettings;
           

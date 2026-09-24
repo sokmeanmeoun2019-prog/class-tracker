@@ -236,3 +236,50 @@ export const getAttendanceAlertStatus = (unexcused: number, settings: Attendance
   if (unexcused >= settings.warningThreshold) return 'Warning';
   return 'Normal';
 };
+
+export const getStudentSemesterOverall = (
+  studentId: string,
+  classId: string,
+  semester: 1 | 2,
+  scores: ScoreRecord[],
+  records: ParticipationRecord[],
+  settings: GradingSettings,
+  className: string
+) => {
+  const quarters = semester === 1 ? [1, 2] : [3, 4];
+  const qScores = quarters.map(q => {
+    const s = scores.find(s => s.studentId === studentId && s.quarter === q);
+    const rawCp = getStudentQuarterTotal(records, studentId, q as Quarter);
+    const classScores = scores.filter(s => s.classId === classId && s.quarter === q);
+    return calculateStudentGrades(s, rawCp, settings, studentId, q, className, classScores);
+  });
+
+  const validScores = qScores.filter(q => q.overallScore > 0);
+  if (validScores.length === 0) return { overallScore: 0, letterGrade: 'Unknown' as any, autoAchievement: '', autoAttitude: '' };
+
+  const sum = validScores.reduce((acc, curr) => acc + curr.overallScore, 0);
+  const overallScore = Number((sum / validScores.length).toFixed(2));
+  
+  let letterGrade = 'F';
+  if (overallScore >= 90) letterGrade = 'A';
+  else if (overallScore >= 80) letterGrade = 'B';
+  else if (overallScore >= 70) letterGrade = 'C';
+  else if (overallScore >= 60) letterGrade = 'D';
+  else if (overallScore >= 50) letterGrade = 'E';
+
+  // Use the achievement and attitude of the latest quarter
+  const latest = validScores[validScores.length - 1];
+
+  return {
+    overallScore,
+    letterGrade: letterGrade as 'A' | 'B' | 'C' | 'D' | 'E' | 'F',
+    autoAchievement: latest.autoAchievement,
+    autoAttitude: latest.autoAttitude
+  };
+};
+
+export const getParticipationTier = (total: number, classAverage: number): 'High' | 'Moderate' | 'Low' => {
+  if (total >= classAverage * 1.2) return 'High';
+  if (total >= classAverage * 0.8) return 'Moderate';
+  return 'Low';
+};

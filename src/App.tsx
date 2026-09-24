@@ -16,6 +16,8 @@ import Settings from './pages/Settings';
 import StudentProfile from './pages/StudentProfile';
 import RecentlyDeleted from './pages/RecentlyDeleted';
 import ScoreList from './pages/ScoreList';
+import PTCDashboard from './pages/PTCDashboard';
+import PTCStudentReport from './pages/PTCStudentReport';
 
 import { AuthProvider, useAuth } from './store/AuthContext';
 import Login from './pages/Login';
@@ -62,6 +64,8 @@ function App() {
                     <Route path="/attendance" element={<AttendanceList />} />
                     <Route path="/record" element={<RecordParticipation />} />
                     <Route path="/scores" element={<ScoreList />} />
+                    <Route path="/ptc" element={<PTCDashboard />} />
+                    <Route path="/ptc/:studentId" element={<PTCStudentReport />} />
                     <Route path="/classes" element={<ManageClasses />} />
                     <Route path="/students" element={<ManageStudents />} />
                     <Route path="/quarter-summary" element={<QuarterSummary />} />

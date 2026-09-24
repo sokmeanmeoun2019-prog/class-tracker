@@ -111,6 +111,17 @@ export interface AttendanceSettings {
   alertThreshold: number;
 }
 
+export interface PTCRecord {
+  id: string; // usually `${studentId}-${semester}`
+  studentId: string;
+  classId: string;
+  semester: 1 | 2;
+  teacherComment: string;
+  strengths: string[];
+  areasToImprove: string[];
+  lastUpdated: string;
+}
+
 export interface TrashItem {
   id: string;
   type: 'YEAR' | 'CLASS' | 'STUDENT';
@@ -123,6 +134,7 @@ export interface TrashItem {
     records?: ParticipationRecord[];
     scores?: ScoreRecord[];
     attendanceRecords?: AttendanceRecord[];
+    ptcRecords?: PTCRecord[];
   };
 }
 
@@ -134,6 +146,7 @@ export interface AppState {
   records: ParticipationRecord[];
   scores: ScoreRecord[];
   attendanceRecords: AttendanceRecord[];
+  ptcRecords: PTCRecord[];
   gradingSettings: GradingSettings;
   attendanceSettings: AttendanceSettings;
   trash: TrashItem[];
