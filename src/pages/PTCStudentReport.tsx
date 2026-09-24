@@ -33,7 +33,7 @@ const PTCStudentReport = () => {
     const participation = getStudentSemesterTotal(state.records, student.id, 1);
     
     const attAlert = getAttendanceAlertStatus(attendance.unexcused, state.attendanceSettings);
-    const attTier = attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert');
+    const attTier = (attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert')) as 'Good' | 'Warning' | 'Alert';
     const partTier = getParticipationTier(participation, avgPart);
     
     return { overall, attendance, participation, attTier, partTier };
@@ -49,7 +49,7 @@ const PTCStudentReport = () => {
     const participation = getStudentSemesterTotal(state.records, student.id, 2);
     
     const attAlert = getAttendanceAlertStatus(attendance.unexcused, state.attendanceSettings);
-    const attTier = attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert');
+    const attTier = (attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert')) as 'Good' | 'Warning' | 'Alert';
     const partTier = getParticipationTier(participation, avgPart);
     
     return { overall, attendance, participation, attTier, partTier };
