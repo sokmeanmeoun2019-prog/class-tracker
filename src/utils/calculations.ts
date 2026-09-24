@@ -252,7 +252,7 @@ export const getStudentSemesterOverall = (
   });
 
   const validScores = qScores.filter(q => q.overallScore > 0);
-  if (validScores.length === 0) return { overallScore: 0, letterGrade: 'Unknown' as any, autoAchievement: '', autoAttitude: '' };
+  if (validScores.length === 0) return { overallScore: 0, letterGrade: 'Unknown' as 'Unknown', autoAchievement: '', autoAttitude: '' };
 
   const sum = validScores.reduce((acc, curr) => acc + curr.overallScore, 0);
   const overallScore = Number((sum / validScores.length).toFixed(2));

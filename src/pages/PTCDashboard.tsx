@@ -224,7 +224,7 @@ const PTCDashboard = () => {
                   <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-45} textAnchor="end" height={60} />
                   <YAxis domain={[0, 100]} />
                   <Tooltip 
-                    formatter={(value: number, name: string, props: any) => [`${value} (Grade: ${props.payload.grade})`, 'Score']}
+                    formatter={(value: number, name: string, props: { payload: { grade: string } }) => [`${value} (Grade: ${props.payload.grade})`, 'Score']}
                   />
                   <Bar dataKey="score" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
