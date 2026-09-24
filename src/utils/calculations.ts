@@ -1,4 +1,4 @@
-import { ParticipationRecord, Quarter, Student } from '../types';
+import { ParticipationRecord, Quarter, Student, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, Quarter as QuarterType } from '../types';
 
 export const getClassRoster = (students: Student[], classId: string) => {
   return students
@@ -53,7 +53,6 @@ export const rankStudents = (records: ParticipationRecord[], students: Student[]
   }));
 };
 
-import { ScoreRecord, GradingSettings } from '../types';
 
 export const generateAcademicFeedback = (studentId: string, quarter: number, score: number) => {
   let tier = 0; // 0 = A, 1 = B, 2 = C, 3 = D, 4 = F
@@ -176,8 +175,6 @@ export const calculateStudentGrades = (
     ...autoFeedback
   };
 };
-
-import { AttendanceRecord, AttendanceSettings, Quarter as QuarterType } from '../types';
 
 export const getStudentAttendanceQuarter = (
   records: AttendanceRecord[], 

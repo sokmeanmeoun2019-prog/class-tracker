@@ -65,7 +65,7 @@ function App() {
                     <Route path="/record" element={<RecordParticipation />} />
                     <Route path="/scores" element={<ScoreList />} />
                     <Route path="/ptc" element={<PTCDashboard />} />
-                    <Route path="/ptc/:studentId" element={<PTCStudentReport />} />
+                    <Route path="/ptc/:id" element={<PTCStudentReport />} />
                     <Route path="/classes" element={<ManageClasses />} />
                     <Route path="/students" element={<ManageStudents />} />
                     <Route path="/quarter-summary" element={<QuarterSummary />} />
