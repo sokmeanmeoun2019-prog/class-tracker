@@ -148,6 +148,10 @@ export interface SemesterExamRecord {
   classId: string;
   semester: 1 | 2;
   seatNumber?: string;
+  nameKhmer?: string;
+  studentIdString?: string;
+  sex?: string;
+  group?: string;
   score?: number | null; // 0-100
 }
 

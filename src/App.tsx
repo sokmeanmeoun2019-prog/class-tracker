@@ -25,15 +25,15 @@ import Login from './pages/Login';
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen bg-transparent overflow-hidden">
+    <div className="flex h-screen bg-transparent overflow-hidden print:overflow-visible print:h-auto">
       <div className="print:hidden h-full">
         <Sidebar />
       </div>
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible relative">
         <div className="print:hidden">
           <Header />
         </div>
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 md:p-8 print:p-0">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto print:overflow-visible p-6 md:p-8 print:p-0">
           {children}
         </main>
       </div>

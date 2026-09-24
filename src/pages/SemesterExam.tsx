@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../store/DataContext';
 import { SemesterExamRecord, SemesterExamInfo } from '../types';
 import { getClassRoster } from '../utils/calculations';
-import { Printer, Download, Save, Search, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
+import { Printer, Download, Save, Search, Settings as SettingsIcon, RefreshCw, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const SemesterExam = () => {
@@ -10,6 +10,7 @@ const SemesterExam = () => {
   const [semester, setSemester] = useState<1 | 2>(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const currentYear = state.academicYears.find(y => y.id === state.currentYearId);
   const currentClass = state.classes.find(c => c.id === state.currentClassId);
@@ -34,7 +35,7 @@ const SemesterExam = () => {
     });
   };
 
-  const handleScoreChange = (studentId: string, field: 'score' | 'seatNumber', value: string) => {
+  const handleScoreChange = (studentId: string, field: 'score' | 'seatNumber' | 'nameKhmer' | 'studentIdString' | 'sex' | 'group', value: string) => {
     setIsSaving(true);
     const recordId = `${studentId}-${semester}`;
     const existing = state.examRecords?.find(r => r.id === recordId);
@@ -57,20 +58,15 @@ const SemesterExam = () => {
       semester,
       score: null,
       seatNumber: '',
+      nameKhmer: '',
+      studentIdString: '',
+      sex: '',
+      group: '',
       [field]: field === 'score' ? (value === '' ? null : parsedScore) : value
     };
 
     dispatch({ type: 'UPDATE_EXAM_RECORD', payload });
     
-    setTimeout(() => setIsSaving(false), 500);
-  };
-
-  const handleStudentChange = (student: typeof classStudents[0], field: 'nameKhmer' | 'studentId' | 'sex' | 'group', value: string) => {
-    setIsSaving(true);
-    dispatch({
-      type: 'UPDATE_STUDENT',
-      payload: { ...student, [field]: value }
-    });
     setTimeout(() => setIsSaving(false), 500);
   };
 
@@ -123,10 +119,10 @@ const SemesterExam = () => {
         'Nº': index + 1,
         'Seat Nº': record?.seatNumber || '',
         'Name': s.name,
-        'Name in Khmer': s.nameKhmer || '',
-        'ID': s.studentId || '',
-        'Gender': s.sex || '',
-        'Group': s.group || '',
+        'Name in Khmer': record?.nameKhmer || '',
+        'ID': record?.studentIdString || '',
+        'Gender': record?.sex || '',
+        'Group': record?.group || '',
         'Grade': currentClass.name,
         'Room Nº': examInfo.roomNumber || '',
         'Score 100%': record?.score !== null && record?.score !== undefined ? record.score : ''
@@ -147,6 +143,65 @@ const SemesterExam = () => {
     window.print();
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsSaving(true);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const bstr = evt.target?.result;
+      const wb = XLSX.read(bstr, { type: 'binary' });
+      const wsname = wb.SheetNames[0];
+      const ws = wb.Sheets[wsname];
+      const data = XLSX.utils.sheet_to_json(ws);
+
+      data.forEach((row: any) => {
+        // Try to match by student name
+        const s = classStudents.find(st => st.name.trim().toLowerCase() === String(row['Name'] || '').trim().toLowerCase());
+        if (s) {
+          const recordId = `${s.id}-${semester}`;
+          const existing = state.examRecords?.find(r => r.id === recordId);
+          
+          let parsedScore: number | null = null;
+          if (row['Score 100%'] !== undefined && row['Score 100%'] !== '') {
+            parsedScore = parseInt(row['Score 100%'], 10);
+            if (isNaN(parsedScore)) parsedScore = null;
+            else if (parsedScore < 0) parsedScore = 0;
+            else if (parsedScore > 100) parsedScore = 100;
+          }
+
+          const payload: SemesterExamRecord = existing ? {
+            ...existing,
+            seatNumber: row['Seat Nº'] || existing.seatNumber || '',
+            nameKhmer: row['Name in Khmer'] || existing.nameKhmer || '',
+            studentIdString: row['ID'] || existing.studentIdString || '',
+            sex: row['Gender'] || existing.sex || '',
+            group: row['Group'] || existing.group || '',
+            score: parsedScore !== null ? parsedScore : existing.score
+          } : {
+            id: recordId,
+            studentId: s.id,
+            classId: state.currentClassId!,
+            semester,
+            score: parsedScore,
+            seatNumber: row['Seat Nº'] || '',
+            nameKhmer: row['Name in Khmer'] || '',
+            studentIdString: row['ID'] || '',
+            sex: row['Gender'] || '',
+            group: row['Group'] || ''
+          };
+          
+          dispatch({ type: 'UPDATE_EXAM_RECORD', payload });
+        }
+      });
+      
+      setIsSaving(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsBinaryString(file);
+  };
+
   if (!state.currentClassId) {
     return <div className="p-8 text-center text-gray-500">Please select a Class to view the Semester Exam.</div>;
   }
@@ -157,6 +212,16 @@ const SemesterExam = () => {
         <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6 drop-shadow-sm flex items-center justify-between">
           <span>Semester Exam</span>
           <div className="flex gap-2">
+            <input 
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".xlsx,.xls"
+              className="hidden"
+            />
+            <button onClick={() => fileInputRef.current?.click()} className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+              <Upload size={16} /> Import
+            </button>
             <button onClick={handleExportExcel} className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm">
               <Download size={16} /> Excel
             </button>
@@ -281,7 +346,7 @@ const SemesterExam = () => {
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none print:rounded-none">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-indigo-50/50 text-indigo-900 text-xs uppercase tracking-wider font-bold border-b-2 border-indigo-100 print:bg-transparent print:border-b-2 print:border-black print:text-black">
@@ -318,23 +383,23 @@ const SemesterExam = () => {
                     <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black">
                       <input 
                         type="text" 
-                        value={s.nameKhmer || ''} 
-                        onChange={(e) => handleStudentChange(s, 'nameKhmer', e.target.value)}
+                        value={r?.nameKhmer || ''} 
+                        onChange={(e) => handleScoreChange(s.id, 'nameKhmer', e.target.value)}
                         className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none text-gray-700 print:border-none print:p-0 print:text-black"
                       />
                     </td>
                     <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-24">
                       <input 
                         type="text" 
-                        value={s.studentId || ''} 
-                        onChange={(e) => handleStudentChange(s, 'studentId', e.target.value)}
+                        value={r?.studentIdString || ''} 
+                        onChange={(e) => handleScoreChange(s.id, 'studentIdString', e.target.value)}
                         className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none font-medium text-gray-600 print:border-none print:p-0 print:text-black"
                       />
                     </td>
                     <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-24">
                       <select 
-                        value={s.sex || ''} 
-                        onChange={(e) => handleStudentChange(s, 'sex', e.target.value as 'Male' | 'Female' | '')}
+                        value={r?.sex || ''} 
+                        onChange={(e) => handleScoreChange(s.id, 'sex', e.target.value)}
                         className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-1 py-1 outline-none text-gray-600 print:appearance-none print:border-none print:p-0 print:text-black"
                       >
                         <option value="">-</option>
@@ -345,8 +410,8 @@ const SemesterExam = () => {
                     <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-20">
                       <input 
                         type="text" 
-                        value={s.group || ''} 
-                        onChange={(e) => handleStudentChange(s, 'group', e.target.value)}
+                        value={r?.group || ''} 
+                        onChange={(e) => handleScoreChange(s.id, 'group', e.target.value)}
                         className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none text-gray-600 text-center print:border-none print:p-0 print:text-black"
                       />
                     </td>
