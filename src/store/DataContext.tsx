@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
-import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord } from '../types';
+import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord, SemesterExamRecord, SemesterExamInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useData } from '../store/DataContext';
 import { SemesterExamRecord, SemesterExamInfo } from '../types';
 import { getClassRoster } from '../utils/calculations';
-import { Printer, Download, Save, Search, Settings as SettingsIcon } from 'lucide-react';
+import { Printer, Download, Save, Search, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const SemesterExam = () => {
