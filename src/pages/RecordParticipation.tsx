@@ -75,13 +75,13 @@ const RecordParticipation = () => {
           Record Participation
         </h1>
         
-        <div className="flex flex-wrap gap-6 items-center text-gray-700 bg-white/60 backdrop-blur-md p-5 rounded-2xl shadow-sm border border-white/50">
+        <div className="flex flex-wrap gap-3 sm:gap-6 items-center text-gray-700 bg-white/60 backdrop-blur-md p-3 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm border border-white/50">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Class:</span>
+            <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider text-indigo-900/60">Class:</span>
             <select 
               value={state.currentClassId || ''}
               onChange={(e) => dispatch({ type: 'SET_CURRENT_CLASS', payload: e.target.value || null })}
-              className="font-bold text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 cursor-pointer"
+              className="font-bold text-sm sm:text-base text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-0.5 sm:pb-1 cursor-pointer"
             >
               {state.classes.filter(c => c.academicYearId === state.currentYearId).map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
@@ -90,11 +90,11 @@ const RecordParticipation = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Quarter:</span>
+            <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider text-indigo-900/60">Quarter:</span>
             <select 
               value={state.currentQuarter || ''}
               onChange={(e) => dispatch({ type: 'SET_CURRENT_QUARTER', payload: Number(e.target.value) as Quarter })}
-              className="font-bold text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 cursor-pointer"
+              className="font-bold text-sm sm:text-base text-indigo-900 border-b-2 border-indigo-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-0.5 sm:pb-1 cursor-pointer"
             >
               <option value={1}>Quarter 1</option>
               <option value={2}>Quarter 2</option>
@@ -104,29 +104,31 @@ const RecordParticipation = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm uppercase tracking-wider text-indigo-900/60">Date:</span>
-            <span className="font-bold text-indigo-900 border-b-2 border-transparent pb-1">{format(new Date(), 'MMM d, yyyy')}</span>
+            <span className="font-semibold text-xs sm:text-sm uppercase tracking-wider text-indigo-900/60">Date:</span>
+            <span className="font-bold text-sm sm:text-base text-indigo-900 border-b-2 border-transparent pb-0.5 sm:pb-1">{format(new Date(), 'MMM d')}</span>
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
             {isActivityActive ? (
-              <div className="bg-indigo-50/80 px-4 py-1.5 rounded-full flex items-center border border-indigo-100">
-                <span className="font-semibold text-sm text-indigo-900/60 mr-2">Activity:</span>
-                <span className="text-indigo-700 font-bold mr-3">{activityName || 'Unnamed Activity'}</span>
+              <div className="bg-indigo-50/80 px-4 py-1.5 rounded-full flex items-center border border-indigo-100 w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex items-center">
+                  <span className="font-semibold text-xs sm:text-sm text-indigo-900/60 mr-2">Activity:</span>
+                  <span className="text-indigo-700 font-bold mr-3 text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">{activityName || 'Unnamed'}</span>
+                </div>
                 <button onClick={() => { setIsActivityActive(false); setActivityName(''); }} className="text-xs font-bold text-rose-500 hover:text-rose-700 uppercase tracking-wider">
                   Finish
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <input 
                   type="text" 
                   placeholder="Activity Name..." 
                   value={activityName}
                   onChange={e=>setActivityName(e.target.value)}
-                  className="border-b-2 border-gray-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 w-40 text-sm font-medium"
+                  className="border-b-2 border-gray-200 focus:outline-none focus:border-indigo-500 bg-transparent pb-1 w-full sm:w-40 text-sm font-medium flex-1"
                 />
-                <button onClick={() => setIsActivityActive(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-md transition-transform hover:scale-105 active:scale-95">
+                <button onClick={() => setIsActivityActive(true)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold px-4 py-1.5 rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 shrink-0">
                   Start
                 </button>
               </div>
@@ -136,18 +138,18 @@ const RecordParticipation = () => {
       </div>
 
       {/* Summary Bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
-          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Total Students</span>
-          <span className="text-2xl font-black text-indigo-900">{classStudents.length}</span>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <div className="glass-card rounded-xl sm:rounded-2xl p-2 sm:p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left">
+          <span className="text-[10px] sm:text-sm font-bold text-gray-400 uppercase tracking-wider mb-1 sm:mb-0">Total</span>
+          <span className="text-lg sm:text-2xl font-black text-indigo-900">{classStudents.length}</span>
         </div>
-        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
-          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Today's Points</span>
-          <span className="text-2xl font-black text-emerald-500">{todaysRecords.length}</span>
+        <div className="glass-card rounded-xl sm:rounded-2xl p-2 sm:p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left">
+          <span className="text-[10px] sm:text-sm font-bold text-gray-400 uppercase tracking-wider mb-1 sm:mb-0">Today</span>
+          <span className="text-lg sm:text-2xl font-black text-emerald-500">{todaysRecords.length}</span>
         </div>
-        <div className="glass-card rounded-2xl p-4 flex items-center justify-between">
-          <span className="text-sm font-bold text-gray-400 uppercase tracking-wider">Quarter Total</span>
-          <span className="text-2xl font-black text-indigo-600">{quarterTotal}</span>
+        <div className="glass-card rounded-xl sm:rounded-2xl p-2 sm:p-4 flex flex-col sm:flex-row items-center justify-between text-center sm:text-left">
+          <span className="text-[10px] sm:text-sm font-bold text-gray-400 uppercase tracking-wider mb-1 sm:mb-0">Qtr Total</span>
+          <span className="text-lg sm:text-2xl font-black text-indigo-600">{quarterTotal}</span>
         </div>
       </div>
 

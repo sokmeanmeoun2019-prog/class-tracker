@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../store/DataContext';
 import { Quarter } from '../types';
-import { Search, Save, Check } from 'lucide-react';
+import { Search, Save, Check, Menu, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../store/AuthContext';
 
-const Header = () => {
+const Header = ({ onMenuToggle, mobileMenuOpen }: { onMenuToggle?: () => void, mobileMenuOpen?: boolean }) => {
   const { state, dispatch } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSaved, setShowSaved] = useState(false);
@@ -38,6 +38,12 @@ const Header = () => {
   return (
     <header className="py-3 md:h-[72px] bg-white/80 backdrop-blur-md border-b border-gray-200/80 flex flex-col md:flex-row items-center justify-between px-4 md:px-8 shrink-0 z-10 sticky top-0 gap-3 md:gap-0">
       <div className="flex flex-wrap items-center gap-2 md:space-x-3 w-full md:w-auto">
+        <button 
+          className="md:hidden p-2 -ml-2 text-gray-700 hover:text-indigo-600 bg-white rounded-lg shadow-sm border border-gray-100"
+          onClick={onMenuToggle}
+        >
+          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
         {/* Context Selectors */}
         <select 
           className="border border-gray-200 rounded-full px-3 py-1.5 md:px-4 md:py-2 text-sm bg-white font-medium text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 hover:border-indigo-300 transition-colors cursor-pointer flex-1 min-w-[110px]"

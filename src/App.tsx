@@ -44,16 +44,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden print:overflow-visible relative w-full">
-        <div className="print:hidden flex items-center md:block">
-          <button 
-            className="md:hidden p-4 text-gray-700 hover:text-indigo-600 bg-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-          <div className="flex-1">
-            <Header />
-          </div>
+        <div className="print:hidden">
+          <Header onMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)} mobileMenuOpen={mobileMenuOpen} />
         </div>
         <main className="flex-1 overflow-x-hidden overflow-y-auto print:overflow-visible p-4 sm:p-6 md:p-8 print:p-0">
           {children}
