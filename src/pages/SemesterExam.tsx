@@ -65,7 +65,16 @@ const SemesterExam = () => {
     setTimeout(() => setIsSaving(false), 500);
   };
 
-  const filteredStudents = classStudents.filter(s => 
+  const handleStudentChange = (student: typeof classStudents[0], field: 'nameKhmer' | 'studentId' | 'sex' | 'group', value: string) => {
+    setIsSaving(true);
+    dispatch({
+      type: 'UPDATE_STUDENT',
+      payload: { ...student, [field]: value }
+    });
+    setTimeout(() => setIsSaving(false), 500);
+  };
+
+  const filteredStudents = classStudents.filter(s =>  
     s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (s.studentId && s.studentId.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -114,10 +123,10 @@ const SemesterExam = () => {
         'Nº': index + 1,
         'Seat Nº': record?.seatNumber || '',
         'Name': s.name,
-        'Name in Khmer': '',
+        'Name in Khmer': s.nameKhmer || '',
         'ID': s.studentId || '',
         'Gender': s.sex || '',
-        'Group': '',
+        'Group': s.group || '',
         'Grade': currentClass.name,
         'Room Nº': examInfo.roomNumber || '',
         'Score 100%': record?.score !== null && record?.score !== undefined ? record.score : ''
@@ -306,10 +315,41 @@ const SemesterExam = () => {
                       />
                     </td>
                     <td className="p-3 font-bold text-gray-800 border-r border-gray-50 print:border-gray-300 print:text-black">{s.name}</td>
-                    <td className="p-3 text-gray-400 border-r border-gray-50 print:border-gray-300 print:text-black"></td>
-                    <td className="p-3 text-gray-500 font-medium border-r border-gray-50 print:border-gray-300 print:text-black">{s.studentId}</td>
-                    <td className="p-3 text-gray-600 border-r border-gray-50 print:border-gray-300 print:text-black">{s.sex}</td>
-                    <td className="p-3 text-gray-400 border-r border-gray-50 print:border-gray-300 print:text-black"></td>
+                    <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black">
+                      <input 
+                        type="text" 
+                        value={s.nameKhmer || ''} 
+                        onChange={(e) => handleStudentChange(s, 'nameKhmer', e.target.value)}
+                        className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none text-gray-700 print:border-none print:p-0 print:text-black"
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-24">
+                      <input 
+                        type="text" 
+                        value={s.studentId || ''} 
+                        onChange={(e) => handleStudentChange(s, 'studentId', e.target.value)}
+                        className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none font-medium text-gray-600 print:border-none print:p-0 print:text-black"
+                      />
+                    </td>
+                    <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-24">
+                      <select 
+                        value={s.sex || ''} 
+                        onChange={(e) => handleStudentChange(s, 'sex', e.target.value as 'Male' | 'Female' | '')}
+                        className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-1 py-1 outline-none text-gray-600 print:appearance-none print:border-none print:p-0 print:text-black"
+                      >
+                        <option value="">-</option>
+                        <option value="Male">M</option>
+                        <option value="Female">F</option>
+                      </select>
+                    </td>
+                    <td className="p-2 border-r border-gray-50 print:border-gray-300 print:text-black w-20">
+                      <input 
+                        type="text" 
+                        value={s.group || ''} 
+                        onChange={(e) => handleStudentChange(s, 'group', e.target.value)}
+                        className="w-full bg-transparent border border-transparent focus:border-indigo-300 focus:bg-white rounded px-2 py-1 outline-none text-gray-600 text-center print:border-none print:p-0 print:text-black"
+                      />
+                    </td>
                     <td className="p-3 text-gray-600 border-r border-gray-50 print:border-gray-300 print:text-black">{currentClass?.name}</td>
                     <td className="p-3 text-gray-500 text-center border-r border-gray-50 print:border-gray-300 print:text-black">{examInfo.roomNumber}</td>
                     <td className="p-2 bg-indigo-50/30 print:bg-transparent">
@@ -333,6 +373,23 @@ const SemesterExam = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+      
+      {/* Footer / Signature Section */}
+      <div className="mt-8 flex flex-col md:flex-row justify-between items-start text-sm text-gray-800 print:text-black max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none print:p-0 print:bg-transparent">
+        <div className="space-y-1">
+          <p className="font-bold">* សម្គាល់/ Note :</p>
+          <p className="pl-2">- លោកគ្រូ អ្នកគ្រូត្រូវបញ្ចូលពិន្ទុសិស្សក្នុងតារាងខាងលើនេះ។ ពិន្ទុខ្ពស់បំផុតគឺ ១០០ លើ ១០០។</p>
+          <p className="pl-6 italic text-gray-700">Teachers are required to record student's scores into this list after marking. The score must be 100 out of 100.</p>
+          <p className="pl-2 mt-2">- លោកគ្រូ អ្នកគ្រូត្រូវប្រគល់មកការិយាល័យសិក្សាវិញបន្ទាប់ពី ២ថ្ងៃបន្ទាប់ពីថ្ងៃដែលបានយកវិញ្ញាសាប្រឡងទៅកែ ។</p>
+          <p className="pl-6 italic text-gray-700">Teachers should return to Registrar's Office 2 days after signing out.</p>
+        </div>
+        <div className="text-center w-64 pt-2">
+          <p className="font-bold">Date: {examInfo.examDate}</p>
+          <p className="font-bold">Score Recorded by</p>
+          <p className="font-bold mb-16">Instructor</p>
+          <p className="font-bold">{examInfo.teacherName}</p>
         </div>
       </div>
       

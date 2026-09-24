@@ -17,6 +17,8 @@ export interface Student {
   name: string;
   studentId?: string; 
   sex?: 'Male' | 'Female' | '';
+  nameKhmer?: string;
+  group?: string;
 }
 
 export interface ActivitySession {
