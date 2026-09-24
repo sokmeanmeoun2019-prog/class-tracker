@@ -43,9 +43,13 @@ const SemesterSummary = () => {
               <span className="text-gray-600">Quarter 2 Total</span>
               <span className="font-bold text-xl">{q2}</span>
             </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-gray-900 font-bold">Semester 1 Total</span>
+            <div className="flex justify-between items-center pt-2 border-b pb-2">
+              <span className="text-gray-900 font-bold">Semester 1 Total Participation</span>
               <span className="font-bold text-2xl text-blue-600">{sem1}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-gray-500 font-bold text-sm">Semester 1 Final Exam</span>
+              <span className="font-bold text-gray-700 text-sm">{state.examInfos?.find(i => i.id === `${currentClass?.id}-1`) ? 'Exam Recorded' : 'Not yet entered'}</span>
             </div>
           </div>
         </div>
@@ -63,9 +67,13 @@ const SemesterSummary = () => {
               <span className="text-gray-600">Quarter 4 Total</span>
               <span className="font-bold text-xl">{q4}</span>
             </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-gray-900 font-bold">Semester 2 Total</span>
+            <div className="flex justify-between items-center pt-2 border-b pb-2">
+              <span className="text-gray-900 font-bold">Semester 2 Total Participation</span>
               <span className="font-bold text-2xl text-green-600">{sem2}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-gray-500 font-bold text-sm">Semester 2 Final Exam</span>
+              <span className="font-bold text-gray-700 text-sm">{state.examInfos?.find(i => i.id === `${currentClass?.id}-2`) ? 'Exam Recorded' : 'Not yet entered'}</span>
             </div>
           </div>
         </div>

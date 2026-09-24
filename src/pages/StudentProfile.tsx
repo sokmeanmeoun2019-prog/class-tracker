@@ -216,6 +216,34 @@ const StudentProfile = () => {
           </div>
         </div>
       </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm border mt-6">
+        <h3 className="text-xl font-bold mb-6 border-b pb-2">Semester Exams</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-blue-50/50 border border-blue-100 rounded-lg p-4">
+            <h4 className="font-bold text-lg text-blue-900 border-b border-blue-200 pb-2 mb-3">Semester 1 Final Exam</h4>
+            {state.examRecords?.find(r => r.id === `${student.id}-1`)?.score != null ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-semibold text-gray-500">Subject: {state.examInfos?.find(i => i.id === `${student.classId}-1`)?.subject || 'N/A'}</span>
+                <span className="text-2xl font-black text-blue-700">Score: {state.examRecords?.find(r => r.id === `${student.id}-1`)?.score}/100</span>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">No score recorded</p>
+            )}
+          </div>
+          <div className="bg-green-50/50 border border-green-100 rounded-lg p-4">
+            <h4 className="font-bold text-lg text-green-900 border-b border-green-200 pb-2 mb-3">Semester 2 Final Exam</h4>
+            {state.examRecords?.find(r => r.id === `${student.id}-2`)?.score != null ? (
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-semibold text-gray-500">Subject: {state.examInfos?.find(i => i.id === `${student.classId}-2`)?.subject || 'N/A'}</span>
+                <span className="text-2xl font-black text-green-700">Score: {state.examRecords?.find(r => r.id === `${student.id}-2`)?.score}/100</span>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 italic">No score recorded</p>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

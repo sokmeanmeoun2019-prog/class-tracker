@@ -80,6 +80,8 @@ const PTCStudentReport = () => {
   const handleRegenerate = () => {
     if (!student || !stats) return;
     
+    const examRecord = state.examRecords?.find(r => r.id === `${student.id}-${currentSemester}`);
+
     const studentStats = {
       name: student.name,
       overallScore: stats.overall.overallScore,
@@ -91,7 +93,8 @@ const PTCStudentReport = () => {
       participationTier: stats.partTier,
       attendanceRate: stats.attendance.rate,
       unexcusedAbsences: stats.attendance.unexcused,
-      attendanceTier: stats.attTier
+      attendanceTier: stats.attTier,
+      examScore: examRecord?.score
     };
 
     const newComment = generatePTCFeedback(studentStats);

@@ -53,6 +53,8 @@ const PTCDashboard = () => {
       const attTier = (attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert')) as 'Good' | 'Warning' | 'Alert';
       const partTier = getParticipationTier(d.participation, classAveragePart);
 
+      const examRecord = state.examRecords?.find(r => r.id === `${d.student.id}-${semester}`);
+
       const studentStats = {
         name: d.student.name,
         overallScore: d.overall.overallScore,
@@ -64,7 +66,8 @@ const PTCDashboard = () => {
         participationTier: partTier,
         attendanceRate: d.attendance.rate,
         unexcusedAbsences: d.attendance.unexcused,
-        attendanceTier: attTier
+        attendanceTier: attTier,
+        examScore: examRecord?.score
       };
 
       const existingRecord = state.ptcRecords.find(p => p.studentId === d.student.id && p.semester === semester);

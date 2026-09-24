@@ -32,7 +32,9 @@ type Action =
   | { type: 'SET_ATTENDANCE_RECORDS'; payload: AttendanceRecord[] }
   | { type: 'UPDATE_ATTENDANCE_RECORD'; payload: AttendanceRecord }
   | { type: 'UPDATE_ATTENDANCE_SETTINGS'; payload: AttendanceSettings }
-  | { type: 'UPDATE_PTC_RECORD'; payload: PTCRecord };
+  | { type: 'UPDATE_PTC_RECORD'; payload: PTCRecord }
+  | { type: 'UPDATE_EXAM_RECORD'; payload: SemesterExamRecord }
+  | { type: 'UPDATE_EXAM_INFO'; payload: SemesterExamInfo };
 
 const defaultGradingSettings: GradingSettings = {
   maxScores: { conduct: 10, hw: 100, quiz: 100, test: 100, cp: 10 },
@@ -55,6 +57,8 @@ const defaultState: AppState = {
   scores: [],
   attendanceRecords: [],
   ptcRecords: [],
+  examRecords: [],
+  examInfos: [],
   gradingSettings: defaultGradingSettings,
   attendanceSettings: defaultAttendanceSettings,
   trash: [],
@@ -239,6 +243,20 @@ const reducer = (state: AppState, action: Action): AppState => {
         return { ...state, ptcRecords: state.ptcRecords.map(p => p.id === action.payload.id ? action.payload : p) };
       }
       return { ...state, ptcRecords: [...state.ptcRecords, action.payload] };
+    }
+    case 'UPDATE_EXAM_RECORD': {
+      const existing = state.examRecords.find(p => p.id === action.payload.id);
+      if (existing) {
+        return { ...state, examRecords: state.examRecords.map(p => p.id === action.payload.id ? action.payload : p) };
+      }
+      return { ...state, examRecords: [...(state.examRecords || []), action.payload] };
+    }
+    case 'UPDATE_EXAM_INFO': {
+      const existing = state.examInfos.find(p => p.id === action.payload.id);
+      if (existing) {
+        return { ...state, examInfos: state.examInfos.map(p => p.id === action.payload.id ? action.payload : p) };
+      }
+      return { ...state, examInfos: [...(state.examInfos || []), action.payload] };
     }
     case 'CLEAR_ALL_DATA':
       return defaultState;

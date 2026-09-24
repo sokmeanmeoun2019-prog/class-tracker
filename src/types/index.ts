@@ -135,7 +135,29 @@ export interface TrashItem {
     scores?: ScoreRecord[];
     attendanceRecords?: AttendanceRecord[];
     ptcRecords?: PTCRecord[];
+    examRecords?: SemesterExamRecord[];
+    examInfos?: SemesterExamInfo[];
   };
+}
+
+export interface SemesterExamRecord {
+  id: string; // `${studentId}-${semester}`
+  studentId: string;
+  classId: string;
+  semester: 1 | 2;
+  seatNumber?: string;
+  score?: number | null; // 0-100
+}
+
+export interface SemesterExamInfo {
+  id: string; // `${classId}-${semester}`
+  classId: string;
+  semester: 1 | 2;
+  examDate?: string;
+  examTime?: string;
+  subject?: string;
+  teacherName?: string;
+  roomNumber?: string;
 }
 
 export interface AppState {
@@ -147,6 +169,8 @@ export interface AppState {
   scores: ScoreRecord[];
   attendanceRecords: AttendanceRecord[];
   ptcRecords: PTCRecord[];
+  examRecords: SemesterExamRecord[];
+  examInfos: SemesterExamInfo[];
   gradingSettings: GradingSettings;
   attendanceSettings: AttendanceSettings;
   trash: TrashItem[];

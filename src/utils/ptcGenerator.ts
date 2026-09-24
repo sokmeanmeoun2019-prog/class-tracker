@@ -14,6 +14,7 @@ export interface StudentStats {
   attendanceRate: number;
   unexcusedAbsences: number;
   attendanceTier: AttendanceTier;
+  examScore?: number | null;
 }
 
 function getRandom<T>(arr: T[]): T {
@@ -111,13 +112,22 @@ export function generatePTCFeedback(stats: StudentStats): string {
   }
   const positiveObservation = getRandom(positiveOptions);
 
-  // 2. CURRENT PERFORMANCE
   let performanceText = "";
   if (stats.overallScore >= 90) performanceText = `Currently, their overall performance is outstanding with an average of ${stats.overallScore}%.`;
   else if (stats.overallScore >= 80) performanceText = `They have achieved a strong overall average of ${stats.overallScore}%, reflecting good academic progress.`;
   else if (stats.overallScore >= 70) performanceText = `Their current overall average is ${stats.overallScore}%, indicating a satisfactory grasp of the material.`;
   else if (stats.overallScore >= 60) performanceText = `They are currently holding an average of ${stats.overallScore}%, showing that they are putting in effort but finding some material challenging.`;
   else performanceText = `Their current average is ${stats.overallScore}%, which indicates they are experiencing significant difficulties with the curriculum.`;
+
+  if (stats.examScore !== undefined && stats.examScore !== null) {
+    if (stats.examScore >= 80) {
+      performanceText += ` The student demonstrated good performance in the semester final examination (${stats.examScore}%) and showed a solid understanding of the course content.`;
+    } else if (stats.examScore >= 60) {
+      performanceText += ` Their semester examination result (${stats.examScore}%) indicates a reasonable grasp of the fundamentals, though further review is encouraged.`;
+    } else {
+      performanceText += ` The semester examination results (${stats.examScore}%) suggest that additional review and practice of key concepts may help strengthen the student's performance.`;
+    }
+  }
 
   // 3. SPECIFIC AREA TO IMPROVE & 4. PRACTICAL SUGGESTION
   let improvementOptions = [];

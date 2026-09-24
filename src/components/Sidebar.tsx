@@ -9,6 +9,7 @@ const Sidebar = () => {
     { to: '/record', label: 'Record Participation', icon: <CheckCircle size={20} /> },
     { to: '/scores', label: 'Score List', icon: <ClipboardList size={20} /> },
     { to: '/ptc', label: 'PTC', icon: <Users size={20} /> },
+    { to: '/semester-exam', label: 'Semester Exam', icon: <BookOpen size={20} /> },
     { to: '/classes', label: 'Classes & Years', icon: <BookOpen size={20} /> },
     { to: '/students', label: 'Students', icon: <Users size={20} /> },
     { to: '/quarter-summary', label: 'Quarter Summary', icon: <BarChart3 size={20} /> },

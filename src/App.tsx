@@ -18,6 +18,7 @@ import RecentlyDeleted from './pages/RecentlyDeleted';
 import ScoreList from './pages/ScoreList';
 import PTCDashboard from './pages/PTCDashboard';
 import PTCStudentReport from './pages/PTCStudentReport';
+import SemesterExam from './pages/SemesterExam';
 
 import { AuthProvider, useAuth } from './store/AuthContext';
 import Login from './pages/Login';
@@ -66,6 +67,7 @@ function App() {
                     <Route path="/scores" element={<ScoreList />} />
                     <Route path="/ptc" element={<PTCDashboard />} />
                     <Route path="/ptc/:id" element={<PTCStudentReport />} />
+                    <Route path="/semester-exam" element={<SemesterExam />} />
                     <Route path="/classes" element={<ManageClasses />} />
                     <Route path="/students" element={<ManageStudents />} />
                     <Route path="/quarter-summary" element={<QuarterSummary />} />
