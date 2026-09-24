@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useData } from '../store/DataContext';
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 import { parseExcelStudents } from '../utils/export';
 import { Upload } from 'lucide-react';
 import { Student } from '../types';
@@ -27,7 +28,8 @@ const ManageStudents = () => {
         id: uuidv4(),
         classId: selectedClassId,
         name: name.trim(),
-        studentId: studentIdStr.trim() || ""
+        studentId: studentIdStr.trim() || "",
+        rosterNumber: classStudents.length + 1
       }
     });
     setName('');
@@ -36,8 +38,26 @@ const ManageStudents = () => {
 
   const handleUpdateStudent = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingStudent) {
+    if (editingStudent && selectedClassId) {
+      const original = classStudents.find(s => s.id === editingStudent.id);
+      const oldNum = original?.displayNum || 1;
+      const newNum = editingStudent.rosterNumber || oldNum;
+
+      // Update name/ID first
       dispatch({ type: 'UPDATE_STUDENT', payload: editingStudent });
+
+      // If number changed, dispatch reorder
+      if (newNum !== oldNum) {
+        dispatch({ 
+          type: 'REORDER_STUDENT', 
+          payload: { 
+            studentId: editingStudent.id, 
+            classId: selectedClassId, 
+            newNumber: newNum 
+          } 
+        });
+      }
+      
       setEditingStudent(null);
     }
   };
@@ -48,41 +68,69 @@ const ManageStudents = () => {
     if (!file) return;
 
     try {
-      const data = await parseExcelStudents(file);
-      const newStudents = data
-        .filter((row: any) => {
-          const nameKey = Object.keys(row).find(k => 
-            k.trim().toLowerCase() === 'name' || 
-            k.trim().toLowerCase() === 'student name' ||
-            k.trim().toLowerCase() === 'student'
-          );
-          if (!nameKey) return false;
-          
-          const nameVal = row[nameKey];
-          return nameVal !== undefined && nameVal !== null && String(nameVal).trim().length > 0;
-        })
-        .map((row: any) => {
-          const nameKey = Object.keys(row).find(k => 
-            k.trim().toLowerCase() === 'name' || 
-            k.trim().toLowerCase() === 'student name' ||
-            k.trim().toLowerCase() === 'student'
-          )!;
-          
-          const idKey = Object.keys(row).find(k => 
-            k.trim().toLowerCase() === 'student id' || 
-            k.trim().toLowerCase() === 'id'
-          );
+      const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+      
+      let nameColIndex = -1;
+      let idColIndex = -1;
+      let dataStartIndex = 0;
 
-          return {
-            id: uuidv4(),
-            classId: selectedClassId,
-            name: String(row[nameKey]).trim(),
-            studentId: idKey && row[idKey] ? String(row[idKey]).trim() : ""
-          };
-        });
+      // 1. Try to find the header row
+      for (let i = 0; i < Math.min(rawRows.length, 10); i++) {
+        const row = rawRows[i];
+        if (!row) continue;
+        for (let j = 0; j < row.length; j++) {
+          const cell = String(row[j] || '').trim().toLowerCase();
+          if (cell === 'name' || cell === 'student name' || cell === 'student' || cell === 'full name') {
+            nameColIndex = j;
+            dataStartIndex = i + 1;
+          }
+          if (cell === 'id' || cell === 'student id') {
+            idColIndex = j;
+          }
+        }
+        if (nameColIndex !== -1) break;
+      }
+
+      // 2. If no header row found, guess the columns (Assume Col 1 is Name, Col 0 is No.)
+      if (nameColIndex === -1) {
+        if (rawRows.length > 0 && rawRows[0].length >= 2) {
+          nameColIndex = 1; // Best guess: second column is Name
+          dataStartIndex = 0;
+        } else if (rawRows.length > 0 && rawRows[0].length === 1) {
+          nameColIndex = 0; // Best guess: only one column, must be Name
+          dataStartIndex = 0;
+        } else {
+          alert("Could not detect any student names in this Excel file. Please ensure there is a column with names.");
+          e.target.value = '';
+          return;
+        }
+      }
+
+      // 3. Extract students
+      const newStudents: any[] = [];
+      for (let i = dataStartIndex; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        if (!row || !row[nameColIndex]) continue; // Skip empty rows
         
+        const nameVal = String(row[nameColIndex]).trim();
+        if (nameVal.length === 0 || nameVal.toLowerCase() === 'name') continue; // Skip empty or accidental headers
+
+        const studentIdVal = idColIndex !== -1 && row[idColIndex] ? String(row[idColIndex]).trim() : "";
+        
+        newStudents.push({
+          id: uuidv4(),
+          classId: selectedClassId,
+          name: nameVal,
+          studentId: studentIdVal,
+          rosterNumber: newStudents.length + 1 // Assign 1 to N on import
+        });
+      }
+
       if (newStudents.length === 0) {
-        alert("No valid students found. Make sure your Excel file has a column header named 'Name' (or 'Student Name'). Check for hidden empty rows.");
+        alert("No valid students found in the file. Please check your Excel format.");
+        e.target.value = '';
         return;
       }
       
@@ -167,7 +215,7 @@ const ManageStudents = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b bg-gray-50">
-                      <th className="p-3 text-sm font-semibold text-gray-600 w-16">No.</th>
+                      <th className="p-3 text-sm font-semibold text-gray-600 w-24">No.</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Name</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Student ID</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Actions</th>
@@ -179,7 +227,14 @@ const ManageStudents = () => {
                         {editingStudent?.id === s.id ? (
                           <td colSpan={4} className="p-3">
                             <form onSubmit={handleUpdateStudent} className="flex gap-2 items-center">
-                              <span className="text-gray-500 font-medium w-8 text-center">{s.displayNum}</span>
+                              <input 
+                                type="number" 
+                                min="1" 
+                                value={editingStudent.rosterNumber || s.displayNum} 
+                                onChange={e=>setEditingStudent({...editingStudent, rosterNumber: parseInt(e.target.value) || 1})} 
+                                className="border rounded px-2 w-16 text-sm py-1 text-center font-bold text-indigo-600" 
+                                title="Edit Roster Number"
+                              />
                               <input type="text" value={editingStudent.name} onChange={e=>setEditingStudent({...editingStudent, name: e.target.value})} className="border rounded px-2 flex-1 text-sm py-1" />
                               <input type="text" value={editingStudent.studentId || ''} onChange={e=>setEditingStudent({...editingStudent, studentId: e.target.value})} className="border rounded px-2 w-32 text-sm py-1" placeholder="ID (Optional)" />
                               <button type="submit" className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">Save</button>

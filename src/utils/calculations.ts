@@ -3,10 +3,15 @@ import { ParticipationRecord, Quarter, Student, ScoreRecord, GradingSettings, At
 export const getClassRoster = (students: Student[], classId: string) => {
   return students
     .filter(s => s.classId === classId)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => {
+      const numA = a.rosterNumber !== undefined ? a.rosterNumber : 9999;
+      const numB = b.rosterNumber !== undefined ? b.rosterNumber : 9999;
+      if (numA !== numB) return numA - numB;
+      return a.name.localeCompare(b.name);
+    })
     .map((s, index) => ({
       ...s,
-      displayNum: index + 1
+      displayNum: s.rosterNumber !== undefined ? s.rosterNumber : index + 1
     }));
 };
 

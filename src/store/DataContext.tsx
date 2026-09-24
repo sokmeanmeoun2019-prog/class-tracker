@@ -13,6 +13,7 @@ type Action =
   | { type: 'ADD_STUDENT'; payload: Student }
   | { type: 'UPDATE_STUDENT'; payload: Student }
   | { type: 'DELETE_STUDENT'; payload: string }
+  | { type: 'REORDER_STUDENT'; payload: { studentId: string, classId: string, newNumber: number } }
   | { type: 'ADD_SESSION'; payload: ActivitySession }
   | { type: 'END_SESSION'; payload: string }
   | { type: 'ADD_RECORD'; payload: ParticipationRecord }
@@ -169,6 +170,56 @@ const reducer = (state: AppState, action: Action): AppState => {
         attendanceRecords: state.attendanceRecords.filter(a => a.studentId !== action.payload),
         ptcRecords: state.ptcRecords.filter(p => p.studentId !== action.payload),
         trash: [...(state.trash || []), trashItem]
+      };
+    }
+    case 'REORDER_STUDENT': {
+      const { studentId, classId, newNumber } = action.payload;
+      
+      // Get all students for this class, sorted by current rosterNumber or name
+      let classStudents = state.students
+        .filter(s => s.classId === classId)
+        .sort((a, b) => {
+           const numA = a.rosterNumber !== undefined ? a.rosterNumber : 9999;
+           const numB = b.rosterNumber !== undefined ? b.rosterNumber : 9999;
+           if (numA !== numB) return numA - numB;
+           return a.name.localeCompare(b.name);
+        });
+        
+      // Ensure everyone has a sequential roster number first (1 to N)
+      classStudents = classStudents.map((s, i) => ({ ...s, rosterNumber: i + 1 }));
+
+      const targetStudent = classStudents.find(s => s.id === studentId);
+      if (!targetStudent) return state;
+
+      const oldNumber = targetStudent.rosterNumber!;
+      let targetNewNumber = newNumber;
+      if (targetNewNumber < 1) targetNewNumber = 1;
+      if (targetNewNumber > classStudents.length) targetNewNumber = classStudents.length;
+      
+      if (oldNumber === targetNewNumber) return state; // no change
+
+      // Shift the others
+      classStudents = classStudents.map(s => {
+         if (s.id === studentId) {
+             return { ...s, rosterNumber: targetNewNumber };
+         }
+         // Moving down
+         if (oldNumber < targetNewNumber && s.rosterNumber! > oldNumber && s.rosterNumber! <= targetNewNumber) {
+             return { ...s, rosterNumber: s.rosterNumber! - 1 };
+         }
+         // Moving up
+         if (oldNumber > targetNewNumber && s.rosterNumber! >= targetNewNumber && s.rosterNumber! < oldNumber) {
+             return { ...s, rosterNumber: s.rosterNumber! + 1 };
+         }
+         return s;
+      });
+
+      const updatedIds = classStudents.map(s => s.id);
+      const otherStudents = state.students.filter(s => !updatedIds.includes(s.id));
+      
+      return {
+         ...state,
+         students: [...otherStudents, ...classStudents]
       };
     }
     case 'UPDATE_SCORE': {

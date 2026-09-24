@@ -19,6 +19,7 @@ export interface Student {
   sex?: 'Male' | 'Female' | '';
   nameKhmer?: string;
   group?: string;
+  rosterNumber?: number;
 }
 
 export interface ActivitySession {
