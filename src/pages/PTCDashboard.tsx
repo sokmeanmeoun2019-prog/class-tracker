@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../store/DataContext';
 import { getClassRoster, getStudentSemesterOverall, getStudentAttendanceSemester, getStudentSemesterTotal, getAverageParticipation, getParticipationTier, getAttendanceAlertStatus } from '../utils/calculations';
+import { generatePTCFeedback, generateStrengths, generateAreasToImprove } from '../utils/ptcGenerator';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Printer, Download } from 'lucide-react';
@@ -49,13 +50,35 @@ const PTCDashboard = () => {
 
     return rawData.map(d => {
       const attAlert = getAttendanceAlertStatus(d.attendance.unexcused, state.attendanceSettings);
-      const attTier = attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert');
+      const attTier = (attAlert === 'Normal' ? 'Good' : (attAlert === 'Warning' ? 'Warning' : 'Alert')) as 'Good' | 'Warning' | 'Alert';
       const partTier = getParticipationTier(d.participation, classAveragePart);
+
+      const studentStats = {
+        name: d.student.name,
+        overallScore: d.overall.overallScore,
+        grade: d.overall.letterGrade,
+        hwTotal: d.overall.hwTotal,
+        quizTotal: d.overall.quizTotal,
+        testTotal: d.overall.testTotal,
+        participation: d.participation,
+        participationTier: partTier,
+        attendanceRate: d.attendance.rate,
+        unexcusedAbsences: d.attendance.unexcused,
+        attendanceTier: attTier
+      };
+
+      const existingRecord = state.ptcRecords.find(p => p.studentId === d.student.id && p.semester === semester);
+      const strengths = existingRecord ? existingRecord.strengths : generateStrengths(studentStats);
+      const areasToImprove = existingRecord ? existingRecord.areasToImprove : generateAreasToImprove(studentStats);
+      const teacherComment = existingRecord ? existingRecord.teacherComment : generatePTCFeedback(studentStats);
 
       return {
         ...d,
         attTier,
-        partTier
+        partTier,
+        strengths,
+        areasToImprove,
+        teacherComment
       };
     });
   }, [state, semester, classStudents, currentClass]);
@@ -127,8 +150,9 @@ const PTCDashboard = () => {
       'Grade': d.overall.letterGrade,
       'Attendance': d.attTier,
       'Participation': d.partTier,
-      'Achievement': d.overall.autoAchievement,
-      'Attitude': d.overall.autoAttitude
+      'Strengths': d.strengths.join(', '),
+      'Areas to Improve': d.areasToImprove.join(', '),
+      'Constructive Feedback': d.teacherComment
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);
@@ -260,13 +284,11 @@ const PTCDashboard = () => {
               <tr className="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-100">
                 <th className="p-4 whitespace-nowrap">No.</th>
                 <th className="p-4 whitespace-nowrap">Student Name</th>
-                <th className="p-4 whitespace-nowrap">Sex</th>
                 <th className="p-4 whitespace-nowrap text-center">Average</th>
                 <th className="p-4 whitespace-nowrap text-center">Grade</th>
-                <th className="p-4 whitespace-nowrap text-center">Attendance</th>
-                <th className="p-4 whitespace-nowrap text-center">Participation</th>
-                <th className="p-4 whitespace-nowrap">Achievement</th>
-                <th className="p-4 whitespace-nowrap">Attitude</th>
+                <th className="p-4 whitespace-nowrap">Strengths</th>
+                <th className="p-4 whitespace-nowrap">Areas to Improve</th>
+                <th className="p-4 whitespace-nowrap w-1/3">Constructive Feedback</th>
               </tr>
             </thead>
             <tbody className="text-sm">
@@ -278,7 +300,6 @@ const PTCDashboard = () => {
                 >
                   <td className="p-4 font-medium text-gray-500">{i + 1}</td>
                   <td className="p-4 font-bold text-gray-800">{d.student.name}</td>
-                  <td className="p-4 text-gray-600">{d.student.sex}</td>
                   <td className="p-4 text-center font-bold">{d.overall.overallScore}</td>
                   <td className="p-4 text-center">
                     <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold
@@ -292,24 +313,19 @@ const PTCDashboard = () => {
                       {d.overall.letterGrade}
                     </span>
                   </td>
-                  <td className="p-4 text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      d.attTier === 'Good' ? 'bg-emerald-50 text-emerald-600' :
-                      d.attTier === 'Warning' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
-                    }`}>
-                      {d.attTier}
-                    </span>
+                  <td className="p-4 text-gray-700 text-xs">
+                    <ul className="list-disc pl-4 space-y-1">
+                      {d.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
                   </td>
-                  <td className="p-4 text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${
-                      d.partTier === 'High' ? 'bg-blue-50 text-blue-600' :
-                      d.partTier === 'Moderate' ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {d.partTier}
-                    </span>
+                  <td className="p-4 text-gray-700 text-xs">
+                    <ul className="list-disc pl-4 space-y-1">
+                      {d.areasToImprove.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
                   </td>
-                  <td className="p-4 text-gray-600 max-w-xs truncate">{d.overall.autoAchievement}</td>
-                  <td className="p-4 text-gray-600 max-w-xs truncate">{d.overall.autoAttitude}</td>
+                  <td className="p-4 text-gray-600 text-xs text-justify line-clamp-3">
+                    {d.teacherComment}
+                  </td>
                 </tr>
               ))}
               {classData.length === 0 && (

@@ -78,10 +78,25 @@ const PTCStudentReport = () => {
   }, [student?.id, currentSemester]); // Only run when student or semester changes
 
   const handleRegenerate = () => {
-    if (!stats) return;
-    const newComment = generatePTCFeedback(stats.overall.letterGrade, stats.attTier, stats.partTier);
-    const newStrengths = generateStrengths(stats.overall.letterGrade, stats.partTier, stats.attTier);
-    const newAreas = generateAreasToImprove(stats.overall.letterGrade, stats.partTier, stats.attTier);
+    if (!student || !stats) return;
+    
+    const studentStats = {
+      name: student.name,
+      overallScore: stats.overall.overallScore,
+      grade: stats.overall.letterGrade,
+      hwTotal: stats.overall.hwTotal,
+      quizTotal: stats.overall.quizTotal,
+      testTotal: stats.overall.testTotal,
+      participation: stats.participation,
+      participationTier: stats.partTier,
+      attendanceRate: stats.attendance.rate,
+      unexcusedAbsences: stats.attendance.unexcused,
+      attendanceTier: stats.attTier
+    };
+
+    const newComment = generatePTCFeedback(studentStats);
+    const newStrengths = generateStrengths(studentStats);
+    const newAreas = generateAreasToImprove(studentStats);
     
     setComment(newComment);
     setStrengths(newStrengths);
@@ -243,6 +258,12 @@ const PTCStudentReport = () => {
             
             <div className="print:hidden flex gap-2">
               <button 
+                onClick={() => document.getElementById('comment-box')?.focus()}
+                className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
+              >
+                Edit Comment
+              </button>
+              <button 
                 onClick={handleRegenerate}
                 className="text-xs font-bold bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded flex items-center gap-1 transition-colors"
               >
@@ -251,16 +272,17 @@ const PTCStudentReport = () => {
               <button 
                 onClick={handleSave}
                 className={`text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 transition-colors ${
-                  savedSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 hover:bg-indigo-200 text-indigo-700'
+                  savedSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                 }`}
               >
                 {savedSuccess ? <Check size={14} /> : <Save size={14} />} 
-                {savedSuccess ? 'Saved' : 'Save Comment'}
+                {savedSuccess ? 'Saved' : 'Save'}
               </button>
             </div>
           </div>
           
           <textarea
+            id="comment-box"
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             className="w-full h-48 p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 print:border-none print:resize-none print:p-0 print:h-auto font-medium text-gray-800 leading-relaxed text-justify resize-y"

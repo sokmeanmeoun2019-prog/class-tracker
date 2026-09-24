@@ -167,9 +167,9 @@ export const calculateStudentGrades = (
   const autoFeedback = generateAcademicFeedback(studentId, quarter, overallScore);
 
   return {
-    hwTotal,
-    quizTotal,
-    testTotal,
+    hwTotal: Number((hwPct * 100).toFixed(2)),
+    quizTotal: Number((quizPct * 100).toFixed(2)),
+    testTotal: Number((testPct * 100).toFixed(2)),
     overallScore,
     letterGrade,
     ...autoFeedback
@@ -252,9 +252,13 @@ export const getStudentSemesterOverall = (
   });
 
   const validScores = qScores.filter(q => q.overallScore > 0);
-  if (validScores.length === 0) return { overallScore: 0, letterGrade: 'Unknown' as 'Unknown', autoAchievement: '', autoAttitude: '' };
+  if (validScores.length === 0) return { overallScore: 0, hwTotal: 0, quizTotal: 0, testTotal: 0, letterGrade: 'Unknown' as 'Unknown', autoAchievement: '', autoAttitude: '' };
 
   const sum = validScores.reduce((acc, curr) => acc + curr.overallScore, 0);
+  const hwSum = validScores.reduce((acc, curr) => acc + curr.hwTotal, 0);
+  const quizSum = validScores.reduce((acc, curr) => acc + curr.quizTotal, 0);
+  const testSum = validScores.reduce((acc, curr) => acc + curr.testTotal, 0);
+
   const overallScore = Number((sum / validScores.length).toFixed(2));
   
   let letterGrade = 'F';
@@ -269,6 +273,9 @@ export const getStudentSemesterOverall = (
 
   return {
     overallScore,
+    hwTotal: Number((hwSum / validScores.length).toFixed(2)),
+    quizTotal: Number((quizSum / validScores.length).toFixed(2)),
+    testTotal: Number((testSum / validScores.length).toFixed(2)),
     letterGrade: letterGrade as 'A' | 'B' | 'C' | 'D' | 'E' | 'F',
     autoAchievement: latest.autoAchievement,
     autoAttitude: latest.autoAttitude
