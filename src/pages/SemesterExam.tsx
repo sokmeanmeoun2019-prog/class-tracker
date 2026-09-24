@@ -374,22 +374,36 @@ const SemesterExam = () => {
             </tbody>
           </table>
         </div>
-      </div>
-      
-      {/* Footer / Signature Section */}
-      <div className="mt-8 flex flex-col md:flex-row justify-between items-start text-sm text-gray-800 print:text-black max-w-4xl mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none print:p-0 print:bg-transparent">
-        <div className="space-y-1">
-          <p className="font-bold">* សម្គាល់/ Note :</p>
-          <p className="pl-2">- លោកគ្រូ អ្នកគ្រូត្រូវបញ្ចូលពិន្ទុសិស្សក្នុងតារាងខាងលើនេះ។ ពិន្ទុខ្ពស់បំផុតគឺ ១០០ លើ ១០០។</p>
-          <p className="pl-6 italic text-gray-700">Teachers are required to record student's scores into this list after marking. The score must be 100 out of 100.</p>
-          <p className="pl-2 mt-2">- លោកគ្រូ អ្នកគ្រូត្រូវប្រគល់មកការិយាល័យសិក្សាវិញបន្ទាប់ពី ២ថ្ងៃបន្ទាប់ពីថ្ងៃដែលបានយកវិញ្ញាសាប្រឡងទៅកែ ។</p>
-          <p className="pl-6 italic text-gray-700">Teachers should return to Registrar's Office 2 days after signing out.</p>
-        </div>
-        <div className="text-center w-64 pt-2">
-          <p className="font-bold">Date: {examInfo.examDate}</p>
-          <p className="font-bold">Score Recorded by</p>
-          <p className="font-bold mb-16">Instructor</p>
-          <p className="font-bold">{examInfo.teacherName}</p>
+
+        {/* Footer / Signature Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start text-sm text-gray-800 print:text-black w-full bg-white p-6 border-t border-gray-100 print:shadow-none print:border-none print:p-0 print:pt-4 print:bg-transparent">
+          <div className="space-y-1 flex-1">
+            <p className="font-bold">* សម្គាល់/ Note :</p>
+            <p className="pl-2">- លោកគ្រូ អ្នកគ្រូត្រូវបញ្ចូលពិន្ទុសិស្សក្នុងតារាងខាងលើនេះ។ ពិន្ទុខ្ពស់បំផុតគឺ ១០០ លើ ១០០។</p>
+            <p className="pl-6 italic text-gray-700">Teachers are required to record student's scores into this list after marking. The score must be 100 out of 100.</p>
+            <p className="pl-2 mt-2">- លោកគ្រូ អ្នកគ្រូត្រូវប្រគល់មកការិយាល័យសិក្សាវិញបន្ទាប់ពី ២ថ្ងៃបន្ទាប់ពីថ្ងៃដែលបានយកវិញ្ញាសាប្រឡងទៅកែ ។</p>
+            <p className="pl-6 italic text-gray-700">Teachers should return to Registrar's Office 2 days after signing out.</p>
+          </div>
+          <div className="text-center w-64 pt-2 shrink-0">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="font-bold">Date:</span>
+              <input 
+                type="date" 
+                value={examInfo.examDate || ''} 
+                onChange={e => handleInfoChange('examDate', e.target.value)} 
+                className="font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 outline-none text-center print:border-none" 
+              />
+            </div>
+            <p className="font-bold">Score Recorded by</p>
+            <p className="font-bold mb-16">Instructor</p>
+            <input 
+              type="text"
+              value={examInfo.teacherName || ''}
+              onChange={e => handleInfoChange('teacherName', e.target.value)}
+              placeholder="Type Name Here..."
+              className="font-bold bg-transparent border-b border-transparent hover:border-gray-300 focus:border-indigo-500 outline-none w-full text-center print:border-none print:placeholder-transparent"
+            />
+          </div>
         </div>
       </div>
       
