@@ -157,15 +157,26 @@ const SemesterExam = () => {
       const data = XLSX.utils.sheet_to_json(ws);
 
       data.forEach((row: any) => {
+        // Find keys case-insensitively
+        const nameKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'name' || k.trim().toLowerCase() === 'student name' || k.trim().toLowerCase() === 'student');
+        const idKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'id' || k.trim().toLowerCase() === 'student id');
+        const seatKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'seat nº' || k.trim().toLowerCase() === 'seat' || k.trim().toLowerCase() === 'no.');
+        const khmerKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'name in khmer' || k.trim().toLowerCase() === 'khmer name' || k.trim().toLowerCase() === 'khmer');
+        const genderKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'gender' || k.trim().toLowerCase() === 'sex');
+        const groupKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'group');
+        const scoreKey = Object.keys(row).find(k => k.trim().toLowerCase() === 'score 100%' || k.trim().toLowerCase() === 'score' || k.trim().toLowerCase() === 'exam score');
+
+        if (!nameKey) return; // Skip if no name
+
         // Try to match by student name
-        const s = classStudents.find(st => st.name.trim().toLowerCase() === String(row['Name'] || '').trim().toLowerCase());
+        const s = classStudents.find(st => st.name.trim().toLowerCase() === String(row[nameKey] || '').trim().toLowerCase());
         if (s) {
           const recordId = `${s.id}-${semester}`;
           const existing = state.examRecords?.find(r => r.id === recordId);
           
           let parsedScore: number | null = null;
-          if (row['Score 100%'] !== undefined && row['Score 100%'] !== '') {
-            parsedScore = parseInt(row['Score 100%'], 10);
+          if (scoreKey && row[scoreKey] !== undefined && row[scoreKey] !== '') {
+            parsedScore = parseInt(row[scoreKey], 10);
             if (isNaN(parsedScore)) parsedScore = null;
             else if (parsedScore < 0) parsedScore = 0;
             else if (parsedScore > 100) parsedScore = 100;
@@ -173,11 +184,11 @@ const SemesterExam = () => {
 
           const payload: SemesterExamRecord = existing ? {
             ...existing,
-            seatNumber: row['Seat Nº'] || existing.seatNumber || '',
-            nameKhmer: row['Name in Khmer'] || existing.nameKhmer || '',
-            studentIdString: row['ID'] || existing.studentIdString || '',
-            sex: row['Gender'] || existing.sex || '',
-            group: row['Group'] || existing.group || '',
+            seatNumber: seatKey ? row[seatKey] : existing.seatNumber || '',
+            nameKhmer: khmerKey ? row[khmerKey] : existing.nameKhmer || '',
+            studentIdString: idKey ? row[idKey] : existing.studentIdString || '',
+            sex: genderKey ? row[genderKey] : existing.sex || '',
+            group: groupKey ? row[groupKey] : existing.group || '',
             score: parsedScore !== null ? parsedScore : existing.score
           } : {
             id: recordId,
@@ -185,11 +196,11 @@ const SemesterExam = () => {
             classId: state.currentClassId!,
             semester,
             score: parsedScore,
-            seatNumber: row['Seat Nº'] || '',
-            nameKhmer: row['Name in Khmer'] || '',
-            studentIdString: row['ID'] || '',
-            sex: row['Gender'] || '',
-            group: row['Group'] || ''
+            seatNumber: seatKey ? row[seatKey] : '',
+            nameKhmer: khmerKey ? row[khmerKey] : '',
+            studentIdString: idKey ? row[idKey] : '',
+            sex: genderKey ? row[genderKey] : '',
+            group: groupKey ? row[groupKey] : ''
           };
           
           dispatch({ type: 'UPDATE_EXAM_RECORD', payload });

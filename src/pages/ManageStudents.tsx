@@ -51,18 +51,38 @@ const ManageStudents = () => {
       const data = await parseExcelStudents(file);
       const newStudents = data
         .filter((row: any) => {
-          const nameVal = row['Name'] || row['Student Name'];
-          return nameVal && typeof nameVal === 'string' && nameVal.trim().length > 0;
+          const nameKey = Object.keys(row).find(k => 
+            k.trim().toLowerCase() === 'name' || 
+            k.trim().toLowerCase() === 'student name' ||
+            k.trim().toLowerCase() === 'student'
+          );
+          if (!nameKey) return false;
+          
+          const nameVal = row[nameKey];
+          return nameVal !== undefined && nameVal !== null && String(nameVal).trim().length > 0;
         })
-        .map((row: any) => ({
-          id: uuidv4(),
-          classId: selectedClassId,
-          name: (row['Name'] || row['Student Name']).trim(),
-          studentId: (row['Student ID'] || row['ID'] || "").toString().trim()
-        }));
+        .map((row: any) => {
+          const nameKey = Object.keys(row).find(k => 
+            k.trim().toLowerCase() === 'name' || 
+            k.trim().toLowerCase() === 'student name' ||
+            k.trim().toLowerCase() === 'student'
+          )!;
+          
+          const idKey = Object.keys(row).find(k => 
+            k.trim().toLowerCase() === 'student id' || 
+            k.trim().toLowerCase() === 'id'
+          );
+
+          return {
+            id: uuidv4(),
+            classId: selectedClassId,
+            name: String(row[nameKey]).trim(),
+            studentId: idKey && row[idKey] ? String(row[idKey]).trim() : ""
+          };
+        });
         
       if (newStudents.length === 0) {
-        alert("No valid students found. Make sure your column is named exactly 'Name'.");
+        alert("No valid students found. Make sure your Excel file has a column header named 'Name' (or 'Student Name'). Check for hidden empty rows.");
         return;
       }
       
