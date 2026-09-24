@@ -111,7 +111,8 @@ const PTCDashboard = () => {
       totalPart += d.participation;
     });
 
-    const avgScore = sumScore / classData.length;
+    const validData = classData.filter(d => d.overall.overallScore > 0);
+    const avgScore = validData.length > 0 ? sumScore / validData.length : 0;
     
     return {
       total: classData.length,
@@ -166,7 +167,7 @@ const PTCDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col space-y-6 pb-12">
       <div className="print:hidden">
         <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-600 mb-6 drop-shadow-sm flex items-center justify-between">
           <span>Parent-Teacher Conference</span>
@@ -277,8 +278,8 @@ const PTCDashboard = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex-1 flex flex-col">
-        <div className="overflow-x-auto flex-1">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 mt-6">
+        <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-50/80 text-gray-500 text-xs uppercase tracking-wider font-semibold border-b border-gray-100">
