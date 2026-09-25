@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
 import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord, SemesterExamRecord, SemesterExamInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, collection, writeBatch, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from './AuthContext';
 type Action =
@@ -353,27 +353,52 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), (docSnap) => {
+    const unsub = onSnapshot(doc(db, 'users', currentUser.uid), async (docSnap) => {
       if (docSnap.exists()) {
         // If the update came from the server (not our own local write), update local state
         if (!docSnap.metadata.hasPendingWrites) {
-          isRemoteUpdate.current = true;
-          const data = docSnap.data() as AppState;
-          // Apply migrations if missing
-          if (!data.trash) data.trash = [];
-          if (!data.scores) data.scores = [];
-          if (!data.attendanceRecords) data.attendanceRecords = [];
-          if (!data.ptcRecords) data.ptcRecords = [];
-          if (!data.gradingSettings) data.gradingSettings = defaultGradingSettings;
-          if (!data.attendanceSettings) data.attendanceSettings = defaultAttendanceSettings;
+          const data = docSnap.data();
+          let parsedState: AppState | null = null;
           
-          dispatch({ type: 'SET_STATE', payload: data });
+          if (data.numChunks !== undefined) {
+            let fullJson = '';
+            for (let i = 0; i < data.numChunks; i++) {
+              const chunkSnap = await getDoc(doc(db, 'users', currentUser.uid, 'chunks', `chunk_${i}`));
+              if (chunkSnap.exists()) {
+                fullJson += chunkSnap.data().text;
+              }
+            }
+            try {
+              parsedState = JSON.parse(fullJson) as AppState;
+            } catch (e) {
+              console.error("Failed to parse chunked state:", e);
+            }
+          } else {
+            // Legacy single-document state
+            parsedState = data as AppState;
+          }
+
+          if (parsedState) {
+            // Apply migrations if missing
+            if (!parsedState.trash) parsedState.trash = [];
+            if (!parsedState.scores) parsedState.scores = [];
+            if (!parsedState.attendanceRecords) parsedState.attendanceRecords = [];
+            if (!parsedState.ptcRecords) parsedState.ptcRecords = [];
+            if (!parsedState.examRecords) parsedState.examRecords = [];
+            if (!parsedState.examInfos) parsedState.examInfos = [];
+            if (!parsedState.gradingSettings) parsedState.gradingSettings = defaultGradingSettings;
+            if (!parsedState.attendanceSettings) parsedState.attendanceSettings = defaultAttendanceSettings;
+            
+            isRemoteUpdate.current = true;
+            dispatch({ type: 'SET_STATE', payload: parsedState });
+          }
+          isInitialized.current = true;
         }
       } else {
         // First time login, create the empty document
         setDoc(doc(db, 'users', currentUser.uid), defaultState);
+        isInitialized.current = true;
       }
-      isInitialized.current = true;
     });
 
     return unsub;
@@ -387,9 +412,40 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         isRemoteUpdate.current = false;
       } else {
         // State changed because of local user action, save to cloud
-        setDoc(doc(db, 'users', currentUser.uid), state).catch(err => {
-          console.error("Failed to save to cloud:", err);
-        });
+        const saveState = async () => {
+          try {
+            const json = JSON.stringify(state);
+            const CHUNK_SIZE = 800000; // ~800KB chunks (Firestore limit is 1MB)
+            const chunks: string[] = [];
+            
+            for (let i = 0; i < json.length; i += CHUNK_SIZE) {
+              chunks.push(json.slice(i, i + CHUNK_SIZE));
+            }
+            
+            const batch = writeBatch(db);
+            const userRef = doc(db, 'users', currentUser.uid);
+            const chunksRef = collection(db, 'users', currentUser.uid, 'chunks');
+            
+            // Set root doc with metadata
+            batch.set(userRef, { numChunks: chunks.length, timestamp: Date.now() });
+            
+            // Set chunks
+            chunks.forEach((chunk, index) => {
+              batch.set(doc(chunksRef, `chunk_${index}`), { text: chunk });
+            });
+            
+            // Cleanup any extra potential chunks from previous larger states
+            for (let i = chunks.length; i < chunks.length + 5; i++) {
+               batch.delete(doc(chunksRef, `chunk_${i}`));
+            }
+            
+            await batch.commit();
+          } catch (err) {
+            console.error("Failed to save to cloud:", err);
+          }
+        };
+        
+        saveState();
       }
     }
   }, [state, currentUser]);

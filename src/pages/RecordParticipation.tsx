@@ -175,11 +175,11 @@ const RecordParticipation = () => {
                 {/* Decorative Background Blob */}
                 <div className={`absolute -left-6 -top-6 w-20 h-20 rounded-full opacity-10 blur-2xl ${badgeColor}`}></div>
 
-                <div className="flex items-center gap-4 z-10 flex-1">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-md shrink-0 ${badgeColor}`}>
+                <div className="flex items-center gap-3 sm:gap-4 z-10 flex-1 min-w-0">
+                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-md shrink-0 ${badgeColor}`}>
                     {student.displayNum}
                   </div>
-                  <h3 className="font-bold text-gray-800 text-lg sm:text-xl line-clamp-1 pr-2">
+                  <h3 className="font-bold text-gray-800 text-base sm:text-xl pr-1 sm:pr-2 leading-tight break-words">
                     {student.name}
                   </h3>
                 </div>
