@@ -412,7 +412,17 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         isRemoteUpdate.current = false;
       } else {
         // State changed because of local user action, save to cloud
-        const saveState = async () => {
+        let saveCompleted = false;
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+          if (!saveCompleted) {
+            e.preventDefault();
+            e.returnValue = 'Your points are still saving to the cloud. Please wait a second before refreshing!';
+          }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+
+        const timerId = setTimeout(async () => {
           try {
             const json = JSON.stringify(state);
             const CHUNK_SIZE = 800000; // ~800KB chunks (Firestore limit is 1MB)
@@ -440,12 +450,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             }
             
             await batch.commit();
+            saveCompleted = true;
           } catch (err) {
             console.error("Failed to save to cloud:", err);
           }
-        };
+        }, 1500); // Wait 1.5 seconds after they stop clicking to bundle the saves
         
-        saveState();
+        return () => {
+          clearTimeout(timerId);
+          window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
       }
     }
   }, [state, currentUser]);
