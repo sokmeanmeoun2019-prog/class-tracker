@@ -114,7 +114,7 @@ const Dashboard = () => {
                } else {
                  alert("Database document does not exist for this account.");
                }
-             } catch (e) {
+             } catch (e: any) {
                alert("Error: " + e.message);
              }
            }}
