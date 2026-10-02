@@ -84,12 +84,44 @@ const Dashboard = () => {
       
       <div className="glass-card p-8 rounded-3xl">
          <h3 className="text-xl font-bold text-gray-800 mb-5">Quick Guide</h3>
-         <ol className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-600">
-           <li className="flex gap-3 items-start"><span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">1</span> <div>Go to <strong className="text-indigo-900">Classes & Years</strong> to setup your Academic Years and Classes.</div></li>
-           <li className="flex gap-3 items-start"><span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">2</span> <div>Go to <strong className="text-indigo-900">Students</strong> to add or import your students.</div></li>
-           <li className="flex gap-3 items-start"><span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">3</span> <div>Select your Class and Quarter in the top header.</div></li>
-           <li className="flex gap-3 items-start"><span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold shrink-0">4</span> <div>Go to <strong className="text-indigo-900">Record Participation</strong> during your lesson to easily add marks.</div></li>
-         </ol>
+         <button 
+           onClick={async () => {
+             try {
+               const { db } = await import('../lib/firebase');
+               const { doc, getDoc } = await import('firebase/firestore');
+               // we need currentUser uid
+               const auth = (await import('../lib/firebase')).auth;
+               const uid = auth.currentUser?.uid;
+               if (!uid) { alert("Not logged in"); return; }
+               
+               const userRef = doc(db, 'users', uid);
+               const snap = await getDoc(userRef);
+               if (snap.exists()) {
+                 const data = snap.data();
+                 alert("Root Data: " + JSON.stringify(data).substring(0, 500));
+                 if (data.numChunks !== undefined) {
+                   alert(`Found ${data.numChunks} chunks! Downloading...`);
+                   let text = '';
+                   for(let i=0; i<data.numChunks; i++){
+                     const c = await getDoc(doc(db, 'users', uid, 'chunks', `chunk_${i}`));
+                     if (c.exists()) text += c.data().text;
+                   }
+                   const parsed = JSON.parse(text);
+                   alert(`Chunk data contains ${parsed.classes?.length || 0} classes and ${parsed.scores?.length || 0} scores!`);
+                 } else {
+                   alert("No numChunks found. Data must be small.");
+                 }
+               } else {
+                 alert("Database document does not exist for this account.");
+               }
+             } catch (e) {
+               alert("Error: " + e.message);
+             }
+           }}
+           className="px-6 py-4 bg-red-600 text-white rounded-xl font-black text-xl w-full hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+         >
+           🚨 CLICK ME TO FIND MISSING DATA 🚨
+         </button>
       </div>
     </div>
   );
