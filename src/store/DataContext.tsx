@@ -370,8 +370,10 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
                 }
               }
               parsedState = JSON.parse(fullJson) as AppState;
-            } catch (e) {
+            } catch (e: any) {
               console.error("Failed to parse chunked state:", e);
+              alert("CRITICAL ERROR: Failed to download your data from the server. To protect your data, saving has been disabled. Please check your internet connection and refresh the page.");
+              return; // Stop initialization to prevent saving empty state
             }
           } else {
             // Legacy single-document state
