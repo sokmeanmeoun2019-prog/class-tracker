@@ -362,13 +362,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
           
           if (data.numChunks !== undefined) {
             let fullJson = '';
-            for (let i = 0; i < data.numChunks; i++) {
-              const chunkSnap = await getDoc(doc(db, 'users', currentUser.uid, 'chunks', `chunk_${i}`));
-              if (chunkSnap.exists()) {
-                fullJson += chunkSnap.data().text;
-              }
-            }
             try {
+              for (let i = 0; i < data.numChunks; i++) {
+                const chunkSnap = await getDoc(doc(db, 'users', currentUser.uid, 'chunks', `chunk_${i}`));
+                if (chunkSnap.exists()) {
+                  fullJson += chunkSnap.data().text;
+                }
+              }
               parsedState = JSON.parse(fullJson) as AppState;
             } catch (e) {
               console.error("Failed to parse chunked state:", e);
@@ -398,6 +398,13 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         // First time login, create the empty document
         setDoc(doc(db, 'users', currentUser.uid), defaultState);
         isInitialized.current = true;
+      }
+    }, (error) => {
+      console.error("Firebase Sync Error:", error);
+      if (error.code === 'permission-denied') {
+        alert("SECURITY ALERT: Your app is blocked from reading its own database! Your data is SAFE but hidden. Please check your Firebase Security Rules as instructed.");
+      } else {
+        alert(`Database connection error: ${error.message}`);
       }
     });
 

@@ -111,12 +111,17 @@ const Header = ({ onMenuToggle, mobileMenuOpen }: { onMenuToggle?: () => void, m
               className="w-9 h-9 rounded-full border-2 border-indigo-100 shadow-sm hover:scale-105 transition-transform"
               title={currentUser.email || ''}
             />
-            <button 
-              onClick={() => logout()}
-              className="text-sm font-semibold text-gray-500 hover:text-rose-500 transition-colors"
-            >
-              Log out
-            </button>
+            <div className="flex flex-col">
+              <span className="text-[10px] text-gray-400 font-mono leading-none mb-1 max-w-[100px] truncate" title={currentUser.email || ''}>
+                {currentUser.email}
+              </span>
+              <button 
+                onClick={() => logout()}
+                className="text-sm font-semibold text-gray-500 hover:text-rose-500 transition-colors text-left leading-none"
+              >
+                Log out
+              </button>
+            </div>
           </div>
         )}
       </div>
