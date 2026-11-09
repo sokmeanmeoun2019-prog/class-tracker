@@ -18,7 +18,7 @@ import {
   ArrowRightLeft,
   UserPlus
 } from 'lucide-react';
-import { Student, ScoreRecord, Quarter, ClassRoom } from '../types';
+import { Student, ScoreRecord, Quarter, Class, ClassRoom } from '../types';
 import { useData } from '../store/DataContext';
 
 interface ExcelImportMeta {
@@ -364,7 +364,7 @@ const resolveDirectFormulaCell = (
     const { ws: currentWs } = findWorksheetByName(wb, currentSheetName);
 
     if (targetWs && colIndexNum >= 1 && startRowNum >= 1 && endRowNum >= startRowNum) {
-      let lookupVal: string | number = '';
+      let lookupVal: any = '';
       const localRefMatch = lookupExpr.match(/^\$?([A-Za-z]+)\$?(\d+)$/);
       if (localRefMatch && currentWs) {
         const refAddr = `${localRefMatch[1].toUpperCase()}${localRefMatch[2]}`;

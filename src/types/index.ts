@@ -11,6 +11,8 @@ export interface Class {
   academicYearId: string;
 }
 
+export type ClassRoom = Class;
+
 export interface Student {
   id: string;
   classId: string;
