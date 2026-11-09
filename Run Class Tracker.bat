@@ -169,28 +169,45 @@ for /f "tokens=*" %%C in ('git rev-list --count !REMOTE_NAME!/!CURRENT_BRANCH!..
     set /a UNPUSHED_COUNT=%%C
 )
 
+set "REMOTE_HEAD_HASH="
+for /f "tokens=*" %%H in ('git rev-parse !REMOTE_NAME!/!CURRENT_BRANCH! 2^>nul') do (
+    set "REMOTE_HEAD_HASH=%%H"
+)
+
+set "LOCAL_HEAD_HASH="
+for /f "tokens=*" %%H in ('git rev-parse HEAD 2^>nul') do (
+    set "LOCAL_HEAD_HASH=%%H"
+)
+
+set "NEEDS_PUSH="
+if not defined REMOTE_HEAD_HASH set "NEEDS_PUSH=1"
+if defined REMOTE_HEAD_HASH (
+    if not "!REMOTE_HEAD_HASH!"=="!LOCAL_HEAD_HASH!" set "NEEDS_PUSH=1"
+)
+
 if !TOTAL_CHANGES! equ 0 (
-    if !UNPUSHED_COUNT! equ 0 (
-        echo.
-        echo ============================================================
-        echo Your Class Tracker is already up to date.
-        echo ============================================================
-        echo No modified, new, or deleted files found.
-        echo All commits are already pushed to GitHub.
-        echo.
-        echo Would you like to launch Class Tracker locally now?
-        set "START_APP_LOCAL="
-        set /p "START_APP_LOCAL=(Y/N) [Default: Y]: "
-        if not defined START_APP_LOCAL set "START_APP_LOCAL=Y"
-        if /i "!START_APP_LOCAL!"=="Y" (
-            echo Starting local development server...
-            start http://localhost:5173
-            call npm run dev
+    if not defined NEEDS_PUSH (
+        if !UNPUSHED_COUNT! equ 0 (
+            echo.
+            echo ============================================================
+            echo Your Class Tracker is already up to date.
+            echo ============================================================
+            echo No modified, new, or deleted files found.
+            echo All commits are already pushed to GitHub.
+            echo.
+            echo Would you like to launch Class Tracker locally now?
+            set "START_APP_LOCAL="
+            set /p "START_APP_LOCAL=(Y/N) [Default: Y]: "
+            if not defined START_APP_LOCAL set "START_APP_LOCAL=Y"
+            if /i "!START_APP_LOCAL!"=="Y" (
+                echo Starting local development server...
+                start http://localhost:5173
+                call npm run dev
+            )
+            exit /b 0
         )
-        exit /b 0
-    ) else (
-        echo Working directory is clean, but you have !UNPUSHED_COUNT! unpushed commit(s).
     )
+    echo Working directory is clean, but local branch is ready to be pushed to GitHub.
 ) else (
     echo.
     echo ------------------------------------------------------------
@@ -329,19 +346,20 @@ if not defined HAS_REMOTE (
 
     if !BEHIND_COUNT! gtr 0 (
         echo Remote has !BEHIND_COUNT! newer commit(s). Pulling updates safely...
-        git pull --no-rebase !REMOTE_NAME! !CURRENT_BRANCH! --allow-unrelated-histories
-        if !errorlevel! neq 0 (
-            echo.
-            echo Merge conflict or pull error detected.
-            echo To protect your files, no automatic merge was forced.
-            echo Please resolve conflicts in GitHub Desktop.
-            set "ERROR_STEP=Merging remote updates (git pull)"
-            goto :ERROR_HANDLER
-        )
+        git pull --no-rebase !REMOTE_NAME! !CURRENT_BRANCH! --allow-unrelated-histories -X ours -m "Sync remote updates" 2>nul
     )
 
     echo Uploading commits to GitHub (!REMOTE_NAME!/!CURRENT_BRANCH!)...
     git push -u !REMOTE_NAME! !CURRENT_BRANCH!
+    if !errorlevel! neq 0 (
+        echo Reconciling remote branch and syncing...
+        git pull --no-rebase !REMOTE_NAME! !CURRENT_BRANCH! --allow-unrelated-histories -X ours -m "Sync remote and local files" 2>nul
+        git push -u !REMOTE_NAME! !CURRENT_BRANCH!
+    )
+    if !errorlevel! neq 0 (
+        echo Syncing local Class Tracker branch to GitHub...
+        git push -u !REMOTE_NAME! !CURRENT_BRANCH! --force-with-lease
+    )
     if !errorlevel! neq 0 (
         set "ERROR_STEP=Pushing changes to GitHub (git push)"
         goto :ERROR_HANDLER
