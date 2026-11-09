@@ -100,6 +100,84 @@ export const ACHIEVEMENT_COMMENTS: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', str
   ]
 };
 
+export const ATTITUDE_COMMENTS: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', string[]> = {
+  A: [
+    "You demonstrate an excellent attitude and strong commitment to learning.",
+    "You are responsible, cooperative, and actively involved in class.",
+    "You show great enthusiasm and set a positive example for others.",
+    "You consistently demonstrate respect and a willingness to learn."
+  ],
+  B: [
+    "You show a positive attitude and good commitment to your studies.",
+    "You are responsible and participate well in classroom activities.",
+    "You work cooperatively with others and show respect.",
+    "Continue building your confidence and taking more initiative."
+  ],
+  C: [
+    "You show a positive attitude. Keep participating actively in class.",
+    "You are cooperative and respectful. Continue building your confidence.",
+    "Keep developing your responsibility and consistency in learning.",
+    "You show good willingness to learn. Keep it up."
+  ],
+  D: [
+    "Try to participate more actively and stay focused during lessons.",
+    "Develop better study habits and take responsibility for your learning.",
+    "Show more confidence when asking questions and sharing ideas.",
+    "Make a greater effort to stay engaged in class activities."
+  ],
+  E: [
+    "Show more responsibility and interest in your studies.",
+    "Try to stay focused and participate more actively in class.",
+    "Develop a more positive attitude toward learning.",
+    "Make a stronger effort to complete classroom activities."
+  ],
+  F: [
+    "Develop a stronger commitment to your studies.",
+    "Stay focused, follow instructions, and participate in class.",
+    "Take more responsibility for your learning progress.",
+    "Show greater motivation and willingness to learn."
+  ]
+};
+
+export const AREAS_TO_IMPROVE_COMMENTS: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', string[]> = {
+  A: [
+    "Continue challenging yourself with more advanced physics problems.",
+    "Develop deeper analytical and critical-thinking skills.",
+    "Strengthen your ability to explain concepts clearly.",
+    "Continue exploring real-world applications of physics."
+  ],
+  B: [
+    "Improve your calculation accuracy and problem-solving speed.",
+    "Practice more challenging exercises to strengthen your understanding.",
+    "Pay closer attention to details when applying formulas.",
+    "Develop greater confidence in explaining your solutions."
+  ],
+  C: [
+    "Improve your problem-solving skills and calculation accuracy.",
+    "Review challenging concepts and practice more exercises.",
+    "Pay closer attention to details when applying formulas.",
+    "Improve your preparation and time management."
+  ],
+  D: [
+    "Strengthen your understanding of basic physics concepts.",
+    "Practice applying formulas and showing calculation steps.",
+    "Review lessons regularly and complete homework on time.",
+    "Prepare more consistently for quizzes and tests."
+  ],
+  E: [
+    "Review fundamental concepts and practice basic exercises.",
+    "Improve your understanding of formulas and SI units.",
+    "Complete homework regularly and ask for help when needed.",
+    "Practice reading and understanding physics questions."
+  ],
+  F: [
+    "Rebuild your understanding of basic physics concepts.",
+    "Focus on formulas, physical quantities, and SI units.",
+    "Improve your problem-solving and calculation skills.",
+    "Develop a regular study routine and seek additional support."
+  ]
+};
+
 export const getAchievementSuggestions = (scoreOrGrade: number | string): string[] => {
   if (typeof scoreOrGrade === 'string') {
     const upper = scoreOrGrade.trim().toUpperCase();
@@ -120,41 +198,61 @@ export const getAchievementSuggestions = (scoreOrGrade: number | string): string
   return ACHIEVEMENT_COMMENTS.F;
 };
 
+export const getAttitudeSuggestions = (scoreOrGrade: number | string): string[] => {
+  if (typeof scoreOrGrade === 'string') {
+    const upper = scoreOrGrade.trim().toUpperCase();
+    if (upper.startsWith('A')) return ATTITUDE_COMMENTS.A;
+    if (upper.startsWith('B')) return ATTITUDE_COMMENTS.B;
+    if (upper.startsWith('C')) return ATTITUDE_COMMENTS.C;
+    if (upper.startsWith('D')) return ATTITUDE_COMMENTS.D;
+    if (upper.startsWith('E')) return ATTITUDE_COMMENTS.E;
+    if (upper.startsWith('F')) return ATTITUDE_COMMENTS.F;
+  }
+  const score = Number(scoreOrGrade);
+  if (isNaN(score)) return ATTITUDE_COMMENTS.C;
+  if (score >= 90) return ATTITUDE_COMMENTS.A;
+  if (score >= 80) return ATTITUDE_COMMENTS.B;
+  if (score >= 70) return ATTITUDE_COMMENTS.C;
+  if (score >= 60) return ATTITUDE_COMMENTS.D;
+  if (score >= 50) return ATTITUDE_COMMENTS.E;
+  return ATTITUDE_COMMENTS.F;
+};
+
+export const getAreasToImproveSuggestions = (scoreOrGrade: number | string): string[] => {
+  if (typeof scoreOrGrade === 'string') {
+    const upper = scoreOrGrade.trim().toUpperCase();
+    if (upper.startsWith('A')) return AREAS_TO_IMPROVE_COMMENTS.A;
+    if (upper.startsWith('B')) return AREAS_TO_IMPROVE_COMMENTS.B;
+    if (upper.startsWith('C')) return AREAS_TO_IMPROVE_COMMENTS.C;
+    if (upper.startsWith('D')) return AREAS_TO_IMPROVE_COMMENTS.D;
+    if (upper.startsWith('E')) return AREAS_TO_IMPROVE_COMMENTS.E;
+    if (upper.startsWith('F')) return AREAS_TO_IMPROVE_COMMENTS.F;
+  }
+  const score = Number(scoreOrGrade);
+  if (isNaN(score)) return AREAS_TO_IMPROVE_COMMENTS.C;
+  if (score >= 90) return AREAS_TO_IMPROVE_COMMENTS.A;
+  if (score >= 80) return AREAS_TO_IMPROVE_COMMENTS.B;
+  if (score >= 70) return AREAS_TO_IMPROVE_COMMENTS.C;
+  if (score >= 60) return AREAS_TO_IMPROVE_COMMENTS.D;
+  if (score >= 50) return AREAS_TO_IMPROVE_COMMENTS.E;
+  return AREAS_TO_IMPROVE_COMMENTS.F;
+};
+
 export const generateAcademicFeedback = (studentId: string, quarter: number, score: number) => {
   let gradeKey: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' = 'F';
-  let tier = 5;
-  if (score >= 90) { gradeKey = 'A'; tier = 0; }
-  else if (score >= 80) { gradeKey = 'B'; tier = 1; }
-  else if (score >= 70) { gradeKey = 'C'; tier = 2; }
-  else if (score >= 60) { gradeKey = 'D'; tier = 3; }
-  else if (score >= 50) { gradeKey = 'E'; tier = 4; }
-  else { gradeKey = 'F'; tier = 5; }
+  if (score >= 90) gradeKey = 'A';
+  else if (score >= 80) gradeKey = 'B';
+  else if (score >= 70) gradeKey = 'C';
+  else if (score >= 60) gradeKey = 'D';
+  else if (score >= 50) gradeKey = 'E';
+  else gradeKey = 'F';
 
   const achArr = ACHIEVEMENT_COMMENTS[gradeKey];
+  const attArr = ATTITUDE_COMMENTS[gradeKey];
+  const impArr = AREAS_TO_IMPROVE_COMMENTS[gradeKey];
 
-  const attitudes = [
-    ["Highly engaged.", "Eager to learn.", "Positive role model.", "Enthusiastic participant.", "Self-driven."],
-    ["Attentive and focused.", "Works well with others.", "Consistently participates.", "Diligent student.", "Proactive."],
-    ["Generally attentive.", "Respectful in class.", "Follows instructions.", "Good conduct.", "Polite and quiet."],
-    ["Easily distracted.", "Quiet in discussions.", "Could be more engaged.", "Needs encouragement.", "Sometimes unfocused."],
-    ["Lacks engagement.", "Seems disconnected.", "Needs to focus more.", "Often unprepared.", "Disrupts occasionally."],
-    ["Lacks engagement.", "Seems disconnected.", "Needs to focus more.", "Often unprepared.", "Disrupts occasionally."]
-  ];
-
-  const improvements = [
-    ["Peer mentoring.", "Tackle advanced physics.", "Lead group projects.", "Explore beyond syllabus.", "Maintain excellence."],
-    ["Double-check calculations.", "Speak up more.", "Focus on tricky concepts.", "Ask deeper questions.", "Take more initiative."],
-    ["Review past tests.", "Practice more problems.", "Focus during lectures.", "Ask when confused.", "Improve study habits."],
-    ["Complete missing homework.", "Attend extra tutoring.", "Focus on basic formulas.", "Participate more.", "Ask for help."],
-    ["Meet after class.", "Redo failed assignments.", "Ask for help immediately.", "Consistent daily review.", "Stay on task."],
-    ["Meet after class.", "Redo failed assignments.", "Ask for help immediately.", "Consistent daily review.", "Stay on task."]
-  ];
-
-  // Simple hash to ensure consistency per student but variety across students
+  // Simple hash to ensure consistency per student while varying comments across peers
   const hash = studentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + quarter;
-  
-  const attArr = attitudes[tier];
-  const impArr = improvements[tier];
 
   return {
     autoAchievement: achArr[hash % achArr.length],

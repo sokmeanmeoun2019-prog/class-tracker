@@ -506,8 +506,8 @@ export const exportScoreList = async (
       { key: 'overall', title: 'Overall', width: 12, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
       { key: 'grade', title: 'Grade', width: 10, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
       { key: 'achievement', title: 'Achievement', width: 52, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-      { key: 'attitude', title: 'Attitude', width: 36, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-      { key: 'areasToImprove', title: 'Areas to Improve', width: 40, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'attitude', title: 'Attitude', width: 48, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'areasToImprove', title: 'Areas to Improve', width: 48, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
     ];
 
     const domExtraction = extractDataFromDomTable();

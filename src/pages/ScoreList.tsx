@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { useData } from '../store/DataContext';
-import { getClassRoster, getStudentQuarterTotal, calculateStudentGrades, getAchievementSuggestions } from '../utils/calculations';
+import { 
+  getClassRoster, 
+  getStudentQuarterTotal, 
+  calculateStudentGrades, 
+  getAchievementSuggestions,
+  getAttitudeSuggestions,
+  getAreasToImproveSuggestions
+} from '../utils/calculations';
 import { exportScoreList } from '../utils/export';
 import { Download, Printer, Search, CheckCircle, Upload, Sparkles, RotateCcw, Check } from 'lucide-react';
 import { Quarter, ScoreRecord, Student } from '../types';
@@ -138,52 +145,45 @@ const ScoreList = () => {
   };
 
 
-  const renderAutoTextInput = (studentId: string, score: ScoreRecord | undefined, field: keyof ScoreRecord, autoVal: string) => {
-    const val = score?.[field] as string | undefined;
-    return (
-      <input 
-        type="text" 
-        className={`w-48 p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-sm ${val !== undefined ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
-        value={val !== undefined ? val : autoVal}
-        onChange={(e) => handleScoreChange(studentId, field, e.target.value)}
-        title={val !== undefined ? "Manual override active" : "Auto-generated feedback based on Overall Score"}
-      />
-    );
-  };
-
-  const AchievementCell = ({
+  const CommentCell = ({
     studentId,
-    score,
-    autoAchievement,
+    field,
+    label,
+    value,
+    autoValue,
     letterGrade,
     overallScore,
+    suggestions,
+    minWidth = "min-w-[280px]",
     onScoreChange
   }: {
     studentId: string;
-    score: ScoreRecord | undefined;
-    autoAchievement: string;
+    field: 'achievement' | 'attitude' | 'areasToImprove';
+    label: string;
+    value: string | undefined;
+    autoValue: string;
     letterGrade: string;
     overallScore: number;
+    suggestions: string[];
+    minWidth?: string;
     onScoreChange: (studentId: string, field: keyof ScoreRecord, value: string | number | undefined) => void;
   }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const val = score?.achievement;
-    const isCustom = val !== undefined && val !== '';
-    const displayVal = isCustom ? val : autoAchievement;
-    const suggestions = getAchievementSuggestions(letterGrade);
+    const isCustom = value !== undefined && value !== '';
+    const displayVal = isCustom ? value : autoValue;
 
     return (
-      <div className="relative flex items-center gap-1 min-w-[280px]">
+      <div className={`relative flex items-center gap-1 ${minWidth}`}>
         <input 
           type="text" 
-          list={`ach-list-${studentId}`}
+          list={`${field}-list-${studentId}`}
           className={`w-full p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-xs ${isCustom ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
           value={displayVal}
-          onChange={(e) => onScoreChange(studentId, 'achievement', e.target.value)}
-          title={isCustom ? "Manual override active (click Sparkles to choose suggestions)" : "Auto-generated feedback based on Overall Score"}
+          onChange={(e) => onScoreChange(studentId, field, e.target.value)}
+          title={isCustom ? `Manual override active (click Sparkles to choose suggestions)` : `Auto-generated ${label} feedback for Grade ${letterGrade}`}
         />
 
-        <datalist id={`ach-list-${studentId}`}>
+        <datalist id={`${field}-list-${studentId}`}>
           {suggestions.map((s, idx) => (
             <option key={idx} value={s} />
           ))}
@@ -199,7 +199,7 @@ const ScoreList = () => {
                 ? 'text-blue-600 hover:bg-blue-50'
                 : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
           }`}
-          title={`Suggested comments for Grade ${letterGrade}`}
+          title={`Suggested ${label} comments for Grade ${letterGrade}`}
         >
           <Sparkles size={14} />
         </button>
@@ -210,25 +210,25 @@ const ScoreList = () => {
               className="fixed inset-0 z-40" 
               onClick={() => setIsOpen(false)} 
             />
-            <div className="absolute top-full left-0 z-50 mt-1 w-[380px] bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-left">
+            <div className="absolute top-full left-0 z-50 mt-1 w-[400px] bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-left">
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
                 <div className="flex items-center gap-1.5">
                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                    letterGrade === 'A' ? 'bg-emerald-100 text-emerald-800' :
-                    letterGrade === 'B' ? 'bg-blue-100 text-blue-800' :
-                    letterGrade === 'C' ? 'bg-amber-100 text-amber-800' :
-                    letterGrade === 'D' ? 'bg-orange-100 text-orange-800' :
+                    letterGrade.startsWith('A') ? 'bg-emerald-100 text-emerald-800' :
+                    letterGrade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
+                    letterGrade.startsWith('C') ? 'bg-amber-100 text-amber-800' :
+                    letterGrade.startsWith('D') ? 'bg-orange-100 text-orange-800' :
                     'bg-rose-100 text-rose-800'
                   }`}>
                     Grade {letterGrade}
                   </span>
-                  <span className="text-xs font-semibold text-gray-700">Suggestions ({overallScore}%)</span>
+                  <span className="text-xs font-semibold text-gray-700">{label} ({overallScore}%)</span>
                 </div>
                 {isCustom && (
                   <button
                     type="button"
                     onClick={() => {
-                      onScoreChange(studentId, 'achievement', '');
+                      onScoreChange(studentId, field, '');
                       setIsOpen(false);
                     }}
                     className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium hover:underline"
@@ -239,7 +239,7 @@ const ScoreList = () => {
                 )}
               </div>
 
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                 {suggestions.map((suggestion, idx) => {
                   const isSelected = displayVal === suggestion;
                   return (
@@ -247,7 +247,7 @@ const ScoreList = () => {
                       key={idx}
                       type="button"
                       onClick={() => {
-                        onScoreChange(studentId, 'achievement', suggestion);
+                        onScoreChange(studentId, field, suggestion);
                         setIsOpen(false);
                       }}
                       className={`w-full text-left p-2 rounded text-xs transition-all border flex items-start gap-2 ${
@@ -390,8 +390,8 @@ const ScoreList = () => {
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Overall</th>
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Grade</th>
                 <th className="p-2 border-r min-w-[300px]">Achievement</th>
-                <th className="p-2 border-r">Attitude</th>
-                <th className="p-2">Areas to Improve</th>
+                <th className="p-2 border-r min-w-[280px]">Attitude</th>
+                <th className="p-2 min-w-[300px]">Areas to Improve</th>
               </tr>
             </thead>
             <tbody>
@@ -488,17 +488,47 @@ const ScoreList = () => {
 
                     {/* Auto-Generated Feedback */}
                     <td className="p-1 border-r">
-                      <AchievementCell
+                      <CommentCell
                         studentId={student.id}
-                        score={score}
-                        autoAchievement={calculated.autoAchievement}
+                        field="achievement"
+                        label="Achievement"
+                        value={score?.achievement}
+                        autoValue={calculated.autoAchievement}
                         letterGrade={calculated.letterGrade}
                         overallScore={calculated.overallScore}
+                        suggestions={getAchievementSuggestions(calculated.letterGrade)}
+                        minWidth="min-w-[280px]"
                         onScoreChange={handleScoreChange}
                       />
                     </td>
-                    <td className="p-1 border-r">{renderAutoTextInput(student.id, score, 'attitude', calculated.autoAttitude)}</td>
-                    <td className="p-1">{renderAutoTextInput(student.id, score, 'areasToImprove', calculated.autoImprovement)}</td>
+                    <td className="p-1 border-r">
+                      <CommentCell
+                        studentId={student.id}
+                        field="attitude"
+                        label="Attitude"
+                        value={score?.attitude}
+                        autoValue={calculated.autoAttitude}
+                        letterGrade={calculated.letterGrade}
+                        overallScore={calculated.overallScore}
+                        suggestions={getAttitudeSuggestions(calculated.letterGrade)}
+                        minWidth="min-w-[260px]"
+                        onScoreChange={handleScoreChange}
+                      />
+                    </td>
+                    <td className="p-1">
+                      <CommentCell
+                        studentId={student.id}
+                        field="areasToImprove"
+                        label="Areas to Improve"
+                        value={score?.areasToImprove}
+                        autoValue={calculated.autoImprovement}
+                        letterGrade={calculated.letterGrade}
+                        overallScore={calculated.overallScore}
+                        suggestions={getAreasToImproveSuggestions(calculated.letterGrade)}
+                        minWidth="min-w-[280px]"
+                        onScoreChange={handleScoreChange}
+                      />
+                    </td>
                   </tr>
                 );
               })}
