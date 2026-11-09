@@ -65,11 +65,16 @@ const History = () => {
               </tr>
             </thead>
             <tbody>
-              {records.map(r => {
+              {records.map((r, index) => {
                 const s = state.students.find(x => x.id === r.studentId);
                 const c = state.classes.find(x => x.id === r.classId);
                 return (
-                  <tr key={r.id} className="border-b hover:bg-gray-50 text-sm">
+                  <tr 
+                    key={r.id} 
+                    className={`border-b border-gray-200 text-sm transition-colors ${
+                      index % 2 === 0 ? 'bg-white hover:bg-gray-100/70' : 'bg-[#f2f2f2] hover:bg-gray-200/60'
+                    }`}
+                  >
                     <td className="p-3 whitespace-nowrap">{r.date} {r.time}</td>
                     <td className="p-3">{c?.name || 'Unknown'}</td>
                     <td className="p-3 font-medium">{s?.name || 'Unknown'}</td>

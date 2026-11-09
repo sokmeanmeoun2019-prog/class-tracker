@@ -234,8 +234,13 @@ const ManageStudents = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {classStudents.map(s => (
-                      <tr key={s.id} className="border-b hover:bg-gray-50">
+                    {classStudents.map((s, index) => (
+                      <tr 
+                        key={s.id} 
+                        className={`border-b border-gray-200 transition-colors ${
+                          index % 2 === 0 ? 'bg-white hover:bg-gray-100/70' : 'bg-[#f2f2f2] hover:bg-gray-200/60'
+                        }`}
+                      >
                         {editingStudent?.id === s.id ? (
                           <td colSpan={4} className="p-3">
                             <form onSubmit={handleUpdateStudent} className="flex gap-2 items-center">

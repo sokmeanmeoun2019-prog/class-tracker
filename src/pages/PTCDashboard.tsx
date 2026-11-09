@@ -300,7 +300,9 @@ const PTCDashboard = () => {
                 <tr 
                   key={d.student.id} 
                   onClick={() => navigate(`/ptc/${d.student.id}?semester=${semester}`)}
-                  className="border-b border-gray-50 hover:bg-indigo-50/50 cursor-pointer transition-colors"
+                  className={`border-b border-gray-200 cursor-pointer transition-colors ${
+                    i % 2 === 0 ? 'bg-white hover:bg-indigo-50/70' : 'bg-[#f2f2f2] hover:bg-indigo-100/70'
+                  }`}
                 >
                   <td className="p-4 font-medium text-gray-500">{i + 1}</td>
                   <td className="p-4 font-bold text-gray-800">{d.student.name}</td>

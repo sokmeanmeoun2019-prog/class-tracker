@@ -395,7 +395,7 @@ const ScoreList = () => {
               </tr>
             </thead>
             <tbody>
-              {displayStudents.map((student) => {
+              {displayStudents.map((student, index) => {
                 const score = state.scores.find(
                   s =>
                     s.studentId === student.id &&
@@ -407,12 +407,17 @@ const ScoreList = () => {
                 const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
                 
                 return (
-                  <tr key={student.id} className="border-b border-gray-200 hover:bg-yellow-50 group print:break-inside-avoid">
-                    {/* Sticky Columns */}
-                    <td className="p-2 border-r bg-white group-hover:bg-yellow-50 sticky left-0 z-10 text-center text-gray-500 print:static">
+                  <tr 
+                    key={student.id} 
+                    className={`border-b border-gray-300 transition-colors ${
+                      index % 2 === 0 ? 'bg-white hover:bg-amber-50/60' : 'bg-[#f2f2f2] hover:bg-amber-100/60'
+                    } group print:break-inside-avoid`}
+                  >
+                    {/* Sticky Columns matching alternating row background */}
+                    <td className={`p-2 border-r ${index % 2 === 0 ? 'bg-white' : 'bg-[#f2f2f2]'} group-hover:bg-amber-100/60 sticky left-0 z-10 text-center text-gray-500 print:static`}>
                       {student.displayNum}
                     </td>
-                    <td className="p-2 border-r bg-white group-hover:bg-yellow-50 sticky left-[40px] z-10 font-medium print:static">
+                    <td className={`p-2 border-r ${index % 2 === 0 ? 'bg-white' : 'bg-[#f2f2f2]'} group-hover:bg-amber-100/60 sticky left-[40px] z-10 font-medium print:static`}>
                       {student.name}
                     </td>
                     

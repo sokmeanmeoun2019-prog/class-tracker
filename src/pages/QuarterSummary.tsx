@@ -160,7 +160,12 @@ const QuarterSummary = () => {
             </thead>
             <tbody>
               {displayList.map((stat, idx) => (
-                <tr key={stat.student.id} className="border-b hover:bg-gray-50">
+                <tr 
+                  key={stat.student.id} 
+                  className={`border-b border-gray-200 transition-colors ${
+                    idx % 2 === 0 ? 'bg-white hover:bg-gray-100/70' : 'bg-[#f2f2f2] hover:bg-gray-200/60'
+                  }`}
+                >
                   <td className="p-4 text-gray-500 font-medium">
                     #{stat.student.displayNum}
                     {sortBy === 'rank' && (

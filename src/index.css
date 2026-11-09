@@ -21,6 +21,14 @@
   .glass-card {
     @apply bg-white/90 backdrop-blur-md border border-white/20 shadow-xl;
   }
+
+  /* Alternating Table Row Styling: Row 1 = #FFFFFF, Row 2 = #F2F2F2 */
+  .striped-rows tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+  }
+  .striped-rows tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+  }
 }
 
 @keyframes floatUp {

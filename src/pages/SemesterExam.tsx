@@ -380,7 +380,12 @@ const SemesterExam = () => {
                 const r = state.examRecords?.find(x => x.id === recordId);
 
                 return (
-                  <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors print:border-gray-300">
+                  <tr 
+                    key={s.id} 
+                    className={`border-b border-gray-200 transition-colors print:border-gray-300 ${
+                      index % 2 === 0 ? 'bg-white hover:bg-gray-100/70' : 'bg-[#f2f2f2] hover:bg-gray-200/60'
+                    }`}
+                  >
                     <td className="p-3 font-medium text-gray-500 border-r border-gray-50 print:border-gray-300 print:text-black">{globalIndex}</td>
                     <td className="p-2 border-r border-gray-50 print:border-gray-300">
                       <input 

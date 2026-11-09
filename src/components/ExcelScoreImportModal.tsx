@@ -3280,7 +3280,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                           </td>
                         </tr>
                       ) : (
-                        extractedRows.map(item => {
+                        extractedRows.map((item, index) => {
                           const isUnmatched = !item.matchedStudent;
                           const isDuplicate = item.matchType === 'duplicate';
 
@@ -3292,7 +3292,9 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                                   ? 'bg-amber-50/70 hover:bg-amber-100/60'
                                   : isDuplicate
                                   ? 'bg-red-50/70 hover:bg-red-100/60'
-                                  : 'hover:bg-gray-50'
+                                  : index % 2 === 0
+                                  ? 'bg-white hover:bg-gray-100/70'
+                                  : 'bg-[#f2f2f2] hover:bg-gray-200/60'
                               }`}
                             >
                               <td className="p-2 text-center border-r border-gray-100">

@@ -91,12 +91,17 @@ const AttendanceList = () => {
             </tr>
           </thead>
           <tbody>
-            {classStudents.map(student => {
+            {classStudents.map((student, index) => {
               const att = getStudentAttendanceQuarter(state.attendanceRecords, student.id, state.currentQuarter!);
               const alertStatus = getAttendanceAlertStatus(att.unexcused, state.attendanceSettings);
               
               return (
-                <tr key={student.id} className="border-b border-gray-100 hover:bg-white/40 transition-colors">
+                <tr 
+                  key={student.id} 
+                  className={`border-b border-gray-200 transition-colors ${
+                    index % 2 === 0 ? 'bg-white hover:bg-gray-100/70' : 'bg-[#f2f2f2] hover:bg-gray-200/60'
+                  }`}
+                >
                   <td className="p-4 font-semibold text-gray-500">{student.displayNum}</td>
                   <td className="p-4 font-bold text-gray-800">{student.name}</td>
                   <td className="p-4 font-bold text-emerald-600 text-center bg-emerald-50/30">{att.present}</td>
