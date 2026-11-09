@@ -40,9 +40,9 @@ const QuarterSummary = () => {
     ? [...studentStats].sort((a, b) => a.student.displayNum - b.student.displayNum)
     : sortedByTotal;
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (currentClass) {
-      exportQuarterSummary(classStudents, state.records, currentClass, state.currentQuarter!);
+      await exportQuarterSummary(classStudents, state.records, currentClass, state.currentQuarter!);
     }
   };
 

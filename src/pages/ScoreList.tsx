@@ -70,8 +70,8 @@ const ScoreList = () => {
   if (highest === -1) highest = 0;
   if (lowest === 999) lowest = 0;
 
-  const handleExport = () => {
-    exportScoreList(state.students, state.scores, state.records, currentClass!, state.currentQuarter!, settings);
+  const handleExport = async () => {
+    await exportScoreList(state.students, state.scores, state.records, currentClass!, state.currentQuarter!, settings);
   };
 
   const handlePrint = () => {
@@ -368,7 +368,7 @@ const ScoreList = () => {
       {/* Spreadsheet Table Container */}
       <div className="bg-white rounded shadow-sm border flex-1 overflow-hidden flex flex-col relative print:border-none print:shadow-none print:block print:overflow-visible">
         <div className="overflow-auto flex-1 h-[600px] print:h-auto print:overflow-visible">
-          <table className="w-full text-left border-collapse whitespace-nowrap text-sm print:text-xs">
+          <table id="score-table-view" className="w-full text-left border-collapse whitespace-nowrap text-sm print:text-xs">
             <thead className="bg-gray-100 sticky top-0 z-20 print:static shadow-sm">
               <tr className="border-b border-gray-300">
                 <th className="p-2 border-r bg-gray-100 sticky left-0 z-30 min-w-[40px] text-center print:static">No.</th>

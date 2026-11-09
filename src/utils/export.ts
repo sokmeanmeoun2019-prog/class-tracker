@@ -39,33 +39,93 @@ const calculateCrc32 = (data: Uint8Array): number => {
   return (crc ^ 0xffffffff) >>> 0;
 };
 
+/**
+ * Compresses data using RFC 1951 raw DEFLATE format (PKZIP Method 8).
+ * Microsoft Excel requires XML parts in an .xlsx package to be DEFLATED.
+ * Uses native browser CompressionStream when available, with RFC 1951 fallback.
+ */
+async function deflateData(data: Uint8Array): Promise<Uint8Array> {
+  if (typeof CompressionStream !== 'undefined') {
+    try {
+      const cs = new CompressionStream('deflate-raw');
+      const writer = cs.writable.getWriter();
+      writer.write(data);
+      writer.close();
+      const reader = cs.readable.getReader();
+      const chunks: Uint8Array[] = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+      const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+      const res = new Uint8Array(totalLen);
+      let pos = 0;
+      for (const c of chunks) {
+        res.set(c, pos);
+        pos += c.length;
+      }
+      return res;
+    } catch {
+      // Fallback below if stream execution encounters an exception
+    }
+  }
+
+  // Fallback RFC 1951 raw Deflate uncompressed blocks (Method 8 compliant)
+  const maxBlock = 65535;
+  const numBlocks = Math.ceil(data.length / maxBlock) || 1;
+  const outSize = data.length + numBlocks * 5;
+  const out = new Uint8Array(outSize);
+  let inPos = 0;
+  let outPos = 0;
+
+  for (let b = 0; b < numBlocks; b++) {
+    const isLast = b === numBlocks - 1;
+    const len = Math.min(data.length - inPos, maxBlock);
+    out[outPos++] = isLast ? 0x01 : 0x00;
+    out[outPos++] = len & 0xff;
+    out[outPos++] = (len >> 8) & 0xff;
+    const nlen = (~len) & 0xffff;
+    out[outPos++] = nlen & 0xff;
+    out[outPos++] = (nlen >> 8) & 0xff;
+    out.set(data.subarray(inPos, inPos + len), outPos);
+    outPos += len;
+    inPos += len;
+  }
+  return out.subarray(0, outPos);
+}
+
 interface ZipFileItem {
   name: string;
   data: Uint8Array;
 }
 
 /**
- * Builds a standard PKZIP archive in pure TypeScript.
- * Compatible with OpenXML (.xlsx) specifications and all versions of Microsoft Excel.
+ * Builds a standard PKZIP archive with Method 8 (DEFLATE).
+ * Compatible with OpenXML (.xlsx) specification across all versions of Microsoft Excel.
  */
-function buildZipArchive(files: ZipFileItem[]): Uint8Array {
+async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
   const encoder = new TextEncoder();
-  const fileItems = files.map(f => {
-    const nameBytes = encoder.encode(f.name);
-    const crc = calculateCrc32(f.data);
-    return {
-      name: f.name,
-      nameBytes,
-      data: f.data,
-      crc,
-      localOffset: 0
-    };
-  });
+  const fileItems = await Promise.all(
+    files.map(async f => {
+      const nameBytes = encoder.encode(f.name);
+      const crc = calculateCrc32(f.data);
+      const compressedData = await deflateData(f.data);
+      return {
+        name: f.name,
+        nameBytes,
+        uncompressedSize: f.data.length,
+        compressedData,
+        crc,
+        localOffset: 0
+      };
+    })
+  );
 
   let totalLocalSize = 0;
   let totalCentralDirSize = 0;
   for (const f of fileItems) {
-    totalLocalSize += 30 + f.nameBytes.length + f.data.length;
+    totalLocalSize += 30 + f.nameBytes.length + f.compressedData.length;
     totalCentralDirSize += 46 + f.nameBytes.length;
   }
   const totalSize = totalLocalSize + totalCentralDirSize + 22;
@@ -78,22 +138,22 @@ function buildZipArchive(files: ZipFileItem[]): Uint8Array {
   for (const f of fileItems) {
     f.localOffset = currentOffset;
 
-    view.setUint32(currentOffset, 0x04034b50, true);     // Signature
+    view.setUint32(currentOffset, 0x04034b50, true);     // Local file header signature
     view.setUint16(currentOffset + 4, 20, true);         // Version needed (2.0)
     view.setUint16(currentOffset + 6, 0x0800, true);     // UTF-8 flag
-    view.setUint16(currentOffset + 8, 0, true);          // Stored (no compression)
-    view.setUint16(currentOffset + 10, 0x6000, true);    // Last mod time (12:00:00)
-    view.setUint16(currentOffset + 12, 0x5821, true);    // Last mod date (2024-01-01)
-    view.setUint32(currentOffset + 14, f.crc, true);     // CRC-32
-    view.setUint32(currentOffset + 18, f.data.length, true); // Compressed size
-    view.setUint32(currentOffset + 22, f.data.length, true); // Uncompressed size
+    view.setUint16(currentOffset + 8, 8, true);          // Method 8 = Deflated
+    view.setUint16(currentOffset + 10, 0x6000, true);    // Time (12:00:00)
+    view.setUint16(currentOffset + 12, 0x5821, true);    // Date (2024-01-01)
+    view.setUint32(currentOffset + 14, f.crc, true);     // CRC-32 of uncompressed data
+    view.setUint32(currentOffset + 18, f.compressedData.length, true); // Compressed size
+    view.setUint32(currentOffset + 22, f.uncompressedSize, true);      // Uncompressed size
     view.setUint16(currentOffset + 26, f.nameBytes.length, true);
     view.setUint16(currentOffset + 28, 0, true);         // Extra field length
 
     buffer.set(f.nameBytes, currentOffset + 30);
-    buffer.set(f.data, currentOffset + 30 + f.nameBytes.length);
+    buffer.set(f.compressedData, currentOffset + 30 + f.nameBytes.length);
 
-    currentOffset += 30 + f.nameBytes.length + f.data.length;
+    currentOffset += 30 + f.nameBytes.length + f.compressedData.length;
   }
 
   const centralDirStartOffset = currentOffset;
@@ -104,12 +164,12 @@ function buildZipArchive(files: ZipFileItem[]): Uint8Array {
     view.setUint16(currentOffset + 4, 20, true);         // Version made by
     view.setUint16(currentOffset + 6, 20, true);         // Version needed
     view.setUint16(currentOffset + 8, 0x0800, true);     // UTF-8 flag
-    view.setUint16(currentOffset + 10, 0, true);         // Stored
-    view.setUint16(currentOffset + 12, 0x6000, true);    // Mod time
-    view.setUint16(currentOffset + 14, 0x5821, true);    // Mod date
+    view.setUint16(currentOffset + 10, 8, true);         // Method 8 = Deflated
+    view.setUint16(currentOffset + 12, 0x6000, true);    // Time
+    view.setUint16(currentOffset + 14, 0x5821, true);    // Date
     view.setUint32(currentOffset + 16, f.crc, true);     // CRC-32
-    view.setUint32(currentOffset + 20, f.data.length, true); // Compressed size
-    view.setUint32(currentOffset + 24, f.data.length, true); // Uncompressed size
+    view.setUint32(currentOffset + 20, f.compressedData.length, true); // Compressed size
+    view.setUint32(currentOffset + 24, f.uncompressedSize, true);      // Uncompressed size
     view.setUint16(currentOffset + 28, f.nameBytes.length, true);
     view.setUint16(currentOffset + 30, 0, true);         // Extra field length
     view.setUint16(currentOffset + 32, 0, true);         // File comment length
@@ -169,7 +229,7 @@ function downloadExcelBlob(data: Uint8Array, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 function renderCell(cellRef: string, value: string | number | undefined | null, styleId: number): string {
@@ -179,7 +239,7 @@ function renderCell(cellRef: string, value: string | number | undefined | null, 
   if (typeof value === 'number' && !isNaN(value)) {
     return `<c r="${cellRef}" s="${styleId}" t="n"><v>${value}</v></c>`;
   }
-  return `<c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t>${escapeXml(value)}</t></is></c>`;
+  return `<c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t>${escapeXml(String(value))}</t></is></c>`;
 }
 
 // OpenXML Static XML Parts
@@ -203,16 +263,20 @@ const WORKBOOK_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"
   <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>`;
 
-const getWorkbookXml = (sheetName: string) => `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+const getWorkbookXml = (sheetName: string) => {
+  // Excel sheet names cannot exceed 31 chars and cannot contain \ / ? * [ ] :
+  const safeName = sheetName.replace(/[\\/?*[\]:]/g, '_').substring(0, 31);
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <bookViews>
     <workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/>
   </bookViews>
   <sheets>
-    <sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/>
+    <sheet name="${escapeXml(safeName)}" sheetId="1" r:id="rId1"/>
   </sheets>
   <calcPr calcId="124511"/>
 </workbook>`;
+};
 
 /**
  * OpenXML Stylesheet defining:
@@ -361,6 +425,65 @@ const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 // ==========================================
 
 /**
+ * Extracts data directly from the rendered table in the DOM if available.
+ * This guarantees the export reflects the exact onscreen table structure,
+ * column order, and values.
+ */
+function extractDataFromDomTable(): { headers: string[]; rows: (string | number)[][] } | null {
+  if (typeof document === 'undefined') return null;
+  const table = document.getElementById('score-table-view') as HTMLTableElement | null;
+  if (!table) return null;
+
+  const thElements = Array.from(table.querySelectorAll('thead th'));
+  if (thElements.length === 0) return null;
+
+  const headers = thElements.map(th => {
+    // Clean text by replacing linebreaks with single space
+    const clone = th.cloneNode(true) as HTMLElement;
+    return clone.innerText.replace(/\s+/g, ' ').trim();
+  });
+
+  const trElements = Array.from(table.querySelectorAll('tbody tr'));
+  const rows: (string | number)[][] = trElements.map(tr => {
+    const tdElements = Array.from(tr.querySelectorAll('td'));
+    return tdElements.map(td => {
+      // 1. If contains input
+      const input = td.querySelector('input') as HTMLInputElement | null;
+      if (input) {
+        const val = input.value.trim();
+        if (input.type === 'number' && val !== '' && !isNaN(Number(val))) {
+          return Number(val);
+        }
+        return val;
+      }
+
+      // 2. If contains select (e.g. Sex)
+      const select = td.querySelector('select') as HTMLSelectElement | null;
+      if (select) {
+        const selectedText = select.options[select.selectedIndex]?.text || select.value || '';
+        return selectedText.trim();
+      }
+
+      // 3. If contains badge span (e.g. Grade)
+      const badge = td.querySelector('span') as HTMLElement | null;
+      if (badge && badge.innerText) {
+        const txt = badge.innerText.trim();
+        return txt;
+      }
+
+      // 4. Fallback to td inner text
+      const raw = td.innerText.trim();
+      if (raw !== '' && !isNaN(Number(raw))) {
+        return Number(raw);
+      }
+      return raw;
+    });
+  });
+
+  return { headers, rows };
+}
+
+/**
  * Exports the selected class Score List to a styled Excel (.xlsx) workbook.
  * Matches website table appearance:
  * - Exact column headers, widths, and row heights
@@ -370,7 +493,7 @@ const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
  * - Frozen header row
  * - Clean filename: Class_{className}_Q{quarter}_EGradeBook.xlsx
  */
-export const exportScoreList = (
+export const exportScoreList = async (
   students: Student[], 
   scores: any[], 
   records: ParticipationRecord[], 
@@ -378,15 +501,14 @@ export const exportScoreList = (
   quarter: Quarter,
   settings: any
 ) => {
+  const domExtraction = extractDataFromDomTable();
   const sortedStudents = getClassRoster(students, classObj.id);
   const classScores = scores.filter(
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
 
-  const totalRows = sortedStudents.length + 1; // 1 header row + N student rows
-
   // Column definitions matching ScoreList.tsx exactly
-  const columns = [
+  const baseColumns = [
     { key: 'no', title: 'No.', width: 6, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
     { key: 'name', title: 'Name', width: 26, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
     { key: 'sex', title: 'Sex', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
@@ -403,16 +525,94 @@ export const exportScoreList = (
     { key: 'test1', title: 'Test1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
     { key: 'test2', title: 'Test2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
     { key: 'testTotal', title: 'Test Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
-    { key: 'overall', title: 'Overall', width: 11, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
-    { key: 'grade', title: 'Grade', width: 9, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
-    { key: 'achievement', title: 'Achievement', width: 50, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-    { key: 'attitude', title: 'Attitude', width: 34, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-    { key: 'areasToImprove', title: 'Areas to Improve', width: 38, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+    { key: 'overall', title: 'Overall', width: 12, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
+    { key: 'grade', title: 'Grade', width: 10, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
+    { key: 'achievement', title: 'Achievement', width: 52, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+    { key: 'attitude', title: 'Attitude', width: 36, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+    { key: 'areasToImprove', title: 'Areas to Improve', width: 40, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
   ];
+
+  let headersToRender: string[] = [];
+  let rowsToRender: (string | number | undefined)[][] = [];
+
+  if (domExtraction && domExtraction.headers.length >= 10 && domExtraction.rows.length > 0) {
+    // Source of truth: live rendered DOM table
+    headersToRender = domExtraction.headers;
+    rowsToRender = domExtraction.rows;
+  } else {
+    // Structured data model calculation fallback
+    headersToRender = baseColumns.map(c => c.title);
+    rowsToRender = sortedStudents.map(student => {
+      const score = scores.find(
+        s => s.studentId === student.id &&
+             (!s.classId || s.classId === classObj.id) &&
+             Number(s.quarter) === Number(quarter)
+      );
+      const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+      const cappedRawCp = Math.min(rawCp, settings.maxScores?.cp || 10);
+      const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
+
+      const sexDisplay = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
+
+      return [
+        student.displayNum,
+        student.name,
+        sexDisplay,
+        score?.conduct ?? '',
+        score?.cpScore !== undefined ? score.cpScore : cappedRawCp,
+        score?.hw1 ?? '',
+        score?.hw2 ?? '',
+        score?.hw3 ?? '',
+        calculated.hwTotal,
+        score?.quiz1 ?? '',
+        score?.quiz2 ?? '',
+        score?.quiz3 ?? '',
+        calculated.quizTotal,
+        score?.test1 ?? '',
+        score?.test2 ?? '',
+        calculated.testTotal,
+        calculated.overallScore,
+        calculated.letterGrade,
+        score?.achievement || calculated.autoAchievement,
+        score?.attitude || calculated.autoAttitude,
+        score?.areasToImprove || calculated.autoImprovement
+      ];
+    });
+  }
+
+  const totalRows = rowsToRender.length + 1; // 1 header row + N student rows
+
+  // Build column configuration dynamically
+  const colConfigs = headersToRender.map((hdr, idx) => {
+    const match = baseColumns.find(bc => 
+      bc.title.toLowerCase() === hdr.toLowerCase() || 
+      hdr.toLowerCase().startsWith(bc.title.toLowerCase())
+    );
+    if (match) return match;
+
+    const isLeft = /name|achievement|attitude|areas|improve/i.test(hdr);
+    const isIndigo = /overall|grade/i.test(hdr);
+    const isTotal = /total/i.test(hdr);
+    const isCp = /c\.?p/i.test(hdr);
+    let headerStyle = isLeft ? 2 : 1;
+    if (isCp) headerStyle = 3;
+    else if (isTotal) headerStyle = 4;
+    else if (isIndigo) headerStyle = 5;
+
+    return {
+      key: `col_${idx}`,
+      title: hdr,
+      width: isLeft ? 35 : 12,
+      headerStyle,
+      isLeft,
+      isTotal,
+      isIndigo
+    };
+  });
 
   // Build cols XML
   let colsXml = '<cols>';
-  columns.forEach((col, idx) => {
+  colConfigs.forEach((col, idx) => {
     colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${col.width}" customWidth="1"/>`;
   });
   colsXml += '</cols>';
@@ -422,14 +622,15 @@ export const exportScoreList = (
 
   // Header Row (Row 1) - height 28pt
   sheetDataXml += '<row r="1" ht="28" customHeight="1">';
-  columns.forEach((col, idx) => {
+  headersToRender.forEach((title, idx) => {
     const cellRef = `${colName(idx)}1`;
-    sheetDataXml += `<c r="${cellRef}" s="${col.headerStyle}" t="inlineStr"><is><t>${escapeXml(col.title)}</t></is></c>`;
+    const colCfg = colConfigs[idx];
+    sheetDataXml += `<c r="${cellRef}" s="${colCfg.headerStyle}" t="inlineStr"><is><t>${escapeXml(title)}</t></is></c>`;
   });
   sheetDataXml += '</row>';
 
   // Data Rows (Row 2 .. totalRows) - height 22pt
-  sortedStudents.forEach((student, index) => {
+  rowsToRender.forEach((rowValues, index) => {
     const rowNum = index + 2;
     // Alternating Row Color:
     // First data row (index 0) = White (#FFFFFF)
@@ -443,43 +644,10 @@ export const exportScoreList = (
     const sTotal = isWhiteRow ? 8 : 12;
     const sIndigo = isWhiteRow ? 9 : 13;
 
-    const score = scores.find(
-      s => s.studentId === student.id &&
-           (!s.classId || s.classId === classObj.id) &&
-           Number(s.quarter) === Number(quarter)
-    );
-    const rawCp = getStudentQuarterTotal(records, student.id, quarter);
-    const cappedRawCp = Math.min(rawCp, settings.maxScores?.cp || 10);
-    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
-
-    const values = [
-      student.displayNum,
-      student.name,
-      student.sex || '',
-      score?.conduct ?? '',
-      score?.cpScore !== undefined ? score.cpScore : cappedRawCp,
-      score?.hw1 ?? '',
-      score?.hw2 ?? '',
-      score?.hw3 ?? '',
-      calculated.hwTotal,
-      score?.quiz1 ?? '',
-      score?.quiz2 ?? '',
-      score?.quiz3 ?? '',
-      calculated.quizTotal,
-      score?.test1 ?? '',
-      score?.test2 ?? '',
-      calculated.testTotal,
-      calculated.overallScore,
-      calculated.letterGrade,
-      score?.achievement || calculated.autoAchievement,
-      score?.attitude || calculated.autoAttitude,
-      score?.areasToImprove || calculated.autoImprovement
-    ];
-
     sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
-    columns.forEach((col, colIdx) => {
+    colConfigs.forEach((col, colIdx) => {
       const cellRef = `${colName(colIdx)}${rowNum}`;
-      const val = values[colIdx];
+      const val = rowValues[colIdx];
       let styleId = sCenter;
       if (col.isLeft) styleId = sLeft;
       else if (col.isIndigo) styleId = sIndigo;
@@ -492,7 +660,7 @@ export const exportScoreList = (
 
   sheetDataXml += '</sheetData>';
 
-  const lastColLetter = colName(columns.length - 1);
+  const lastColLetter = colName(colConfigs.length - 1);
   const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <dimension ref="A1:${lastColLetter}${totalRows}"/>
@@ -518,7 +686,7 @@ export const exportScoreList = (
     { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
   ];
 
-  const zipBuffer = buildZipArchive(zipFiles);
+  const zipBuffer = await buildZipArchive(zipFiles);
   const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
   const filename = `Class_${cleanClassName}_Q${quarter}_EGradeBook.xlsx`;
 
@@ -528,7 +696,7 @@ export const exportScoreList = (
 /**
  * Formatted generic table export to Excel with alternating row colors.
  */
-export const exportToExcel = (data: any[], filename: string) => {
+export const exportToExcel = async (data: any[], filename: string) => {
   if (!data || data.length === 0) {
     const ws = XLSX.utils.json_to_sheet([]);
     const wb = XLSX.utils.book_new();
@@ -610,14 +778,14 @@ export const exportToExcel = (data: any[], filename: string) => {
     { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
   ];
 
-  const zipBuffer = buildZipArchive(zipFiles);
+  const zipBuffer = await buildZipArchive(zipFiles);
   downloadExcelBlob(zipBuffer, filename);
 };
 
 /**
  * Formatted Quarter Summary export to Excel with alternating row colors.
  */
-export const exportQuarterSummary = (
+export const exportQuarterSummary = async (
   students: Student[], 
   records: ParticipationRecord[], 
   classObj: Class, 
@@ -639,7 +807,7 @@ export const exportQuarterSummary = (
   }));
   
   const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
-  exportToExcel(data, `Class_${cleanClassName}_Q${quarter}_Summary`);
+  await exportToExcel(data, `Class_${cleanClassName}_Q${quarter}_Summary`);
 };
 
 /**
