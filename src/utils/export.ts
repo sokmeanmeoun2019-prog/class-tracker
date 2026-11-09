@@ -40,38 +40,12 @@ const calculateCrc32 = (data: Uint8Array): number => {
 };
 
 /**
- * Compresses data using RFC 1951 raw DEFLATE format (PKZIP Method 8).
- * Microsoft Excel requires XML parts in an .xlsx package to be DEFLATED.
- * Uses native browser CompressionStream when available, with RFC 1951 fallback.
+ * Creates RFC 1951 raw DEFLATE uncompressed blocks (PKZIP Method 8 compliant).
+ * Microsoft Excel msopc.dll requires XML parts in an .xlsx package to be Method 8 (DEFLATED).
+ * Uncompressed blocks (BTYPE=00) are fully compliant with RFC 1951 and are decompressed
+ * instantly by all DEFLATE engines without any asynchronous stream overhead or deadlocks.
  */
-async function deflateData(data: any): Promise<Uint8Array> {
-  if (typeof CompressionStream !== 'undefined') {
-    try {
-      const cs = new CompressionStream('deflate-raw');
-      const writer = cs.writable.getWriter();
-      await writer.write(data);
-      await writer.close();
-      const reader = cs.readable.getReader();
-      const chunks: Uint8Array[] = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) chunks.push(value as any);
-      }
-      const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
-      const res = new Uint8Array(totalLen);
-      let pos = 0;
-      for (const c of chunks) {
-        res.set(c, pos);
-        pos += c.length;
-      }
-      return res;
-    } catch {
-      // Fallback below if stream execution encounters an exception
-    }
-  }
-
-  // Fallback RFC 1951 raw Deflate uncompressed blocks (Method 8 compliant)
+function deflateData(data: Uint8Array): Uint8Array {
   const maxBlock = 65535;
   const numBlocks = Math.ceil(data.length / maxBlock) || 1;
   const outSize = data.length + numBlocks * 5;
@@ -104,23 +78,21 @@ interface ZipFileItem {
  * Builds a standard PKZIP archive with Method 8 (DEFLATE).
  * Compatible with OpenXML (.xlsx) specification across all versions of Microsoft Excel.
  */
-async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
+function buildZipArchive(files: ZipFileItem[]): Uint8Array {
   const encoder = new TextEncoder();
-  const fileItems = await Promise.all(
-    files.map(async f => {
-      const nameBytes = encoder.encode(f.name);
-      const crc = calculateCrc32(f.data);
-      const compressedData = await deflateData(f.data);
-      return {
-        name: f.name,
-        nameBytes,
-        uncompressedSize: f.data.length,
-        compressedData,
-        crc,
-        localOffset: 0
-      };
-    })
-  );
+  const fileItems = files.map(f => {
+    const nameBytes = encoder.encode(f.name);
+    const crc = calculateCrc32(f.data);
+    const compressedData = deflateData(f.data);
+    return {
+      name: f.name,
+      nameBytes,
+      uncompressedSize: f.data.length,
+      compressedData,
+      crc,
+      localOffset: 0
+    };
+  });
 
   let totalLocalSize = 0;
   let totalCentralDirSize = 0;
@@ -130,7 +102,7 @@ async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
   }
   const totalSize = totalLocalSize + totalCentralDirSize + 22;
   const buffer = new Uint8Array(totalSize);
-  const view = new DataView(buffer.buffer);
+  const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
 
   let currentOffset = 0;
 
@@ -138,7 +110,7 @@ async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
   for (const f of fileItems) {
     f.localOffset = currentOffset;
 
-    view.setUint32(currentOffset, 0x04034b50, true);     // Local file header signature
+    view.setUint32(currentOffset, 0x04034b50, true);     // Local file header signature (PK\x03\x04)
     view.setUint16(currentOffset + 4, 20, true);         // Version needed (2.0)
     view.setUint16(currentOffset + 6, 0x0800, true);     // UTF-8 flag
     view.setUint16(currentOffset + 8, 8, true);          // Method 8 = Deflated
@@ -160,7 +132,7 @@ async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
 
   // 2. Write Central Directory Headers
   for (const f of fileItems) {
-    view.setUint32(currentOffset, 0x02014b50, true);     // Central dir signature
+    view.setUint32(currentOffset, 0x02014b50, true);     // Central dir signature (PK\x01\x02)
     view.setUint16(currentOffset + 4, 20, true);         // Version made by
     view.setUint16(currentOffset + 6, 20, true);         // Version needed
     view.setUint16(currentOffset + 8, 0x0800, true);     // UTF-8 flag
@@ -186,7 +158,7 @@ async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
   const centralDirSize = currentOffset - centralDirStartOffset;
 
   // 3. Write End of Central Directory Record (EOCD)
-  view.setUint32(currentOffset, 0x06054b50, true);      // EOCD signature
+  view.setUint32(currentOffset, 0x06054b50, true);      // EOCD signature (PK\x05\x06)
   view.setUint16(currentOffset + 4, 0, true);           // Disk number
   view.setUint16(currentOffset + 6, 0, true);           // Central dir start disk
   view.setUint16(currentOffset + 8, fileItems.length, true);  // Records on disk
@@ -201,6 +173,7 @@ async function buildZipArchive(files: ZipFileItem[]): Promise<Uint8Array> {
 function escapeXml(str: any): string {
   if (str === null || str === undefined) return '';
   return String(str)
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -229,7 +202,7 @@ function downloadExcelBlob(data: any, filename: string) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
 function renderCell(cellRef: string, value: string | number | undefined | null, styleId: number): string {
@@ -239,7 +212,7 @@ function renderCell(cellRef: string, value: string | number | undefined | null, 
   if (typeof value === 'number' && !isNaN(value)) {
     return `<c r="${cellRef}" s="${styleId}" t="n"><v>${value}</v></c>`;
   }
-  return `<c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t>${escapeXml(String(value))}</t></is></c>`;
+  return `<c r="${cellRef}" s="${styleId}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(String(value))}</t></is></c>`;
 }
 
 // OpenXML Static XML Parts
@@ -264,7 +237,6 @@ const WORKBOOK_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"
 </Relationships>`;
 
 const getWorkbookXml = (sheetName: string) => {
-  // Excel sheet names cannot exceed 31 chars and cannot contain \ / ? * [ ] :
   const safeName = sheetName.replace(/[\\/?*[\]:]/g, '_').substring(0, 31);
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -426,8 +398,7 @@ const STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 /**
  * Extracts data directly from the rendered table in the DOM if available.
- * This guarantees the export reflects the exact onscreen table structure,
- * column order, and values.
+ * Cleans trailing "/10" notation so headers match standard format.
  */
 function extractDataFromDomTable(): { headers: string[]; rows: (string | number)[][] } | null {
   if (typeof document === 'undefined') return null;
@@ -438,9 +409,10 @@ function extractDataFromDomTable(): { headers: string[]; rows: (string | number)
   if (thElements.length === 0) return null;
 
   const headers = thElements.map(th => {
-    // Clean text by replacing linebreaks with single space
     const clone = th.cloneNode(true) as HTMLElement;
-    return clone.innerText.replace(/\s+/g, ' ').trim();
+    const raw = clone.innerText.replace(/\s+/g, ' ').trim();
+    // Normalize trailing /10 max score tags if present in header
+    return raw.replace(/\s*\/\s*\d+$/, '').trim();
   });
 
   const trElements = Array.from(table.querySelectorAll('tbody tr'));
@@ -468,6 +440,9 @@ function extractDataFromDomTable(): { headers: string[]; rows: (string | number)
       const badge = td.querySelector('span') as HTMLElement | null;
       if (badge && badge.innerText) {
         const txt = badge.innerText.trim();
+        if (txt !== '' && !isNaN(Number(txt))) {
+          return Number(txt);
+        }
         return txt;
       }
 
@@ -501,167 +476,169 @@ export const exportScoreList = async (
   quarter: Quarter,
   settings: any
 ) => {
-  const domExtraction = extractDataFromDomTable();
-  const sortedStudents = getClassRoster(students, classObj.id);
-  const classScores = scores.filter(
-    s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
-  );
+  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
+  const filename = `Class_${cleanClassName}_Q${quarter}_EGradeBook.xlsx`;
 
-  // Column definitions matching ScoreList.tsx exactly
-  const baseColumns = [
-    { key: 'no', title: 'No.', width: 6, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'name', title: 'Name', width: 26, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-    { key: 'sex', title: 'Sex', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'conduct', title: 'Conduct', width: 11, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'cp', title: 'C.P', width: 10, headerStyle: 3, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'hw1', title: 'HW1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'hw2', title: 'HW2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'hw3', title: 'HW3', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'hwTotal', title: 'HW Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
-    { key: 'qz1', title: 'Qz1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'qz2', title: 'Qz2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'qz3', title: 'Qz3', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'qzTotal', title: 'Qz Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
-    { key: 'test1', title: 'Test1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'test2', title: 'Test2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
-    { key: 'testTotal', title: 'Test Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
-    { key: 'overall', title: 'Overall', width: 12, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
-    { key: 'grade', title: 'Grade', width: 10, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
-    { key: 'achievement', title: 'Achievement', width: 52, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-    { key: 'attitude', title: 'Attitude', width: 36, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-    { key: 'areasToImprove', title: 'Areas to Improve', width: 40, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
-  ];
-
-  let headersToRender: string[] = [];
-  let rowsToRender: (string | number | undefined)[][] = [];
-
-  if (domExtraction && domExtraction.headers.length >= 10 && domExtraction.rows.length > 0) {
-    // Source of truth: live rendered DOM table
-    headersToRender = domExtraction.headers;
-    rowsToRender = domExtraction.rows;
-  } else {
-    // Structured data model calculation fallback
-    headersToRender = baseColumns.map(c => c.title);
-    rowsToRender = sortedStudents.map(student => {
-      const score = scores.find(
-        s => s.studentId === student.id &&
-             (!s.classId || s.classId === classObj.id) &&
-             Number(s.quarter) === Number(quarter)
-      );
-      const rawCp = getStudentQuarterTotal(records, student.id, quarter);
-      const cappedRawCp = Math.min(rawCp, settings.maxScores?.cp || 10);
-      const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
-
-      const sexDisplay = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
-
-      return [
-        student.displayNum,
-        student.name,
-        sexDisplay,
-        score?.conduct ?? '',
-        score?.cpScore !== undefined ? score.cpScore : cappedRawCp,
-        score?.hw1 ?? '',
-        score?.hw2 ?? '',
-        score?.hw3 ?? '',
-        calculated.hwTotal,
-        score?.quiz1 ?? '',
-        score?.quiz2 ?? '',
-        score?.quiz3 ?? '',
-        calculated.quizTotal,
-        score?.test1 ?? '',
-        score?.test2 ?? '',
-        calculated.testTotal,
-        calculated.overallScore,
-        calculated.letterGrade,
-        score?.achievement || calculated.autoAchievement,
-        score?.attitude || calculated.autoAttitude,
-        score?.areasToImprove || calculated.autoImprovement
-      ];
-    });
-  }
-
-  const totalRows = rowsToRender.length + 1; // 1 header row + N student rows
-
-  // Build column configuration dynamically
-  const colConfigs = headersToRender.map((hdr, idx) => {
-    const match = baseColumns.find(bc => 
-      bc.title.toLowerCase() === hdr.toLowerCase() || 
-      hdr.toLowerCase().startsWith(bc.title.toLowerCase())
+  try {
+    const sortedStudents = getClassRoster(students, classObj.id);
+    const classScores = scores.filter(
+      s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
     );
-    if (match) return match;
 
-    const isLeft = /name|achievement|attitude|areas|improve/i.test(hdr);
-    const isIndigo = /overall|grade/i.test(hdr);
-    const isTotal = /total/i.test(hdr);
-    const isCp = /c\.?p/i.test(hdr);
-    let headerStyle = isLeft ? 2 : 1;
-    if (isCp) headerStyle = 3;
-    else if (isTotal) headerStyle = 4;
-    else if (isIndigo) headerStyle = 5;
+    // Column definitions matching ScoreList.tsx exactly
+    const baseColumns = [
+      { key: 'no', title: 'No.', width: 6, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'name', title: 'Name', width: 26, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'sex', title: 'Sex', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'conduct', title: 'Conduct', width: 11, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'cp', title: 'C.P', width: 10, headerStyle: 3, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'hw1', title: 'HW1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'hw2', title: 'HW2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'hw3', title: 'HW3', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'hwTotal', title: 'HW Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
+      { key: 'qz1', title: 'Qz1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'qz2', title: 'Qz2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'qz3', title: 'Qz3', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'qzTotal', title: 'Qz Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
+      { key: 'test1', title: 'Test1', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'test2', title: 'Test2', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
+      { key: 'testTotal', title: 'Test Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
+      { key: 'overall', title: 'Overall', width: 12, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
+      { key: 'grade', title: 'Grade', width: 10, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
+      { key: 'achievement', title: 'Achievement', width: 52, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'attitude', title: 'Attitude', width: 36, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'areasToImprove', title: 'Areas to Improve', width: 40, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+    ];
 
-    return {
-      key: `col_${idx}`,
-      title: hdr,
-      width: isLeft ? 35 : 12,
-      headerStyle,
-      isLeft,
-      isTotal,
-      isIndigo
-    };
-  });
+    const domExtraction = extractDataFromDomTable();
+    let headersToRender: string[] = [];
+    let rowsToRender: (string | number | undefined)[][] = [];
 
-  // Build cols XML
-  let colsXml = '<cols>';
-  colConfigs.forEach((col, idx) => {
-    colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${col.width}" customWidth="1"/>`;
-  });
-  colsXml += '</cols>';
+    if (domExtraction && domExtraction.headers.length >= 10 && domExtraction.rows.length === sortedStudents.length) {
+      headersToRender = domExtraction.headers;
+      rowsToRender = domExtraction.rows;
+    } else {
+      headersToRender = baseColumns.map(c => c.title);
+      rowsToRender = sortedStudents.map(student => {
+        const score = scores.find(
+          s => s.studentId === student.id &&
+               (!s.classId || s.classId === classObj.id) &&
+               Number(s.quarter) === Number(quarter)
+        );
+        const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+        const cappedRawCp = Math.min(rawCp, settings.maxScores?.cp || 10);
+        const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
 
-  // Build sheetData XML
-  let sheetDataXml = '<sheetData>';
+        const sexDisplay = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
 
-  // Header Row (Row 1) - height 28pt
-  sheetDataXml += '<row r="1" ht="28" customHeight="1">';
-  headersToRender.forEach((title, idx) => {
-    const cellRef = `${colName(idx)}1`;
-    const colCfg = colConfigs[idx];
-    sheetDataXml += `<c r="${cellRef}" s="${colCfg.headerStyle}" t="inlineStr"><is><t>${escapeXml(title)}</t></is></c>`;
-  });
-  sheetDataXml += '</row>';
+        return [
+          student.displayNum,
+          student.name,
+          sexDisplay,
+          score?.conduct ?? '',
+          score?.cpScore !== undefined ? score.cpScore : cappedRawCp,
+          score?.hw1 ?? '',
+          score?.hw2 ?? '',
+          score?.hw3 ?? '',
+          calculated.hwTotal,
+          score?.quiz1 ?? '',
+          score?.quiz2 ?? '',
+          score?.quiz3 ?? '',
+          calculated.quizTotal,
+          score?.test1 ?? '',
+          score?.test2 ?? '',
+          calculated.testTotal,
+          calculated.overallScore,
+          calculated.letterGrade,
+          score?.achievement || calculated.autoAchievement,
+          score?.attitude || calculated.autoAttitude,
+          score?.areasToImprove || calculated.autoImprovement
+        ];
+      });
+    }
 
-  // Data Rows (Row 2 .. totalRows) - height 22pt
-  rowsToRender.forEach((rowValues, index) => {
-    const rowNum = index + 2;
-    // Alternating Row Color:
-    // First data row (index 0) = White (#FFFFFF)
-    // Second data row (index 1) = Light gray (#F2F2F2)
-    // Third data row (index 2) = White (#FFFFFF)
-    // Fourth data row (index 3) = Light gray (#F2F2F2)
-    const isWhiteRow = index % 2 === 0;
+    const totalRows = rowsToRender.length + 1; // 1 header row + N student rows
 
-    const sCenter = isWhiteRow ? 6 : 10;
-    const sLeft = isWhiteRow ? 7 : 11;
-    const sTotal = isWhiteRow ? 8 : 12;
-    const sIndigo = isWhiteRow ? 9 : 13;
+    // Build column configuration dynamically
+    const colConfigs = headersToRender.map((hdr, idx) => {
+      const match = baseColumns.find(bc => 
+        bc.title.toLowerCase() === hdr.toLowerCase() || 
+        hdr.toLowerCase().startsWith(bc.title.toLowerCase())
+      );
+      if (match) return match;
 
-    sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
-    colConfigs.forEach((col, colIdx) => {
-      const cellRef = `${colName(colIdx)}${rowNum}`;
-      const val = rowValues[colIdx];
-      let styleId = sCenter;
-      if (col.isLeft) styleId = sLeft;
-      else if (col.isIndigo) styleId = sIndigo;
-      else if (col.isTotal) styleId = sTotal;
+      const isLeft = /name|achievement|attitude|areas|improve/i.test(hdr);
+      const isIndigo = /overall|grade/i.test(hdr);
+      const isTotal = /total/i.test(hdr);
+      const isCp = /c\.?p/i.test(hdr);
+      let headerStyle = isLeft ? 2 : 1;
+      if (isCp) headerStyle = 3;
+      else if (isTotal) headerStyle = 4;
+      else if (isIndigo) headerStyle = 5;
 
-      sheetDataXml += renderCell(cellRef, val, styleId);
+      return {
+        key: `col_${idx}`,
+        title: hdr,
+        width: isLeft ? 35 : 12,
+        headerStyle,
+        isLeft,
+        isTotal,
+        isIndigo
+      };
+    });
+
+    // Build cols XML
+    let colsXml = '<cols>';
+    colConfigs.forEach((col, idx) => {
+      colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${col.width}" customWidth="1"/>`;
+    });
+    colsXml += '</cols>';
+
+    // Build sheetData XML
+    let sheetDataXml = '<sheetData>';
+
+    // Header Row (Row 1) - height 28pt
+    sheetDataXml += '<row r="1" ht="28" customHeight="1">';
+    headersToRender.forEach((title, idx) => {
+      const cellRef = `${colName(idx)}1`;
+      const colCfg = colConfigs[idx];
+      sheetDataXml += `<c r="${cellRef}" s="${colCfg.headerStyle}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(title)}</t></is></c>`;
     });
     sheetDataXml += '</row>';
-  });
 
-  sheetDataXml += '</sheetData>';
+    // Data Rows (Row 2 .. totalRows) - height 22pt
+    rowsToRender.forEach((rowValues, index) => {
+      const rowNum = index + 2;
+      // Alternating Row Color:
+      // First data row (index 0) = White (#FFFFFF)
+      // Second data row (index 1) = Light gray (#F2F2F2)
+      // Third data row (index 2) = White (#FFFFFF)
+      // Fourth data row (index 3) = Light gray (#F2F2F2)
+      const isWhiteRow = index % 2 === 0;
 
-  const lastColLetter = colName(colConfigs.length - 1);
-  const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+      const sCenter = isWhiteRow ? 6 : 10;
+      const sLeft = isWhiteRow ? 7 : 11;
+      const sTotal = isWhiteRow ? 8 : 12;
+      const sIndigo = isWhiteRow ? 9 : 13;
+
+      sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+      colConfigs.forEach((col, colIdx) => {
+        const cellRef = `${colName(colIdx)}${rowNum}`;
+        const val = rowValues[colIdx];
+        let styleId = sCenter;
+        if (col.isLeft) styleId = sLeft;
+        else if (col.isIndigo) styleId = sIndigo;
+        else if (col.isTotal) styleId = sTotal;
+
+        sheetDataXml += renderCell(cellRef, val, styleId);
+      });
+      sheetDataXml += '</row>';
+    });
+
+    sheetDataXml += '</sheetData>';
+
+    const lastColLetter = colName(colConfigs.length - 1);
+    const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <dimension ref="A1:${lastColLetter}${totalRows}"/>
   <sheetViews>
@@ -676,21 +653,64 @@ export const exportScoreList = async (
   <pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>
 </worksheet>`;
 
-  const encoder = new TextEncoder();
-  const zipFiles: ZipFileItem[] = [
-    { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
-    { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
-    { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml(`Class ${classObj.name}`)) },
-    { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
-    { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
-    { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
-  ];
+    const encoder = new TextEncoder();
+    const zipFiles: ZipFileItem[] = [
+      { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
+      { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
+      { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml(`Class ${classObj.name}`)) },
+      { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
+      { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
+      { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
+    ];
 
-  const zipBuffer = await buildZipArchive(zipFiles);
-  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
-  const filename = `Class_${cleanClassName}_Q${quarter}_EGradeBook.xlsx`;
+    const zipBuffer = buildZipArchive(zipFiles);
+    downloadExcelBlob(zipBuffer, filename);
+  } catch (error) {
+    console.error('Styled Excel generation error, falling back to standard export:', error);
+    // Automatic fallback to SheetJS so a file is ALWAYS downloaded
+    const fallbackSorted = getClassRoster(students, classObj.id);
+    const classScores = scores.filter(
+      s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
+    );
+    const fallbackRows = fallbackSorted.map(student => {
+      const score = scores.find(
+        s => s.studentId === student.id &&
+             (!s.classId || s.classId === classObj.id) &&
+             Number(s.quarter) === Number(quarter)
+      );
+      const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+      const cappedRawCp = Math.min(rawCp, settings.maxScores?.cp || 10);
+      const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, classObj.name, classScores);
 
-  downloadExcelBlob(zipBuffer, filename);
+      return {
+        'No.': student.displayNum,
+        'Name': student.name,
+        'Sex': student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || ''),
+        'Conduct': score?.conduct ?? '',
+        'C.P': score?.cpScore !== undefined ? score.cpScore : cappedRawCp,
+        'HW1': score?.hw1 ?? '',
+        'HW2': score?.hw2 ?? '',
+        'HW3': score?.hw3 ?? '',
+        'HW Total': calculated.hwTotal,
+        'Qz1': score?.quiz1 ?? '',
+        'Qz2': score?.quiz2 ?? '',
+        'Qz3': score?.quiz3 ?? '',
+        'Qz Total': calculated.quizTotal,
+        'Test1': score?.test1 ?? '',
+        'Test2': score?.test2 ?? '',
+        'Test Total': calculated.testTotal,
+        'Overall': calculated.overallScore,
+        'Grade': calculated.letterGrade,
+        'Achievement': score?.achievement || calculated.autoAchievement,
+        'Attitude': score?.attitude || calculated.autoAttitude,
+        'Areas to Improve': score?.areasToImprove || calculated.autoImprovement
+      };
+    });
+    const ws = XLSX.utils.json_to_sheet(fallbackRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Class ${classObj.name}`.substring(0, 31));
+    XLSX.writeFile(wb, filename);
+  }
 };
 
 /**
@@ -705,55 +725,56 @@ export const exportToExcel = async (data: any[], filename: string) => {
     return;
   }
 
-  const keys = Object.keys(data[0]);
-  const totalRows = data.length + 1;
+  try {
+    const keys = Object.keys(data[0]);
+    const totalRows = data.length + 1;
 
-  // Auto calculate reasonable column widths
-  const colWidths = keys.map(k => {
-    let maxLen = k.length;
-    for (let i = 0; i < Math.min(data.length, 50); i++) {
-      const valStr = String(data[i][k] ?? '');
-      if (valStr.length > maxLen) maxLen = valStr.length;
-    }
-    return Math.min(Math.max(maxLen + 4, 10), 55);
-  });
+    // Auto calculate reasonable column widths
+    const colWidths = keys.map(k => {
+      let maxLen = k.length;
+      for (let i = 0; i < Math.min(data.length, 50); i++) {
+        const valStr = String(data[i][k] ?? '');
+        if (valStr.length > maxLen) maxLen = valStr.length;
+      }
+      return Math.min(Math.max(maxLen + 4, 10), 55);
+    });
 
-  let colsXml = '<cols>';
-  colWidths.forEach((w, idx) => {
-    colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`;
-  });
-  colsXml += '</cols>';
+    let colsXml = '<cols>';
+    colWidths.forEach((w, idx) => {
+      colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`;
+    });
+    colsXml += '</cols>';
 
-  let sheetDataXml = '<sheetData>';
-  // Header row
-  sheetDataXml += '<row r="1" ht="26" customHeight="1">';
-  keys.forEach((key, colIdx) => {
-    const cellRef = `${colName(colIdx)}1`;
-    sheetDataXml += `<c r="${cellRef}" s="1" t="inlineStr"><is><t>${escapeXml(key)}</t></is></c>`;
-  });
-  sheetDataXml += '</row>';
-
-  // Data rows
-  data.forEach((row, rowIdx) => {
-    const rowNum = rowIdx + 2;
-    const isWhiteRow = rowIdx % 2 === 0;
-    const sCenter = isWhiteRow ? 6 : 10;
-    const sLeft = isWhiteRow ? 7 : 11;
-
-    sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+    let sheetDataXml = '<sheetData>';
+    // Header row
+    sheetDataXml += '<row r="1" ht="26" customHeight="1">';
     keys.forEach((key, colIdx) => {
-      const cellRef = `${colName(colIdx)}${rowNum}`;
-      const val = row[key];
-      const isNum = typeof val === 'number' && !isNaN(val);
-      const styleId = isNum ? sCenter : sLeft;
-      sheetDataXml += renderCell(cellRef, val, styleId);
+      const cellRef = `${colName(colIdx)}1`;
+      sheetDataXml += `<c r="${cellRef}" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml(key)}</t></is></c>`;
     });
     sheetDataXml += '</row>';
-  });
-  sheetDataXml += '</sheetData>';
 
-  const lastColLetter = colName(keys.length - 1);
-  const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    // Data rows
+    data.forEach((row, rowIdx) => {
+      const rowNum = rowIdx + 2;
+      const isWhiteRow = rowIdx % 2 === 0;
+      const sCenter = isWhiteRow ? 6 : 10;
+      const sLeft = isWhiteRow ? 7 : 11;
+
+      sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+      keys.forEach((key, colIdx) => {
+        const cellRef = `${colName(colIdx)}${rowNum}`;
+        const val = row[key];
+        const isNum = typeof val === 'number' && !isNaN(val);
+        const styleId = isNum ? sCenter : sLeft;
+        sheetDataXml += renderCell(cellRef, val, styleId);
+      });
+      sheetDataXml += '</row>';
+    });
+    sheetDataXml += '</sheetData>';
+
+    const lastColLetter = colName(keys.length - 1);
+    const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <dimension ref="A1:${lastColLetter}${totalRows}"/>
   <sheetViews>
@@ -768,18 +789,25 @@ export const exportToExcel = async (data: any[], filename: string) => {
   <pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>
 </worksheet>`;
 
-  const encoder = new TextEncoder();
-  const zipFiles: ZipFileItem[] = [
-    { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
-    { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
-    { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml("Sheet1")) },
-    { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
-    { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
-    { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
-  ];
+    const encoder = new TextEncoder();
+    const zipFiles: ZipFileItem[] = [
+      { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
+      { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
+      { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml("Sheet1")) },
+      { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
+      { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
+      { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) },
+    ];
 
-  const zipBuffer = await buildZipArchive(zipFiles);
-  downloadExcelBlob(zipBuffer, filename);
+    const zipBuffer = buildZipArchive(zipFiles);
+    downloadExcelBlob(zipBuffer, filename);
+  } catch (error) {
+    console.error('Styled Excel generic export error, falling back to standard export:', error);
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${filename}.xlsx`);
+  }
 };
 
 /**
