@@ -100,11 +100,10 @@ if /i "!START_APP!"=="Y" (
     echo.
     echo ============================================================
     echo Starting local development server at http://localhost:5173...
-    echo (Note: If your browser opens before the server finishes booting
-    echo  and shows 'localhost refused to connect', simply click the
-    echo  'Reload' button in your browser.)
+    echo Your browser will open automatically in 3 seconds...
     echo ============================================================
     echo.
-    call npm run dev -- --open
+    start /b cmd /c "timeout /t 3 /nobreak >nul && start http://localhost:5173"
+    call npm run dev
 )
 exit /b 0
