@@ -5,7 +5,7 @@ import { getStudentSemesterOverall, getStudentAttendanceSemester, getStudentSeme
 import { generatePTCFeedback, generateStrengths, generateAreasToImprove } from '../utils/ptcGenerator';
 import { PTCRecord } from '../types';
 import { v4 as uuidv4 } from 'uuid';
-import { ArrowLeft, Printer, RefreshCw, Save, Check } from 'lucide-react';
+import { ArrowLeft, Printer, RefreshCw, Save, Check, Plus, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 const PTCStudentReport = () => {
@@ -62,6 +62,7 @@ const PTCStudentReport = () => {
   const [strengths, setStrengths] = useState<string[]>([]);
   const [areasToImprove, setAreasToImprove] = useState<string[]>([]);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [regenCount, setRegenCount] = useState(0);
 
   // Load or generate initial record
   useEffect(() => {
@@ -79,6 +80,8 @@ const PTCStudentReport = () => {
 
   const handleRegenerate = () => {
     if (!student || !stats) return;
+    const nextOffset = regenCount + 1;
+    setRegenCount(nextOffset);
     
     const examRecord = state.examRecords?.find(r => r.id === `${student.id}-${currentSemester}`);
 
@@ -94,7 +97,9 @@ const PTCStudentReport = () => {
       attendanceRate: stats.attendance.rate,
       unexcusedAbsences: stats.attendance.unexcused,
       attendanceTier: stats.attTier,
-      examScore: examRecord?.score
+      examScore: examRecord?.score,
+      studentId: student.id,
+      seedOffset: nextOffset
     };
 
     const newComment = generatePTCFeedback(studentStats);
@@ -116,8 +121,8 @@ const PTCStudentReport = () => {
       classId: currentClass.id,
       semester: currentSemester,
       teacherComment: comment,
-      strengths,
-      areasToImprove,
+      strengths: strengths.filter(s => s.trim() !== ''),
+      areasToImprove: areasToImprove.filter(s => s.trim() !== ''),
       lastUpdated: new Date().toISOString()
     };
 
@@ -237,17 +242,98 @@ const PTCStudentReport = () => {
         {/* Strengths & Areas to Improve */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
           <div>
-            <h3 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 uppercase tracking-wider">Strengths</h3>
-            <ul className="list-disc pl-5 space-y-2">
+            <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
+              <h3 className="text-lg font-bold text-gray-800 uppercase tracking-wider">Strengths</h3>
+              <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded print:hidden">Editable</span>
+            </div>
+            
+            {/* Screen View: Interactive Editable Inputs */}
+            <div className="space-y-2 print:hidden">
               {strengths.map((s, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 mt-2.5 shrink-0"></span>
+                  <input
+                    type="text"
+                    value={s}
+                    onChange={(e) => {
+                      const updated = [...strengths];
+                      updated[i] = e.target.value;
+                      setStrengths(updated);
+                    }}
+                    className="flex-1 p-2 text-xs font-medium text-emerald-900 bg-emerald-50/40 border border-emerald-200 rounded focus:bg-white focus:ring-1 focus:ring-emerald-500"
+                    placeholder="Enter strength..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setStrengths(strengths.filter((_, idx) => idx !== i))}
+                    className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
+                    title="Remove strength"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setStrengths([...strengths, ''])}
+                className="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1 pt-1"
+              >
+                <Plus size={13} /> Add Strength
+              </button>
+            </div>
+
+            {/* Print View: Clean Bulleted List */}
+            <ul className="hidden print:block list-disc pl-5 space-y-2">
+              {strengths.filter(Boolean).map((s, i) => (
                 <li key={i} className="text-emerald-700 font-medium">{s}</li>
               ))}
             </ul>
           </div>
+
           <div>
-            <h3 className="text-lg font-bold text-gray-800 border-b border-gray-200 pb-2 mb-4 uppercase tracking-wider">Areas to Improve</h3>
-            <ul className="list-disc pl-5 space-y-2">
+            <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-3">
+              <h3 className="text-lg font-bold text-gray-800 uppercase tracking-wider">Areas to Improve</h3>
+              <span className="text-[11px] text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded print:hidden">Editable</span>
+            </div>
+
+            {/* Screen View: Interactive Editable Inputs */}
+            <div className="space-y-2 print:hidden">
               {areasToImprove.map((s, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 mt-2.5 shrink-0"></span>
+                  <input
+                    type="text"
+                    value={s}
+                    onChange={(e) => {
+                      const updated = [...areasToImprove];
+                      updated[i] = e.target.value;
+                      setAreasToImprove(updated);
+                    }}
+                    className="flex-1 p-2 text-xs font-medium text-rose-900 bg-rose-50/40 border border-rose-200 rounded focus:bg-white focus:ring-1 focus:ring-rose-500"
+                    placeholder="Enter area to improve..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setAreasToImprove(areasToImprove.filter((_, idx) => idx !== i))}
+                    className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
+                    title="Remove area to improve"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => setAreasToImprove([...areasToImprove, ''])}
+                className="text-xs font-bold text-rose-700 hover:text-rose-900 flex items-center gap-1 pt-1"
+              >
+                <Plus size={13} /> Add Area to Improve
+              </button>
+            </div>
+
+            {/* Print View: Clean Bulleted List */}
+            <ul className="hidden print:block list-disc pl-5 space-y-2">
+              {areasToImprove.filter(Boolean).map((s, i) => (
                 <li key={i} className="text-rose-600 font-medium">{s}</li>
               ))}
             </ul>

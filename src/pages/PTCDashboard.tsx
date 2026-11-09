@@ -67,7 +67,8 @@ const PTCDashboard = () => {
         attendanceRate: d.attendance.rate,
         unexcusedAbsences: d.attendance.unexcused,
         attendanceTier: attTier,
-        examScore: examRecord?.score
+        examScore: examRecord?.score,
+        studentId: d.student.id
       };
 
       const existingRecord = state.ptcRecords.find(p => p.studentId === d.student.id && p.semester === semester);
