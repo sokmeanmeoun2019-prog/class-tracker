@@ -98,7 +98,6 @@ set /p "START_APP=(Y/N) [Default: Y]: "
 if not defined START_APP set "START_APP=Y"
 if /i "!START_APP!"=="Y" (
     echo Starting local development server...
-    start http://localhost:5173
-    call npm run dev
+    call npm run dev -- --open
 )
 exit /b 0
