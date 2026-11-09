@@ -74,23 +74,50 @@ const Settings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (window.confirm('WARNING: Importing a backup will overwrite ALL current data. Are you sure you want to proceed?')) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string);
-          if (parsed && Array.isArray(parsed.classes)) {
-            dispatch({ type: 'SET_STATE', payload: parsed });
-            alert('Backup restored successfully!');
-          } else {
-            throw new Error('Invalid format');
-          }
-        } catch (error) {
-          alert('Failed to parse backup file. Please ensure it is a valid JSON backup from this app.');
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.classes) || !Array.isArray(parsed.students)) {
+          alert('Invalid backup file. The uploaded file does not contain valid Class Tracker data (missing classes or students array).');
+          return;
         }
-      };
-      reader.readAsText(file);
-    }
+
+        const classCount = parsed.classes?.length || 0;
+        const studentCount = parsed.students?.length || 0;
+        const scoreCount = parsed.scores?.length || 0;
+        const recordCount = parsed.records?.length || 0;
+
+        const confirmMsg = `WARNING: Restoring this backup will replace current data.\n\nBackup contents:\n- ${classCount} Classes\n- ${studentCount} Students\n- ${scoreCount} Scores\n- ${recordCount} Participation Records\n\nA safety snapshot of your current data will be saved automatically before restoring.\n\nDo you want to proceed?`;
+        
+        if (window.confirm(confirmMsg)) {
+          // Pre-Restore Safety Snapshot in localStorage
+          try {
+            const preRestoreKey = `class_tracker_pre_restore_${new Date().toISOString()}`;
+            localStorage.setItem(preRestoreKey, JSON.stringify(state));
+            localStorage.setItem('class_tracker_offline_backup', JSON.stringify(state));
+          } catch (err) {
+            console.warn("Could not save pre-restore backup:", err);
+          }
+
+          // Apply fallbacks for safe migration
+          if (!parsed.trash) parsed.trash = [];
+          if (!parsed.scores) parsed.scores = [];
+          if (!parsed.attendanceRecords) parsed.attendanceRecords = [];
+          if (!parsed.ptcRecords) parsed.ptcRecords = [];
+          if (!parsed.examRecords) parsed.examRecords = [];
+          if (!parsed.examInfos) parsed.examInfos = [];
+          if (!parsed.gradingSettings) parsed.gradingSettings = state.gradingSettings;
+          if (!parsed.attendanceSettings) parsed.attendanceSettings = state.attendanceSettings;
+
+          dispatch({ type: 'SET_STATE', payload: parsed });
+          alert('Backup restored successfully!');
+        }
+      } catch (error) {
+        alert('Failed to parse backup file. Please ensure it is a valid JSON backup file.');
+      }
+    };
+    reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
