@@ -97,7 +97,14 @@ set "START_APP="
 set /p "START_APP=(Y/N) [Default: Y]: "
 if not defined START_APP set "START_APP=Y"
 if /i "!START_APP!"=="Y" (
-    echo Starting local development server...
+    echo.
+    echo ============================================================
+    echo Starting local development server at http://localhost:5173...
+    echo (Note: If your browser opens before the server finishes booting
+    echo  and shows 'localhost refused to connect', simply click the
+    echo  'Reload' button in your browser.)
+    echo ============================================================
+    echo.
     call npm run dev -- --open
 )
 exit /b 0

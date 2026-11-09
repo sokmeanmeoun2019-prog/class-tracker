@@ -59,27 +59,85 @@ export const rankStudents = (records: ParticipationRecord[], students: Student[]
 };
 
 
-export const generateAcademicFeedback = (studentId: string, quarter: number, score: number) => {
-  let tier = 0; // 0 = A, 1 = B, 2 = C, 3 = D, 4 = F
-  if (score >= 90) tier = 0;
-  else if (score >= 80) tier = 1;
-  else if (score >= 70) tier = 2;
-  else if (score >= 60) tier = 3;
-  else tier = 4;
+export const ACHIEVEMENT_COMMENTS: Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', string[]> = {
+  A: [
+    "Exceptional mastery.",
+    "Outstanding work.",
+    "Brilliant performance.",
+    "Top-tier results.",
+    "Exceeds expectations."
+  ],
+  B: [
+    "Strong grasp of concepts.",
+    "Very good results.",
+    "Commendable effort.",
+    "Solid understanding.",
+    "Great work."
+  ],
+  C: [
+    "You have demonstrated a satisfactory understanding of the lessons. Keep practicing and work on improving your accuracy.",
+    "Good progress so far. Try to participate more actively and strengthen your understanding of challenging topics.",
+    "You are making progress, but you can achieve better results through more consistent preparation and practice.",
+    "Keep building your confidence and pay more attention to details when solving problems."
+  ],
+  D: [
+    "You have shown some understanding of the lessons, but you need to spend more time reviewing and practicing.",
+    "Please participate more actively in class and ask questions whenever you encounter difficulties.",
+    "You need to improve your preparation for quizzes and tests. Regular practice will help you make progress.",
+    "Focus on understanding the basic concepts before moving on to more challenging problems."
+  ],
+  E: [
+    "You are encouraged to put more effort into your studies and review the lessons regularly to strengthen your understanding.",
+    "You need to develop better study habits and complete all assigned homework to improve your performance.",
+    "Please seek help whenever you have difficulties understanding the lessons. Consistent practice is important for your improvement.",
+    "Your current performance needs improvement. Start by reviewing the basic concepts and completing your assignments on time."
+  ],
+  F: [
+    "Your current performance is below the expected level. You need to make a stronger commitment to reviewing lessons and completing assignments.",
+    "Please take more responsibility for your learning by attending classes regularly, participating actively, and asking for help when needed.",
+    "You are encouraged to rebuild your understanding of the basic concepts through regular practice and additional support from your teacher.",
+    "Significant improvement is needed. Set small learning goals, complete your homework, and seek guidance whenever you face difficulties."
+  ]
+};
 
-  const achievements = [
-    ["Exceptional mastery.", "Outstanding work.", "Brilliant performance.", "Top-tier results.", "Exceeds expectations."],
-    ["Strong grasp of concepts.", "Very good results.", "Commendable effort.", "Solid understanding.", "Great work."],
-    ["Satisfactory progress.", "Meets basic standards.", "Fair understanding.", "Adequate performance.", "Steady effort."],
-    ["Needs some review.", "Struggling with core ideas.", "Inconsistent results.", "Below expectations.", "Room for growth."],
-    ["Requires urgent help.", "Major conceptual gaps.", "Poor performance.", "Did not meet goals.", "Needs intense focus."]
-  ];
+export const getAchievementSuggestions = (scoreOrGrade: number | string): string[] => {
+  if (typeof scoreOrGrade === 'string') {
+    const upper = scoreOrGrade.trim().toUpperCase();
+    if (upper.startsWith('A')) return ACHIEVEMENT_COMMENTS.A;
+    if (upper.startsWith('B')) return ACHIEVEMENT_COMMENTS.B;
+    if (upper.startsWith('C')) return ACHIEVEMENT_COMMENTS.C;
+    if (upper.startsWith('D')) return ACHIEVEMENT_COMMENTS.D;
+    if (upper.startsWith('E')) return ACHIEVEMENT_COMMENTS.E;
+    if (upper.startsWith('F')) return ACHIEVEMENT_COMMENTS.F;
+  }
+  const score = Number(scoreOrGrade);
+  if (isNaN(score)) return ACHIEVEMENT_COMMENTS.C;
+  if (score >= 90) return ACHIEVEMENT_COMMENTS.A;
+  if (score >= 80) return ACHIEVEMENT_COMMENTS.B;
+  if (score >= 70) return ACHIEVEMENT_COMMENTS.C;
+  if (score >= 60) return ACHIEVEMENT_COMMENTS.D;
+  if (score >= 50) return ACHIEVEMENT_COMMENTS.E;
+  return ACHIEVEMENT_COMMENTS.F;
+};
+
+export const generateAcademicFeedback = (studentId: string, quarter: number, score: number) => {
+  let gradeKey: 'A' | 'B' | 'C' | 'D' | 'E' | 'F' = 'F';
+  let tier = 5;
+  if (score >= 90) { gradeKey = 'A'; tier = 0; }
+  else if (score >= 80) { gradeKey = 'B'; tier = 1; }
+  else if (score >= 70) { gradeKey = 'C'; tier = 2; }
+  else if (score >= 60) { gradeKey = 'D'; tier = 3; }
+  else if (score >= 50) { gradeKey = 'E'; tier = 4; }
+  else { gradeKey = 'F'; tier = 5; }
+
+  const achArr = ACHIEVEMENT_COMMENTS[gradeKey];
 
   const attitudes = [
     ["Highly engaged.", "Eager to learn.", "Positive role model.", "Enthusiastic participant.", "Self-driven."],
     ["Attentive and focused.", "Works well with others.", "Consistently participates.", "Diligent student.", "Proactive."],
     ["Generally attentive.", "Respectful in class.", "Follows instructions.", "Good conduct.", "Polite and quiet."],
     ["Easily distracted.", "Quiet in discussions.", "Could be more engaged.", "Needs encouragement.", "Sometimes unfocused."],
+    ["Lacks engagement.", "Seems disconnected.", "Needs to focus more.", "Often unprepared.", "Disrupts occasionally."],
     ["Lacks engagement.", "Seems disconnected.", "Needs to focus more.", "Often unprepared.", "Disrupts occasionally."]
   ];
 
@@ -88,13 +146,13 @@ export const generateAcademicFeedback = (studentId: string, quarter: number, sco
     ["Double-check calculations.", "Speak up more.", "Focus on tricky concepts.", "Ask deeper questions.", "Take more initiative."],
     ["Review past tests.", "Practice more problems.", "Focus during lectures.", "Ask when confused.", "Improve study habits."],
     ["Complete missing homework.", "Attend extra tutoring.", "Focus on basic formulas.", "Participate more.", "Ask for help."],
+    ["Meet after class.", "Redo failed assignments.", "Ask for help immediately.", "Consistent daily review.", "Stay on task."],
     ["Meet after class.", "Redo failed assignments.", "Ask for help immediately.", "Consistent daily review.", "Stay on task."]
   ];
 
   // Simple hash to ensure consistency per student but variety across students
   const hash = studentId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + quarter;
   
-  const achArr = achievements[tier];
   const attArr = attitudes[tier];
   const impArr = improvements[tier];
 

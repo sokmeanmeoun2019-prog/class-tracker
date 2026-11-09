@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useData } from '../store/DataContext';
-import { getClassRoster, getStudentQuarterTotal, calculateStudentGrades } from '../utils/calculations';
+import { getClassRoster, getStudentQuarterTotal, calculateStudentGrades, getAchievementSuggestions } from '../utils/calculations';
 import { exportScoreList } from '../utils/export';
-import { Download, Printer, Search, CheckCircle, Upload } from 'lucide-react';
+import { Download, Printer, Search, CheckCircle, Upload, Sparkles, RotateCcw, Check } from 'lucide-react';
 import { Quarter, ScoreRecord, Student } from '../types';
 import { ExcelScoreImportModal } from '../components/ExcelScoreImportModal';
 
@@ -151,6 +151,130 @@ const ScoreList = () => {
     );
   };
 
+  const AchievementCell = ({
+    studentId,
+    score,
+    autoAchievement,
+    letterGrade,
+    overallScore,
+    onScoreChange
+  }: {
+    studentId: string;
+    score: ScoreRecord | undefined;
+    autoAchievement: string;
+    letterGrade: string;
+    overallScore: number;
+    onScoreChange: (studentId: string, field: keyof ScoreRecord, value: string | number | undefined) => void;
+  }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const val = score?.achievement;
+    const isCustom = val !== undefined && val !== '';
+    const displayVal = isCustom ? val : autoAchievement;
+    const suggestions = getAchievementSuggestions(letterGrade);
+
+    return (
+      <div className="relative flex items-center gap-1 min-w-[280px]">
+        <input 
+          type="text" 
+          list={`ach-list-${studentId}`}
+          className={`w-full p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-xs ${isCustom ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
+          value={displayVal}
+          onChange={(e) => onScoreChange(studentId, 'achievement', e.target.value)}
+          title={isCustom ? "Manual override active (click Sparkles to choose suggestions)" : "Auto-generated feedback based on Overall Score"}
+        />
+
+        <datalist id={`ach-list-${studentId}`}>
+          {suggestions.map((s, idx) => (
+            <option key={idx} value={s} />
+          ))}
+        </datalist>
+
+        <button
+          type="button"
+          onClick={() => setIsOpen(prev => !prev)}
+          className={`p-1 rounded shrink-0 transition-colors ${
+            isOpen
+              ? 'bg-indigo-100 text-indigo-700'
+              : isCustom
+                ? 'text-blue-600 hover:bg-blue-50'
+                : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+          }`}
+          title={`Suggested comments for Grade ${letterGrade}`}
+        >
+          <Sparkles size={14} />
+        </button>
+
+        {isOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-40" 
+              onClick={() => setIsOpen(false)} 
+            />
+            <div className="absolute top-full left-0 z-50 mt-1 w-[380px] bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-left">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                    letterGrade === 'A' ? 'bg-emerald-100 text-emerald-800' :
+                    letterGrade === 'B' ? 'bg-blue-100 text-blue-800' :
+                    letterGrade === 'C' ? 'bg-amber-100 text-amber-800' :
+                    letterGrade === 'D' ? 'bg-orange-100 text-orange-800' :
+                    'bg-rose-100 text-rose-800'
+                  }`}>
+                    Grade {letterGrade}
+                  </span>
+                  <span className="text-xs font-semibold text-gray-700">Suggestions ({overallScore}%)</span>
+                </div>
+                {isCustom && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onScoreChange(studentId, 'achievement', '');
+                      setIsOpen(false);
+                    }}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium hover:underline"
+                    title="Revert to auto-selected suggestion"
+                  >
+                    <RotateCcw size={11} /> Reset to Auto
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1">
+                {suggestions.map((suggestion, idx) => {
+                  const isSelected = displayVal === suggestion;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        onScoreChange(studentId, 'achievement', suggestion);
+                        setIsOpen(false);
+                      }}
+                      className={`w-full text-left p-2 rounded text-xs transition-all border flex items-start gap-2 ${
+                        isSelected
+                          ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-medium shadow-sm'
+                          : 'bg-gray-50/70 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                      }`}
+                    >
+                      <span className="mt-0.5 shrink-0 text-indigo-500">
+                        {isSelected ? <Check size={13} className="stroke-[2.5]" /> : <span className="inline-block w-3 text-center text-gray-400 font-mono text-[10px]">{idx + 1}</span>}
+                      </span>
+                      <span className="leading-snug">{suggestion}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-500 flex justify-between items-center">
+                <span>Click any suggestion to apply, or edit freely in the cell.</span>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 print:space-y-2 flex flex-col h-full">
       <div className="flex justify-between items-center print:hidden mb-2">
@@ -265,7 +389,7 @@ const ScoreList = () => {
                 <th className="p-2 border-r text-center bg-gray-50 font-bold">Test Total</th>
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Overall</th>
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Grade</th>
-                <th className="p-2 border-r">Achievement</th>
+                <th className="p-2 border-r min-w-[300px]">Achievement</th>
                 <th className="p-2 border-r">Attitude</th>
                 <th className="p-2">Areas to Improve</th>
               </tr>
@@ -358,7 +482,16 @@ const ScoreList = () => {
                     </td>
 
                     {/* Auto-Generated Feedback */}
-                    <td className="p-1 border-r">{renderAutoTextInput(student.id, score, 'achievement', calculated.autoAchievement)}</td>
+                    <td className="p-1 border-r">
+                      <AchievementCell
+                        studentId={student.id}
+                        score={score}
+                        autoAchievement={calculated.autoAchievement}
+                        letterGrade={calculated.letterGrade}
+                        overallScore={calculated.overallScore}
+                        onScoreChange={handleScoreChange}
+                      />
+                    </td>
                     <td className="p-1 border-r">{renderAutoTextInput(student.id, score, 'attitude', calculated.autoAttitude)}</td>
                     <td className="p-1">{renderAutoTextInput(student.id, score, 'areasToImprove', calculated.autoImprovement)}</td>
                   </tr>
