@@ -44,19 +44,19 @@ const calculateCrc32 = (data: Uint8Array): number => {
  * Microsoft Excel requires XML parts in an .xlsx package to be DEFLATED.
  * Uses native browser CompressionStream when available, with RFC 1951 fallback.
  */
-async function deflateData(data: Uint8Array): Promise<Uint8Array> {
+async function deflateData(data: any): Promise<Uint8Array> {
   if (typeof CompressionStream !== 'undefined') {
     try {
       const cs = new CompressionStream('deflate-raw');
       const writer = cs.writable.getWriter();
-      writer.write(data);
-      writer.close();
+      await writer.write(data);
+      await writer.close();
       const reader = cs.readable.getReader();
       const chunks: Uint8Array[] = [];
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        if (value) chunks.push(value);
+        if (value) chunks.push(value as any);
       }
       const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
       const res = new Uint8Array(totalLen);
@@ -218,8 +218,8 @@ function colName(index: number): string {
   return col;
 }
 
-function downloadExcelBlob(data: Uint8Array, filename: string) {
-  const blob = new Blob([data], { 
+function downloadExcelBlob(data: any, filename: string) {
+  const blob = new Blob([data as any], { 
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
   });
   const url = URL.createObjectURL(blob);
