@@ -3,7 +3,8 @@ import { useData } from '../store/DataContext';
 import { 
   getClassRoster, 
   getStudentQuarterTotal, 
-  calculateStudentGrades, 
+  calculateStudentGrades,
+  calculateClassRanks,
   getAchievementSuggestions,
   getAttitudeSuggestions,
   getAreasToImproveSuggestions
@@ -189,16 +190,27 @@ const ScoreList = () => {
   const classScores = state.scores.filter(
     s => (!s.classId || s.classId === state.currentClassId) && Number(s.quarter) === Number(state.currentQuarter)
   );
-  
+
+  // Precompute student grades and class rank across the full class roster for this quarter
+  const classGradeMap = new Map(
+    classStudents.map(student => {
+      const score = classScores.find(s => s.studentId === student.id);
+      const rawCp = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
+      const cappedRawCp = Math.min(rawCp, settings.maxScores.cp);
+      const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
+      return [student.id, { score, rawCp, cappedRawCp, calculated }] as const;
+    })
+  );
+
+  const classRankMap = calculateClassRanks(
+    classStudents.map(student => ({
+      studentId: student.id,
+      overallScore: classGradeMap.get(student.id)!.calculated.overallScore
+    }))
+  );
+
   displayStudents.forEach(student => {
-    const score = state.scores.find(
-      s =>
-        s.studentId === student.id &&
-        (!s.classId || s.classId === state.currentClassId) &&
-        Number(s.quarter) === Number(state.currentQuarter)
-    );
-    const rawCp = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
-    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
+    const { score, calculated } = classGradeMap.get(student.id)!;
 
     if (calculated.overallScore > highest) highest = calculated.overallScore;
     if (calculated.overallScore < lowest) lowest = calculated.overallScore;
@@ -393,6 +405,7 @@ const ScoreList = () => {
                 <th className="p-2 border-r text-center bg-gray-50 font-bold">Test Total</th>
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Overall</th>
                 <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Grade</th>
+                <th className="p-2 border-r text-center bg-indigo-50 font-bold text-indigo-900">Rank</th>
                 <th className="p-2 border-r min-w-[300px]">Achievement</th>
                 <th className="p-2 border-r min-w-[280px]">Attitude</th>
                 <th className="p-2 min-w-[300px]">Areas to Improve</th>
@@ -400,15 +413,8 @@ const ScoreList = () => {
             </thead>
             <tbody>
               {displayStudents.map((student, index) => {
-                const score = state.scores.find(
-                  s =>
-                    s.studentId === student.id &&
-                    (!s.classId || s.classId === state.currentClassId) &&
-                    Number(s.quarter) === Number(state.currentQuarter)
-                );
-                const rawCp = getStudentQuarterTotal(state.records, student.id, state.currentQuarter!);
-                const cappedRawCp = Math.min(rawCp, settings.maxScores.cp);
-                const calculated = calculateStudentGrades(score, rawCp, settings, student.id, state.currentQuarter!, currentClass?.name || '', classScores);
+                const { score, rawCp, cappedRawCp, calculated } = classGradeMap.get(student.id)!;
+                const rank = classRankMap[student.id];
                 
                 return (
                   <tr 
@@ -487,6 +493,21 @@ const ScoreList = () => {
                         'bg-rose-500'
                       }`}>
                         {calculated.letterGrade}
+                      </span>
+                    </td>
+                    <td className="p-2 border-r text-center bg-indigo-50/50 font-bold text-indigo-900">
+                      <span
+                        className={`inline-flex items-center justify-center min-w-[2rem] px-2 py-0.5 rounded-full text-sm font-bold ${
+                          rank === 1
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            : rank === 2
+                              ? 'bg-slate-200 text-slate-800 border border-slate-300'
+                              : rank === 3
+                                ? 'bg-orange-100 text-orange-800 border border-orange-300'
+                                : 'bg-white text-indigo-700 border border-indigo-200'
+                        }`}
+                      >
+                        {rank}
                       </span>
                     </td>
 

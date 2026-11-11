@@ -587,6 +587,57 @@ export const calculateStudentGrades = (
   };
 };
 
+/**
+ * Computes standard competition ranks (1, 2, 2, 4...) from overall scores
+ * sorted highest to lowest. Students with identical scores share the same rank.
+ */
+export const calculateClassRanks = (
+  entries: { studentId: string; overallScore: number }[]
+): Record<string, number> => {
+  const sorted = [...entries].sort((a, b) => b.overallScore - a.overallScore);
+  const rankMap: Record<string, number> = {};
+  let currentRank = 1;
+
+  sorted.forEach((entry, index) => {
+    if (index > 0 && entry.overallScore < sorted[index - 1].overallScore) {
+      currentRank = index + 1;
+    }
+    rankMap[entry.studentId] = currentRank;
+  });
+
+  return rankMap;
+};
+
+/**
+ * Computes a studentId -> rank lookup for all students in a specific class and quarter.
+ */
+export const getClassScoreRanks = (
+  students: Student[],
+  scores: ScoreRecord[],
+  records: ParticipationRecord[],
+  classId: string,
+  className: string,
+  quarter: Quarter,
+  settings: GradingSettings
+): Record<string, number> => {
+  const roster = getClassRoster(students, classId);
+  const classScores = scores.filter(
+    s => (!s.classId || s.classId === classId) && Number(s.quarter) === Number(quarter)
+  );
+
+  const entries = roster.map(student => {
+    const score = classScores.find(s => s.studentId === student.id);
+    const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+    const calculated = calculateStudentGrades(score, rawCp, settings, student.id, quarter, className, classScores);
+    return {
+      studentId: student.id,
+      overallScore: calculated.overallScore
+    };
+  });
+
+  return calculateClassRanks(entries);
+};
+
 export const getStudentAttendanceQuarter = (
   records: AttendanceRecord[], 
   studentId: string, 

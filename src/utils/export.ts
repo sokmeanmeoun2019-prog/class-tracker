@@ -5,7 +5,8 @@ import {
   getStudentSemesterTotal, 
   getStudentYearTotal, 
   getClassRoster, 
-  calculateStudentGrades 
+  calculateStudentGrades,
+  getClassScoreRanks 
 } from './calculations';
 
 // ==========================================
@@ -505,6 +506,7 @@ export const exportScoreList = async (
       { key: 'testTotal', title: 'Test Total', width: 12, headerStyle: 4, isLeft: false, isTotal: true, isIndigo: false },
       { key: 'overall', title: 'Overall', width: 12, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
       { key: 'grade', title: 'Grade', width: 10, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
+      { key: 'rank', title: 'Rank', width: 9, headerStyle: 5, isLeft: false, isTotal: false, isIndigo: true },
       { key: 'achievement', title: 'Achievement', width: 52, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
       { key: 'attitude', title: 'Attitude', width: 48, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
       { key: 'areasToImprove', title: 'Areas to Improve', width: 48, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
@@ -518,6 +520,7 @@ export const exportScoreList = async (
       headersToRender = domExtraction.headers;
       rowsToRender = domExtraction.rows;
     } else {
+      const rankMap = getClassScoreRanks(students, scores, records, classObj.id, classObj.name, quarter, settings);
       headersToRender = baseColumns.map(c => c.title);
       rowsToRender = sortedStudents.map(student => {
         const score = scores.find(
@@ -550,6 +553,7 @@ export const exportScoreList = async (
           calculated.testTotal,
           calculated.overallScore,
           calculated.letterGrade,
+          rankMap[student.id],
           score?.achievement || calculated.autoAchievement,
           score?.attitude || calculated.autoAttitude,
           score?.areasToImprove || calculated.autoImprovement
@@ -568,7 +572,7 @@ export const exportScoreList = async (
       if (match) return match;
 
       const isLeft = /name|achievement|attitude|areas|improve/i.test(hdr);
-      const isIndigo = /overall|grade/i.test(hdr);
+      const isIndigo = /overall|grade|rank/i.test(hdr);
       const isTotal = /total/i.test(hdr);
       const isCp = /c\.?p/i.test(hdr);
       let headerStyle = isLeft ? 2 : 1;
@@ -672,6 +676,7 @@ export const exportScoreList = async (
     const classScores = scores.filter(
       s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
     );
+    const rankMap = getClassScoreRanks(students, scores, records, classObj.id, classObj.name, quarter, settings);
     const fallbackRows = fallbackSorted.map(student => {
       const score = scores.find(
         s => s.studentId === student.id &&
@@ -701,6 +706,7 @@ export const exportScoreList = async (
         'Test Total': calculated.testTotal,
         'Overall': calculated.overallScore,
         'Grade': calculated.letterGrade,
+        'Rank': rankMap[student.id],
         'Achievement': score?.achievement || calculated.autoAchievement,
         'Attitude': score?.attitude || calculated.autoAttitude,
         'Areas to Improve': score?.areasToImprove || calculated.autoImprovement
