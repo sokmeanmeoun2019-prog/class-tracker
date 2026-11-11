@@ -84,209 +84,226 @@ export interface PerformanceBreakdown {
 
 const ACHIEVEMENT_DATA: Record<GradeKey, TaggedComment<AchievementFocus>[]> = {
   A: [
-    { text: "Strong concept mastery", focus: "general" },
+    { text: "Exceptional mastery of concepts", focus: "general" },
+    { text: "Outstanding overall academic achievement", focus: "general" },
     { text: "Exceeds grade level expectations", focus: "general" },
-    { text: "Excellent overall academic results", focus: "general" },
-    { text: "Outstanding test performance", focus: "test" },
+    { text: "Ready for advanced challenges", focus: "general" },
+    { text: "Outstanding performance on tests", focus: "test" },
     { text: "Consistently high exam scores", focus: "test" },
     { text: "Excellent quiz mastery", focus: "quiz" },
-    { text: "Consistently accurate quiz work", focus: "quiz" },
+    { text: "Consistently accurate quiz results", focus: "quiz" },
     { text: "Thorough and accurate homework", focus: "hw" },
-    { text: "High quality homework completion", focus: "hw" }
+    { text: "Exemplary quality in assignments", focus: "hw" }
   ],
   B: [
     { text: "Very good overall understanding", focus: "general" },
     { text: "Solid grasp of concepts", focus: "general" },
-    { text: "Above average academic progress", focus: "general" },
-    { text: "Strong test performance", focus: "test" },
-    { text: "Good results on tests", focus: "test" },
-    { text: "Strong quiz accuracy", focus: "quiz" },
-    { text: "Consistent quiz performance", focus: "quiz" },
+    { text: "Commendable progress toward excellence", focus: "general" },
+    { text: "Strong potential for growth", focus: "general" },
+    { text: "Strong performance on tests", focus: "test" },
+    { text: "Good results on exams", focus: "test" },
+    { text: "Strong accuracy in quizzes", focus: "quiz" },
+    { text: "Consistent quality in quizzes", focus: "quiz" },
     { text: "Reliable and neat homework", focus: "hw" },
-    { text: "Consistent quality in homework", focus: "hw" }
+    { text: "Good dedication in assignments", focus: "hw" }
   ],
   C: [
-    { text: "Satisfactory grasp of lessons", focus: "general" },
+    { text: "Satisfactory understanding of lessons", focus: "general" },
     { text: "Steady academic progress", focus: "general" },
-    { text: "Meets basic course expectations", focus: "general" },
-    { text: "Adequate test performance", focus: "test" },
-    { text: "Fair understanding on exams", focus: "test" },
-    { text: "Good effort on quizzes", focus: "quiz" },
-    { text: "Steady quiz progress", focus: "quiz" },
-    { text: "Consistent homework completion", focus: "hw" },
-    { text: "Good work on assignments", focus: "hw" }
+    { text: "Meets core course expectations", focus: "general" },
+    { text: "Growing familiarity with concepts", focus: "general" },
+    { text: "Fair understanding on tests", focus: "test" },
+    { text: "Moderate success in exams", focus: "test" },
+    { text: "Developing steady quiz skills", focus: "quiz" },
+    { text: "Good progress on quizzes", focus: "quiz" },
+    { text: "Consistent completion of homework", focus: "hw" },
+    { text: "Steady effort in assignments", focus: "hw" }
   ],
   D: [
     { text: "Basic understanding of concepts", focus: "general" },
-    { text: "Developing foundational physics skills", focus: "general" },
-    { text: "Partial mastery of lessons", focus: "general" },
-    { text: "Fair test scores achieved", focus: "test" },
-    { text: "Shows potential on tests", focus: "test" },
-    { text: "Fair performance on quizzes", focus: "quiz" },
+    { text: "Developing key physics skills", focus: "general" },
+    { text: "Shows room for growth", focus: "general" },
+    { text: "Progressing with steady guidance", focus: "general" },
+    { text: "Developing understanding on tests", focus: "test" },
+    { text: "Shows potential on exams", focus: "test" },
+    { text: "Fair effort on quizzes", focus: "quiz" },
     { text: "Some success in quizzes", focus: "quiz" },
     { text: "Completes most homework tasks", focus: "hw" },
-    { text: "Consistent effort on homework", focus: "hw" }
+    { text: "Growing consistency in homework", focus: "hw" }
   ],
   E: [
-    { text: "Limited grasp of concepts", focus: "general" },
-    { text: "Needs stronger concept foundation", focus: "general" },
-    { text: "Below expected achievement level", focus: "general" },
-    { text: "Basic test effort", focus: "test" },
-    { text: "Needs stronger exam skills", focus: "test" },
-    { text: "Slight quiz progress", focus: "quiz" },
-    { text: "Needs stronger quiz accuracy", focus: "quiz" },
-    { text: "Steady homework completion", focus: "hw" },
-    { text: "Completes some homework tasks", focus: "hw" }
+    { text: "Building foundational physics skills", focus: "general" },
+    { text: "Beginning to grasp basics", focus: "general" },
+    { text: "Making gradual learning gains", focus: "general" },
+    { text: "Developing core concept familiarity", focus: "general" },
+    { text: "Developing basic test skills", focus: "test" },
+    { text: "Growing readiness for exams", focus: "test" },
+    { text: "Early progress on quizzes", focus: "quiz" },
+    { text: "Building basic quiz accuracy", focus: "quiz" },
+    { text: "Working through homework tasks", focus: "hw" },
+    { text: "Steady effort builds confidence", focus: "hw" }
   ],
   F: [
-    { text: "Below grade level expectations", focus: "general" },
-    { text: "Minimal mastery of lessons", focus: "general" },
-    { text: "Missing key foundational concepts", focus: "general" },
-    { text: "Difficulty with test concepts", focus: "test" },
-    { text: "Needs significant test review", focus: "test" },
-    { text: "Struggles with quiz topics", focus: "quiz" },
-    { text: "Low mastery on quizzes", focus: "quiz" },
-    { text: "Incomplete homework affects grade", focus: "hw" },
-    { text: "Missing assignments lower score", focus: "hw" }
+    { text: "Building essential study skills", focus: "general" },
+    { text: "Progressing with guided practice", focus: "general" },
+    { text: "Learning with consistent guidance", focus: "general" },
+    { text: "Working toward core goals", focus: "general" },
+    { text: "Building basic exam readiness", focus: "test" },
+    { text: "Practicing foundational test steps", focus: "test" },
+    { text: "Developing basic quiz familiarity", focus: "quiz" },
+    { text: "Practicing core quiz concepts", focus: "quiz" },
+    { text: "Attempting regular homework tasks", focus: "hw" },
+    { text: "Continuing effort in assignments", focus: "hw" }
   ]
 };
 
 const ATTITUDE_DATA: Record<GradeKey, TaggedComment<AttitudeFocus>[]> = {
   A: [
-    { text: "Excellent learning attitude", focus: "general" },
+    { text: "Excellent attitude toward learning", focus: "general" },
     { text: "Highly motivated and responsible", focus: "general" },
     { text: "Strong commitment to learning", focus: "general" },
+    { text: "Sets a positive example", focus: "general" },
     { text: "Active and enthusiastic learner", focus: "high_cp" },
     { text: "Active class participant", focus: "high_cp" },
     { text: "Respectful and cooperative peer", focus: "high_conduct" },
     { text: "Polite, attentive, and focused", focus: "high_conduct" },
-    { text: "Participate even more actively", focus: "low_cp" },
-    { text: "Stay consistently focused daily", focus: "low_conduct" }
+    { text: "Share insights even more", focus: "low_cp" },
+    { text: "Maintain strong daily focus", focus: "low_conduct" }
   ],
   B: [
     { text: "Positive attitude toward studies", focus: "general" },
     { text: "Responsible and attentive learner", focus: "general" },
     { text: "Good commitment to learning", focus: "general" },
+    { text: "Willing and motivated student", focus: "general" },
     { text: "Actively engaged in class", focus: "high_cp" },
     { text: "Participates well in activities", focus: "high_cp" },
     { text: "Cooperative and polite", focus: "high_conduct" },
-    { text: "Respectful and focused", focus: "high_conduct" },
-    { text: "Could participate more often", focus: "low_cp" },
+    { text: "Respectful and focused student", focus: "high_conduct" },
+    { text: "Share ideas more often", focus: "low_cp" },
     { text: "Stay consistent and focused", focus: "low_conduct" }
   ],
   C: [
     { text: "Positive learning attitude", focus: "general" },
     { text: "Steady classroom effort", focus: "general" },
     { text: "Developing good study habits", focus: "general" },
+    { text: "Willing to improve daily", focus: "general" },
     { text: "Actively involved in discussions", focus: "high_cp" },
-    { text: "Shares ideas in class", focus: "high_cp" },
+    { text: "Contributes well in class", focus: "high_cp" },
     { text: "Respectful and cooperative behavior", focus: "high_conduct" },
     { text: "Polite during class activities", focus: "high_conduct" },
-    { text: "Needs active participation", focus: "low_cp" },
-    { text: "Improve classroom focus", focus: "low_conduct" }
+    { text: "Join discussions more actively", focus: "low_cp" },
+    { text: "Maintain focus during lessons", focus: "low_conduct" }
   ],
   D: [
-    { text: "Take more learning responsibility", focus: "general" },
-    { text: "Build consistent study habits", focus: "general" },
+    { text: "Shows willingness to improve", focus: "general" },
+    { text: "Building stronger study habits", focus: "general" },
     { text: "Eager when encouraged", focus: "general" },
+    { text: "Takes pride with guidance", focus: "general" },
     { text: "Engaged in class discussions", focus: "high_cp" },
     { text: "Active during group work", focus: "high_cp" },
     { text: "Polite when following directions", focus: "high_conduct" },
     { text: "Respectful toward peers daily", focus: "high_conduct" },
     { text: "Participate more actively daily", focus: "low_cp" },
-    { text: "Improve focus and attention", focus: "low_conduct" }
+    { text: "Strengthen focus and attention", focus: "low_conduct" }
   ],
   E: [
-    { text: "Develop stronger study motivation", focus: "general" },
-    { text: "Show more daily effort", focus: "general" },
-    { text: "Take responsibility for learning", focus: "general" },
+    { text: "Building confidence in class", focus: "general" },
+    { text: "Developing positive learning habits", focus: "general" },
+    { text: "Shows effort with encouragement", focus: "general" },
+    { text: "Growing motivation toward studies", focus: "general" },
     { text: "Participates during class activities", focus: "high_cp" },
     { text: "Polite during class lessons", focus: "high_conduct" },
     { text: "Cooperative with teacher guidance", focus: "high_conduct" },
-    { text: "Needs active class participation", focus: "low_cp" },
-    { text: "Ask questions when confused", focus: "low_cp" },
-    { text: "Needs better classroom focus", focus: "low_conduct" }
+    { text: "Build confidence sharing ideas", focus: "low_cp" },
+    { text: "Ask questions when unsure", focus: "low_cp" },
+    { text: "Improve focus during class", focus: "low_conduct" }
   ],
   F: [
-    { text: "Needs stronger study commitment", focus: "general" },
-    { text: "Show greater daily motivation", focus: "general" },
-    { text: "Take responsibility for tasks", focus: "general" },
-    { text: "Engages in class discussions", focus: "high_cp" },
+    { text: "Show stronger study commitment", focus: "general" },
+    { text: "Keep building daily motivation", focus: "general" },
+    { text: "Take ownership of learning", focus: "general" },
+    { text: "Seek encouragement and guidance", focus: "general" },
+    { text: "Engages positively in discussions", focus: "high_cp" },
     { text: "Responds politely when guided", focus: "high_conduct" },
     { text: "Respectful toward classroom rules", focus: "high_conduct" },
-    { text: "Requires consistent classroom engagement", focus: "low_cp" },
     { text: "Participate more in class", focus: "low_cp" },
-    { text: "Needs better focus", focus: "low_conduct" },
-    { text: "Follow instructions more closely", focus: "low_conduct" }
+    { text: "Engage actively with support", focus: "low_cp" },
+    { text: "Stay attentive during lessons", focus: "low_conduct" }
   ]
 };
 
 const AREAS_TO_IMPROVE_DATA: Record<GradeKey, TaggedComment<ImprovementFocus>[]> = {
   A: [
-    { text: "Tackle advanced physics problems", focus: "general" },
+    { text: "Explore advanced physics challenges", focus: "general" },
     { text: "Deepen critical thinking skills", focus: "general" },
     { text: "Explain solutions more clearly", focus: "general" },
+    { text: "Apply concepts to projects", focus: "general" },
     { text: "Double check exam steps", focus: "test" },
     { text: "Polish exam calculation speed", focus: "test" },
-    { text: "Review minor quiz errors", focus: "quiz" },
-    { text: "Maintain quiz precision", focus: "quiz" },
-    { text: "Maintain thorough homework detail", focus: "hw" },
-    { text: "Share insights more often", focus: "cp" }
+    { text: "Refine minor quiz details", focus: "quiz" },
+    { text: "Maintain high quiz precision", focus: "quiz" },
+    { text: "Keep detailed homework steps", focus: "hw" },
+    { text: "Lead peer group discussions", focus: "cp" }
   ],
   B: [
     { text: "Apply formulas more accurately", focus: "general" },
-    { text: "Practice harder physics problems", focus: "general" },
-    { text: "Check calculations more carefully", focus: "general" },
+    { text: "Practice challenging physics problems", focus: "general" },
+    { text: "Check calculations carefully", focus: "general" },
+    { text: "Deepen conceptual problem solving", focus: "general" },
     { text: "Strengthen test preparation", focus: "test" },
-    { text: "Improve exam problem accuracy", focus: "test" },
+    { text: "Build exam problem accuracy", focus: "test" },
     { text: "Prepare earlier for quizzes", focus: "quiz" },
-    { text: "Check quiz formulas carefully", focus: "quiz" },
-    { text: "Complete homework with detail", focus: "hw" },
-    { text: "Participate more during discussions", focus: "cp" }
+    { text: "Review quiz formulas carefully", focus: "quiz" },
+    { text: "Show thorough homework steps", focus: "hw" },
+    { text: "Participate more in discussions", focus: "cp" }
   ],
   C: [
     { text: "Strengthen key formula recall", focus: "general" },
     { text: "Verify units and calculations", focus: "general" },
-    { text: "Review challenging physics topics", focus: "general" },
-    { text: "Improve test preparation", focus: "test" },
-    { text: "Practice solving exam problems", focus: "test" },
-    { text: "Improve quiz accuracy", focus: "quiz" },
+    { text: "Review challenging lesson topics", focus: "general" },
+    { text: "Build steady study routines", focus: "general" },
+    { text: "Develop stronger test strategies", focus: "test" },
+    { text: "Practice solving exam questions", focus: "test" },
+    { text: "Boost quiz calculation accuracy", focus: "quiz" },
     { text: "Review notes before quizzes", focus: "quiz" },
-    { text: "Improve homework consistency", focus: "hw" },
-    { text: "Join class discussions often", focus: "cp" }
+    { text: "Build consistent homework habits", focus: "hw" },
+    { text: "Share questions during lessons", focus: "cp" }
   ],
   D: [
     { text: "Strengthen core physics concepts", focus: "general" },
     { text: "Show clearer calculation steps", focus: "general" },
-    { text: "Practice basic formula application", focus: "general" },
+    { text: "Practice applying key formulas", focus: "general" },
+    { text: "Develop regular review habits", focus: "general" },
     { text: "Focus on test review", focus: "test" },
     { text: "Build stronger exam readiness", focus: "test" },
-    { text: "Study consistently for quizzes", focus: "quiz" },
-    { text: "Practice basic quiz exercises", focus: "quiz" },
+    { text: "Study steadily for quizzes", focus: "quiz" },
+    { text: "Practice core quiz exercises", focus: "quiz" },
     { text: "Complete homework on time", focus: "hw" },
-    { text: "Ask questions in class", focus: "cp" }
+    { text: "Ask clarifying class questions", focus: "cp" }
   ],
   E: [
+    { text: "Practice fundamental physics skills", focus: "general" },
     { text: "Learn key SI units", focus: "general" },
-    { text: "Review foundational physics lessons", focus: "general" },
-    { text: "Seek extra teacher help", focus: "general" },
-    { text: "Review core test topics", focus: "test" },
-    { text: "Practice basic exam questions", focus: "test" },
-    { text: "Improve weekly quiz preparation", focus: "quiz" },
-    { text: "Review basic quiz concepts", focus: "quiz" },
-    { text: "Complete every homework assignment", focus: "hw" },
-    { text: "Engage and ask questions", focus: "cp" }
+    { text: "Build confidence through practice", focus: "general" },
+    { text: "Review basic lesson notes", focus: "general" },
+    { text: "Practice core test topics", focus: "test" },
+    { text: "Review sample exam questions", focus: "test" },
+    { text: "Prepare steadily for quizzes", focus: "quiz" },
+    { text: "Practice basic quiz problems", focus: "quiz" },
+    { text: "Complete daily homework tasks", focus: "hw" },
+    { text: "Join guided class discussions", focus: "cp" }
   ],
   F: [
-    { text: "Rebuild fundamental physics skills", focus: "general" },
-    { text: "Memorize essential physics formulas", focus: "general" },
-    { text: "Establish daily study routine", focus: "general" },
-    { text: "Prepare thoroughly for tests", focus: "test" },
-    { text: "Review basic test concepts", focus: "test" },
-    { text: "Study fundamental quiz topics", focus: "quiz" },
-    { text: "Practice basic quiz problems", focus: "quiz" },
-    { text: "Complete all missing homework", focus: "hw" },
-    { text: "Engage actively during lessons", focus: "cp" }
+    { text: "Build basic concept foundations", focus: "general" },
+    { text: "Seek extra teacher support", focus: "general" },
+    { text: "Establish daily study habits", focus: "general" },
+    { text: "Practice essential formulas daily", focus: "general" },
+    { text: "Review core exam concepts", focus: "test" },
+    { text: "Prepare early with guidance", focus: "test" },
+    { text: "Review fundamental quiz topics", focus: "quiz" },
+    { text: "Practice simple quiz steps", focus: "quiz" },
+    { text: "Finish assigned homework regularly", focus: "hw" },
+    { text: "Ask for help early", focus: "cp" }
   ]
 };
 
@@ -391,8 +408,8 @@ export const generateAcademicFeedback = (
     const weakest = sortedAsc[0];
     const gap = strongest.pct - weakest.pct;
 
-    if (gradeKey === 'F' && weakest.pct < 0.5) {
-      achFocuses = strongest.pct >= 0.65 ? [strongest.key, 'general'] : [weakest.key, 'general'];
+    if (gradeKey === 'F') {
+      achFocuses = strongest.pct >= 0.40 ? [strongest.key, 'general'] : ['general'];
     } else if (gap >= 0.12) {
       achFocuses = [strongest.key];
     } else if (gap >= 0.04) {

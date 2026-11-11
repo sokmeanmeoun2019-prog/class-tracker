@@ -9,9 +9,144 @@ import {
   getAreasToImproveSuggestions
 } from '../utils/calculations';
 import { exportScoreList } from '../utils/export';
-import { Download, Printer, Search, CheckCircle, Upload, Sparkles, RotateCcw, Check } from 'lucide-react';
+import { Download, Printer, Search, CheckCircle, Upload, Sparkles, RotateCcw, Check, ChevronDown } from 'lucide-react';
 import { Quarter, ScoreRecord, Student } from '../types';
 import { ExcelScoreImportModal } from '../components/ExcelScoreImportModal';
+
+interface CommentCellProps {
+  studentId: string;
+  field: 'achievement' | 'attitude' | 'areasToImprove';
+  label: string;
+  value: string | undefined;
+  autoValue: string;
+  letterGrade: string;
+  overallScore: number;
+  suggestions: string[];
+  minWidth?: string;
+  openUpward?: boolean;
+  onScoreChange: (studentId: string, field: keyof ScoreRecord, value: string | number | undefined) => void;
+}
+
+const CommentCell = ({
+  studentId,
+  field,
+  label,
+  value,
+  autoValue,
+  letterGrade,
+  overallScore,
+  suggestions,
+  minWidth = "min-w-[280px]",
+  openUpward = false,
+  onScoreChange
+}: CommentCellProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const isCustom = value !== undefined && value !== '';
+  const displayVal = isCustom ? value : autoValue;
+
+  return (
+    <div className={`relative flex items-center gap-1 ${minWidth}`}>
+      <input 
+        type="text" 
+        list={`${field}-list-${studentId}`}
+        className={`w-full p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-xs ${isCustom ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
+        value={displayVal}
+        onChange={(e) => onScoreChange(studentId, field, e.target.value)}
+        title={isCustom ? `Manual override active (click dropdown to choose suggestions)` : `Auto-generated ${label} feedback for Grade ${letterGrade}`}
+      />
+
+      <datalist id={`${field}-list-${studentId}`}>
+        {suggestions.map((s, idx) => (
+          <option key={idx} value={s} />
+        ))}
+      </datalist>
+
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className={`flex items-center gap-0.5 px-1.5 py-1 rounded shrink-0 transition-colors print:hidden ${
+          isOpen
+            ? 'bg-indigo-100 text-indigo-700'
+            : isCustom
+              ? 'text-blue-600 hover:bg-blue-50'
+              : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
+        }`}
+        title={`Select from ${suggestions.length} ${label} options for Grade ${letterGrade}`}
+      >
+        <Sparkles size={13} />
+        <ChevronDown size={13} className={`transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)} 
+          />
+          <div className={`absolute ${openUpward ? 'bottom-full mb-1' : 'top-full mt-1'} right-0 z-50 w-[310px] bg-white border border-gray-200 rounded-lg shadow-xl p-2.5 text-left`}>
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
+              <div className="flex items-center gap-1.5">
+                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                  letterGrade.startsWith('A') ? 'bg-emerald-100 text-emerald-800' :
+                  letterGrade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
+                  letterGrade.startsWith('C') ? 'bg-amber-100 text-amber-800' :
+                  letterGrade.startsWith('D') ? 'bg-orange-100 text-orange-800' :
+                  'bg-rose-100 text-rose-800'
+                }`}>
+                  Grade {letterGrade}
+                </span>
+                <span className="text-xs font-semibold text-gray-700">{label} ({overallScore}%)</span>
+              </div>
+              {isCustom && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onScoreChange(studentId, field, '');
+                    setIsOpen(false);
+                  }}
+                  className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium hover:underline"
+                  title="Revert to auto-selected suggestion"
+                >
+                  <RotateCcw size={11} /> Reset
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1 max-h-96 overflow-y-auto pr-0.5">
+              {suggestions.map((suggestion, idx) => {
+                const isSelected = displayVal === suggestion;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      onScoreChange(studentId, field, suggestion);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-2 py-1.5 rounded text-xs transition-all border flex items-center gap-2 ${
+                      isSelected
+                        ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-medium shadow-sm'
+                        : 'bg-gray-50/70 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="shrink-0 text-indigo-500">
+                      {isSelected ? <Check size={13} className="stroke-[2.5]" /> : <span className="inline-block w-3.5 text-center text-gray-400 font-mono text-[10px]">{idx + 1}</span>}
+                    </span>
+                    <span className="leading-snug">{suggestion}</span>
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="mt-2 pt-1.5 border-t border-gray-100 text-[10px] text-gray-500 flex justify-between items-center">
+              <span>{suggestions.length} options • Click to apply or type in cell</span>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const ScoreList = () => {
   const { state, dispatch } = useData();
@@ -141,137 +276,6 @@ const ScoreList = () => {
         }}
         placeholder="-"
       />
-    );
-  };
-
-
-  const CommentCell = ({
-    studentId,
-    field,
-    label,
-    value,
-    autoValue,
-    letterGrade,
-    overallScore,
-    suggestions,
-    minWidth = "min-w-[280px]",
-    onScoreChange
-  }: {
-    studentId: string;
-    field: 'achievement' | 'attitude' | 'areasToImprove';
-    label: string;
-    value: string | undefined;
-    autoValue: string;
-    letterGrade: string;
-    overallScore: number;
-    suggestions: string[];
-    minWidth?: string;
-    onScoreChange: (studentId: string, field: keyof ScoreRecord, value: string | number | undefined) => void;
-  }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const isCustom = value !== undefined && value !== '';
-    const displayVal = isCustom ? value : autoValue;
-
-    return (
-      <div className={`relative flex items-center gap-1 ${minWidth}`}>
-        <input 
-          type="text" 
-          list={`${field}-list-${studentId}`}
-          className={`w-full p-1 border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-xs ${isCustom ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
-          value={displayVal}
-          onChange={(e) => onScoreChange(studentId, field, e.target.value)}
-          title={isCustom ? `Manual override active (click Sparkles to choose suggestions)` : `Auto-generated ${label} feedback for Grade ${letterGrade}`}
-        />
-
-        <datalist id={`${field}-list-${studentId}`}>
-          {suggestions.map((s, idx) => (
-            <option key={idx} value={s} />
-          ))}
-        </datalist>
-
-        <button
-          type="button"
-          onClick={() => setIsOpen(prev => !prev)}
-          className={`p-1 rounded shrink-0 transition-colors ${
-            isOpen
-              ? 'bg-indigo-100 text-indigo-700'
-              : isCustom
-                ? 'text-blue-600 hover:bg-blue-50'
-                : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'
-          }`}
-          title={`Suggested ${label} comments for Grade ${letterGrade}`}
-        >
-          <Sparkles size={14} />
-        </button>
-
-        {isOpen && (
-          <>
-            <div 
-              className="fixed inset-0 z-40" 
-              onClick={() => setIsOpen(false)} 
-            />
-            <div className="absolute top-full left-0 z-50 mt-1 w-[400px] bg-white border border-gray-200 rounded-lg shadow-xl p-3 text-left">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-100">
-                <div className="flex items-center gap-1.5">
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                    letterGrade.startsWith('A') ? 'bg-emerald-100 text-emerald-800' :
-                    letterGrade.startsWith('B') ? 'bg-blue-100 text-blue-800' :
-                    letterGrade.startsWith('C') ? 'bg-amber-100 text-amber-800' :
-                    letterGrade.startsWith('D') ? 'bg-orange-100 text-orange-800' :
-                    'bg-rose-100 text-rose-800'
-                  }`}>
-                    Grade {letterGrade}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-700">{label} ({overallScore}%)</span>
-                </div>
-                {isCustom && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onScoreChange(studentId, field, '');
-                      setIsOpen(false);
-                    }}
-                    className="text-[11px] text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium hover:underline"
-                    title="Revert to auto-selected suggestion"
-                  >
-                    <RotateCcw size={11} /> Reset to Auto
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                {suggestions.map((suggestion, idx) => {
-                  const isSelected = displayVal === suggestion;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        onScoreChange(studentId, field, suggestion);
-                        setIsOpen(false);
-                      }}
-                      className={`w-full text-left p-2 rounded text-xs transition-all border flex items-start gap-2 ${
-                        isSelected
-                          ? 'bg-indigo-50 border-indigo-300 text-indigo-900 font-medium shadow-sm'
-                          : 'bg-gray-50/70 border-gray-200 text-gray-700 hover:bg-gray-100 hover:border-gray-300'
-                      }`}
-                    >
-                      <span className="mt-0.5 shrink-0 text-indigo-500">
-                        {isSelected ? <Check size={13} className="stroke-[2.5]" /> : <span className="inline-block w-3 text-center text-gray-400 font-mono text-[10px]">{idx + 1}</span>}
-                      </span>
-                      <span className="leading-snug">{suggestion}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              
-              <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-500 flex justify-between items-center">
-                <span>Click any suggestion to apply, or edit freely in the cell.</span>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
     );
   };
 
@@ -498,6 +502,7 @@ const ScoreList = () => {
                         overallScore={calculated.overallScore}
                         suggestions={getAchievementSuggestions(calculated.letterGrade)}
                         minWidth="min-w-[280px]"
+                        openUpward={index >= 10 && index >= displayStudents.length - 5}
                         onScoreChange={handleScoreChange}
                       />
                     </td>
@@ -512,6 +517,7 @@ const ScoreList = () => {
                         overallScore={calculated.overallScore}
                         suggestions={getAttitudeSuggestions(calculated.letterGrade)}
                         minWidth="min-w-[260px]"
+                        openUpward={index >= 10 && index >= displayStudents.length - 5}
                         onScoreChange={handleScoreChange}
                       />
                     </td>
@@ -526,6 +532,7 @@ const ScoreList = () => {
                         overallScore={calculated.overallScore}
                         suggestions={getAreasToImproveSuggestions(calculated.letterGrade)}
                         minWidth="min-w-[280px]"
+                        openUpward={index >= 10 && index >= displayStudents.length - 5}
                         onScoreChange={handleScoreChange}
                       />
                     </td>
