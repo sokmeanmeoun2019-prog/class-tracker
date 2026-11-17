@@ -43,6 +43,7 @@ interface ExcelScoreImportModalProps {
 export interface ExtractedStudentScore {
   rowIndex: number;
   excelId?: string;
+  excelSex?: 'Male' | 'Female' | '';
   excelName: string;
   matchedStudent?: Student;
   matchType: 'exact-id' | 'exact-name' | 'fuzzy-name' | 'manual' | 'unmatched' | 'duplicate';
@@ -66,6 +67,7 @@ export interface ExtractedStudentScore {
 interface ColumnMapping {
   nameCol: number;
   idCol: number;
+  sexCol: number;
   conductCol: number;
   cpCol: number;
   hw1Col: number;
@@ -734,16 +736,35 @@ const classifyCategoryText = (text: string): MajorCategory => {
   }
 
   // Student ID
-  if (/(?:^|[\s\(\[\-\/])(student\s*id|id\s*no|id\s*number|id|code)(?:$|[\s\)\]\-\/:])/i.test(t) || /(អត្តលេខ)/i.test(t)) {
+  if (
+    /(?:^|[\s\(\[\-\/])(student\s*id|student\s*code|student\s*number|student\s*no\.?|id\s*no\.?|id\s*number|id|code)(?:$|[\s\)\]\-\/:])/i.test(t) ||
+    /(អត្តលេខ|កូដ)/i.test(t)
+  ) {
     return 'id';
   }
 
   // Sex / Gender
-  if (/(?:^|[\s\(\[\-\/])(sex|gender|m\/f)(?:$|[\s\)\]\-\/:])/i.test(t) || /(ភេទ)/i.test(t)) {
+  if (
+    /(?:^|[\s\(\[\-\/])(sex|gender|male\s*\/\s*female|m\s*\/\s*f)(?:$|[\s\)\]\-\/:])/i.test(t) ||
+    /(ភេទ|ប្រុស\s*\/\s*ស្រី)/i.test(t)
+  ) {
     return 'sex';
   }
 
   return 'unknown';
+};
+
+// Normalize extracted Sex/Gender cell text to 'Male' | 'Female' | ''
+const normalizeExcelSex = (raw: any): 'Male' | 'Female' | '' => {
+  if (raw === null || raw === undefined) return '';
+  const cleaned = String(raw)
+    .trim()
+    .replace(/[\.\)\(\[\]]/g, '')
+    .trim()
+    .toLowerCase();
+  if (/^(m|male|boy|man|ប្រុស|ប)$/i.test(cleaned)) return 'Male';
+  if (/^(f|female|girl|woman|ស្រី|ស)$/i.test(cleaned)) return 'Female';
+  return '';
 };
 
 // Check if a column's header parts contain explicit Total / Average / Summary words
@@ -830,6 +851,7 @@ const detectColumns = (
     mapping: {
       nameCol: -1,
       idCol: -1,
+      sexCol: -1,
       conductCol: -1,
       cpCol: -1,
       hw1Col: -1,
@@ -1108,6 +1130,7 @@ const detectColumns = (
   const mapping: ColumnMapping = {
     nameCol: -1,
     idCol: -1,
+    sexCol: -1,
     conductCol: -1,
     cpCol: -1,
     hw1Col: -1,
@@ -1120,7 +1143,7 @@ const detectColumns = (
     test2Col: -1
   };
 
-  // Step 6: Detect Student Name and Student ID columns
+  // Step 6: Detect Student Name, Student ID, and Sex/Gender columns
   const dataRowLimit = Math.min(numRows, dataStartRowIndex + 50);
   let bestRosterMatchCol = -1;
   let bestRosterMatches = 0;
@@ -1149,6 +1172,9 @@ const detectColumns = (
     if (cat === 'name' && mapping.nameCol === -1) {
       mapping.nameCol = c;
     }
+    if (cat === 'sex' && mapping.sexCol === -1) {
+      mapping.sexCol = c;
+    }
   }
 
   if (bestRosterMatchCol !== -1 && bestRosterMatches >= 1) {
@@ -1157,7 +1183,7 @@ const detectColumns = (
 
   if (mapping.nameCol === -1) {
     for (let c = 0; c < Math.min(numCols, 8); c++) {
-      if (c === mapping.idCol) continue;
+      if (c === mapping.idCol || c === mapping.sexCol) continue;
       let textRows = 0;
       for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 20); r++) {
         const val = String(formattedGrid[r]?.[c] || '').trim();
@@ -1167,6 +1193,49 @@ const detectColumns = (
       }
       if (textRows >= 2) {
         mapping.nameCol = c;
+        break;
+      }
+    }
+  }
+
+  // Fallback inference for Sex/Gender column from cell values if header wasn't matched
+  if (mapping.sexCol === -1) {
+    for (let c = 0; c < Math.min(numCols, 10); c++) {
+      if (c === mapping.nameCol || c === mapping.idCol) continue;
+      let nonEmpty = 0;
+      let sexHits = 0;
+      for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 30); r++) {
+        const val = String(formattedGrid[r]?.[c] || '').trim();
+        if (!val) continue;
+        nonEmpty++;
+        if (normalizeExcelSex(val) !== '') sexHits++;
+      }
+      if (sexHits >= 2 && nonEmpty > 0 && sexHits / nonEmpty >= 0.55) {
+        mapping.sexCol = c;
+        break;
+      }
+    }
+  }
+
+  // Fallback inference for Student ID column from zero-padded or alphanumeric IDs
+  if (mapping.idCol === -1) {
+    for (let c = 0; c < Math.min(numCols, 8); c++) {
+      if (c === mapping.nameCol || c === mapping.sexCol) continue;
+      const hdrCat = classifyCategoryText(colHeaderParts[c].join(' '));
+      if (hdrCat !== 'unknown' && hdrCat !== 'id') continue;
+      let nonEmpty = 0;
+      let idHits = 0;
+      for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 30); r++) {
+        const val = String(formattedGrid[r]?.[c] || '').trim();
+        if (!val) continue;
+        nonEmpty++;
+        const isZeroPadded = /^0\d{1,}$/.test(val);
+        const isAlphanumericId = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9\-_\/]{2,20}$/.test(val);
+        const isLongIdNumber = /^\d{4,15}$/.test(val);
+        if (isZeroPadded || isAlphanumericId || isLongIdNumber) idHits++;
+      }
+      if (idHits >= 2 && nonEmpty > 0 && idHits / nonEmpty >= 0.55) {
+        mapping.idCol = c;
         break;
       }
     }
@@ -1870,6 +1939,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     nameCol: -1,
     idCol: -1,
+    sexCol: -1,
     conductCol: -1,
     cpCol: -1,
     hw1Col: -1,
@@ -2025,6 +2095,10 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         columnMapping.idCol !== -1
           ? String(fmtRow[columnMapping.idCol] ?? rawRow[columnMapping.idCol] ?? '').trim()
           : undefined;
+      const rawSex =
+        columnMapping.sexCol !== -1
+          ? normalizeExcelSex(fmtRow[columnMapping.sexCol] ?? rawRow[columnMapping.sexCol])
+          : undefined;
 
       if (!rawName) continue;
 
@@ -2158,6 +2232,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       results.push({
         rowIndex: r,
         excelId: rawId,
+        excelSex: rawSex,
         excelName: rawName,
         matchedStudent,
         matchType,
@@ -2337,6 +2412,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         classId: lockedClassId,
         name: cleanName,
         studentId: row.excelId || '',
+        sex: row.excelSex || '',
         rosterNumber: currentRoster.length + i + 1
       };
       newStudents.push(newStudent);
@@ -2351,7 +2427,12 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     setDeselectedRows({});
   };
 
-  const handleEnrollSingleStudent = (rowIndex: number, excelName: string, excelId?: string) => {
+  const handleEnrollSingleStudent = (
+    rowIndex: number,
+    excelName: string,
+    excelId?: string,
+    excelSex?: 'Male' | 'Female' | ''
+  ) => {
     const currentRoster = state.students.filter(s => s.classId === lockedClassId);
     const cleanName = cleanStudentName(excelName);
     const newId = uuidv4();
@@ -2360,6 +2441,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       classId: lockedClassId,
       name: cleanName,
       studentId: excelId || '',
+      sex: excelSex || '',
       rosterNumber: currentRoster.length + 1
     };
 
@@ -2462,10 +2544,26 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     }
 
     const updatedScoreRecords: ScoreRecord[] = [];
+    const updatedStudentProfiles: Student[] = [];
     const normalizedQuarter = Number(lockedQuarter) as Quarter;
 
     rowsToImport.forEach(item => {
       const student = item.matchedStudent!;
+
+      // Also sync Student ID and Sex/Gender from Excel if extracted and missing/updated
+      const nextStudentId = item.excelId && item.excelId.trim() !== '' ? item.excelId.trim() : student.studentId;
+      const nextSex = item.excelSex && (item.excelSex === 'Male' || item.excelSex === 'Female')
+        ? item.excelSex
+        : student.sex;
+
+      if (nextStudentId !== student.studentId || nextSex !== student.sex) {
+        updatedStudentProfiles.push({
+          ...student,
+          studentId: nextStudentId,
+          sex: nextSex
+        });
+      }
+
       const existing = state.scores.find(
         s => s.studentId === student.id && Number(s.quarter) === normalizedQuarter
       );
@@ -2510,6 +2608,16 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     };
 
     saveExcelImportMeta(meta);
+
+    if (updatedStudentProfiles.length > 0) {
+      dispatch({
+        type: 'UPSERT_STUDENTS',
+        payload: {
+          classId: lockedClassId,
+          students: updatedStudentProfiles
+        }
+      });
+    }
 
     dispatch({
       type: 'BULK_UPDATE_SCORES',
@@ -3103,6 +3211,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {renderColumnSelect('Student Name Column *', 'nameCol', 'bg-indigo-100 text-indigo-800')}
                     {renderColumnSelect('Student ID (Optional)', 'idCol', 'bg-gray-200 text-gray-700')}
+                    {renderColumnSelect('Sex / Gender (Optional)', 'sexCol', 'bg-pink-100 text-pink-800')}
                     {renderColumnSelect('1. Conduct → Conduct', 'conductCol', 'bg-emerald-100 text-emerald-800')}
                     {renderColumnSelect('2. Class Participation → CP', 'cpCol', 'bg-emerald-100 text-emerald-800')}
                     {renderColumnSelect('3. Homework 1 → HW1', 'hw1Col', 'bg-blue-100 text-blue-800')}
@@ -3315,8 +3424,15 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                               {/* Excel Student Name */}
                               <td className="p-2 font-medium text-gray-900 border-r border-gray-100">
                                 <div>{item.excelName}</div>
-                                {item.excelId && (
-                                  <div className="text-[10px] text-gray-400">ID: {item.excelId}</div>
+                                {(item.excelId || item.excelSex) && (
+                                  <div className="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                    {item.excelId && <span className="font-mono">ID: {item.excelId}</span>}
+                                    {item.excelSex && (
+                                      <span className={`px-1.5 py-0 rounded font-semibold ${item.excelSex === 'Male' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                        {item.excelSex}
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </td>
 
@@ -3328,7 +3444,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                                     onChange={e => {
                                       const val = e.target.value;
                                       if (val === '__ENROLL__') {
-                                        handleEnrollSingleStudent(item.rowIndex, item.excelName, item.excelId);
+                                        handleEnrollSingleStudent(item.rowIndex, item.excelName, item.excelId, item.excelSex);
                                       } else {
                                         setManualMatches(prev => ({
                                           ...prev,
