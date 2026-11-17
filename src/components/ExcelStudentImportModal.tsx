@@ -95,6 +95,27 @@ const extractLatinName = (raw: string): string => {
   return words ? words.join(' ').toLowerCase() : '';
 };
 
+const compactAlphaNum = (str: string): string => {
+  return normalizeText(str).replace(/\s+/g, '');
+};
+
+const levenshteinDistance = (a: string, b: string): number => {
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+  const dp: number[] = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = i - 1;
+    dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = temp;
+    }
+  }
+  return dp[b.length];
+};
+
 const isNoHeader = (h: string): boolean => {
   return /^(no|num|number|#|index|order|item|s\s*n|seq|ល\.?\s*រ|លរ)$/i.test(h);
 };
@@ -233,16 +254,18 @@ const extractTextGrid = (ws: XLSX.WorkSheet): GridExtract => {
   return { grid, numRows, numCols };
 };
 
-// Find matching student in existing class roster using Student ID first, then Name
+// Find matching student in existing class roster using Student ID first, then Name (with fuzzy/compact fallback)
 const matchStudentInRoster = (
   rawName: string,
   rawId: string,
   roster: Student[]
 ): { matchedStudent?: Student; matchType: 'id' | 'name' | 'new'; matchReason?: string } => {
+  const validRoster = roster.filter(s => !isMetadataLabel(s.name));
+
   // 1. Primary Match: Student ID
   if (rawId) {
     const trimmedId = rawId.trim().toLowerCase();
-    const byExactId = roster.find(
+    const byExactId = validRoster.find(
       s => s.studentId && s.studentId.trim().toLowerCase() === trimmedId
     );
     if (byExactId) {
@@ -255,7 +278,7 @@ const matchStudentInRoster = (
 
     const strippedId = trimmedId.replace(/^0+/, '');
     if (strippedId) {
-      const byStrippedId = roster.find(
+      const byStrippedId = validRoster.find(
         s => s.studentId && s.studentId.trim().toLowerCase().replace(/^0+/, '') === strippedId
       );
       if (byStrippedId) {
@@ -272,7 +295,7 @@ const matchStudentInRoster = (
   if (rawName && !isMetadataLabel(rawName)) {
     const normTarget = normalizeText(cleanStudentNameForMatch(rawName));
     if (normTarget) {
-      const byExactName = roster.find(
+      const byExactName = validRoster.find(
         s => normalizeText(cleanStudentNameForMatch(s.name)) === normTarget
       );
       if (byExactName) {
@@ -285,7 +308,7 @@ const matchStudentInRoster = (
 
       const latinTarget = extractLatinName(rawName);
       if (latinTarget && latinTarget.length >= 3) {
-        const byLatin = roster.find(s => extractLatinName(s.name) === latinTarget);
+        const byLatin = validRoster.find(s => extractLatinName(s.name) === latinTarget);
         if (byLatin) {
           return {
             matchedStudent: byLatin,
@@ -297,7 +320,7 @@ const matchStudentInRoster = (
 
       const tokensTarget = normTarget.split(' ').filter(Boolean).sort();
       if (tokensTarget.length >= 2) {
-        const byTokens = roster.find(s => {
+        const byTokens = validRoster.find(s => {
           const rTokens = normalizeText(cleanStudentNameForMatch(s.name)).split(' ').filter(Boolean).sort();
           return (
             tokensTarget.length === rTokens.length &&
@@ -309,6 +332,47 @@ const matchStudentInRoster = (
             matchedStudent: byTokens,
             matchType: 'name',
             matchReason: `Matched by Name: ${byTokens.name}`
+          };
+        }
+      }
+
+      // Space-insensitive compact match ("POK HENG MEANHEANG" vs "POK HENG MEAN HEANG")
+      const compactTarget = compactAlphaNum(cleanStudentNameForMatch(rawName));
+      if (compactTarget.length >= 4) {
+        const byCompact = validRoster.find(
+          s => compactAlphaNum(cleanStudentNameForMatch(s.name)) === compactTarget
+        );
+        if (byCompact) {
+          return {
+            matchedStudent: byCompact,
+            matchType: 'name',
+            matchReason: `Matched by Name: ${byCompact.name}`
+          };
+        }
+      }
+
+      // Fuzzy Levenshtein match for minor spelling differences (unique best match <= 2 edits)
+      if (compactTarget.length >= 6) {
+        let bestFuzzy: Student | undefined;
+        let bestDist = 3;
+        let tieCount = 0;
+        for (const s of validRoster) {
+          const rCompact = compactAlphaNum(cleanStudentNameForMatch(s.name));
+          if (!rCompact || Math.abs(rCompact.length - compactTarget.length) > 2) continue;
+          const dist = levenshteinDistance(compactTarget, rCompact);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestFuzzy = s;
+            tieCount = 1;
+          } else if (dist === bestDist) {
+            tieCount++;
+          }
+        }
+        if (bestFuzzy && tieCount === 1) {
+          return {
+            matchedStudent: bestFuzzy,
+            matchType: 'name',
+            matchReason: `Fuzzy Match: ${bestFuzzy.name}`
           };
         }
       }
@@ -828,6 +892,32 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     );
   };
 
+  const handleManualMatchChange = (rowIndexInExtracted: number, studentId: string) => {
+    setExtractedRows(prev =>
+      prev.map((r, i) => {
+        if (i !== rowIndexInExtracted) return r;
+        if (!studentId) {
+          return {
+            ...r,
+            matchedStudent: undefined,
+            matchType: 'new',
+            matchReason: undefined,
+            selected: r.isValid && importMode === 'add-and-update'
+          };
+        }
+        const target = classStudents.find(s => s.id === studentId);
+        if (!target) return r;
+        return {
+          ...r,
+          matchedStudent: target,
+          matchType: 'name',
+          matchReason: `Manual Match: ${target.name}`,
+          selected: r.isValid
+        };
+      })
+    );
+  };
+
   // Filtered preview rows
   const filteredRows = useMemo(() => {
     return extractedRows.filter(r => {
@@ -1311,15 +1401,33 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                         <td className="p-2.5">
                           <div className="space-y-1">
                             {row.matchType === 'new' ? (
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${
-                                  row.selected
-                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                                    : 'bg-gray-100 text-gray-600 border-gray-300'
-                                }`}
-                              >
-                                <UserPlus size={12} /> {row.selected ? 'New Student' : 'Skipped (Unmatched)'}
-                              </span>
+                              <div className="flex flex-col gap-1">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border w-fit ${
+                                    row.selected
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : 'bg-gray-100 text-gray-600 border-gray-300'
+                                  }`}
+                                >
+                                  <UserPlus size={12} /> {row.selected ? 'New Student' : 'Skipped (Unmatched)'}
+                                </span>
+                                {classStudents.length > 0 && row.isValid && (
+                                  <select
+                                    value=""
+                                    onChange={e => handleManualMatchChange(extractedRows.indexOf(row), e.target.value)}
+                                    className="text-[11px] border border-gray-300 rounded px-1.5 py-0.5 bg-white text-gray-700 max-w-[200px]"
+                                  >
+                                    <option value="">Link to existing student...</option>
+                                    {classStudents
+                                      .filter(s => !isMetadataLabel(s.name))
+                                      .map(s => (
+                                        <option key={s.id} value={s.id}>
+                                          {s.displayNum ? `${s.displayNum}. ` : ''}{s.name}
+                                        </option>
+                                      ))}
+                                  </select>
+                                )}
+                              </div>
                             ) : (
                               <div className="flex flex-col gap-0.5">
                                 <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 border border-blue-300 px-2 py-0.5 rounded text-[11px] font-bold w-fit">

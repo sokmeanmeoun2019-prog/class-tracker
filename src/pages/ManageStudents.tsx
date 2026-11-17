@@ -25,9 +25,24 @@ const ManageStudents = () => {
   // Excel Import Modal state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const currentClass = state.classes.find(c => c.id === selectedClassId);
   const classStudents = getClassRoster(state.students, selectedClassId);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [selectedClassId]);
+
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Delete ${selectedIds.length} selected row(s)? (Moved safely to Recently Deleted)`)) {
+      selectedIds.forEach(id => {
+        dispatch({ type: 'DELETE_STUDENT', payload: id });
+      });
+      setSelectedIds([]);
+    }
+  };
 
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,16 +187,38 @@ const ManageStudents = () => {
 
           <div className="col-span-1 xl:col-span-2">
              <div className="bg-white p-6 rounded-lg shadow-sm border h-full">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                 <h3 className="text-lg font-medium">Class Roster ({classStudents.length} Students)</h3>
-                <span className="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
-                  {currentClass?.name}
-                </span>
+                <div className="flex items-center gap-2">
+                  {selectedIds.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleBulkDelete}
+                      className="text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 px-3 py-1 rounded-full transition-colors"
+                    >
+                      Delete Selected ({selectedIds.length})
+                    </button>
+                  )}
+                  <span className="text-xs text-gray-500 font-medium bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                    {currentClass?.name}
+                  </span>
+                </div>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b bg-gray-50">
+                      <th className="p-3 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={classStudents.length > 0 && selectedIds.length === classStudents.length}
+                          onChange={e =>
+                            setSelectedIds(e.target.checked ? classStudents.map(s => s.id) : [])
+                          }
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                          title="Select all rows"
+                        />
+                      </th>
                       <th className="p-3 text-sm font-semibold text-gray-600 w-16 text-center">No.</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Name</th>
                       <th className="p-3 text-sm font-semibold text-gray-600 w-24 text-center">Sex</th>
@@ -198,7 +235,7 @@ const ManageStudents = () => {
                         }`}
                       >
                         {editingStudent?.id === s.id ? (
-                          <td colSpan={5} className="p-3 bg-amber-50/50">
+                          <td colSpan={6} className="p-3 bg-amber-50/50">
                             <form onSubmit={handleUpdateStudent} className="flex flex-wrap gap-2 items-center">
                               <input 
                                 type="number" 
@@ -237,6 +274,18 @@ const ManageStudents = () => {
                           </td>
                         ) : (
                           <>
+                            <td className="p-3 text-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(s.id)}
+                                onChange={e =>
+                                  setSelectedIds(prev =>
+                                    e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id)
+                                  )
+                                }
+                                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                            </td>
                             <td className="p-3 text-center text-gray-500 font-medium">{s.displayNum}</td>
                             <td className="p-3 font-medium text-gray-800">{s.name}</td>
                             <td className="p-3 text-center">
@@ -287,7 +336,7 @@ const ManageStudents = () => {
                     ))}
                     {classStudents.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="p-6 text-center text-gray-500">
+                        <td colSpan={6} className="p-6 text-center text-gray-500">
                           No students found for this class. Upload an Excel roster or add students manually.
                         </td>
                       </tr>

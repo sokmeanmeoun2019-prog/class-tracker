@@ -2547,10 +2547,10 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     const updatedStudentProfiles: Student[] = [];
     const normalizedQuarter = Number(lockedQuarter) as Quarter;
 
-    rowsToImport.forEach(item => {
-      const student = item.matchedStudent!;
-
-      // Also sync Student ID and Sex/Gender from Excel if extracted and missing/updated
+    // Sync Student ID and Sex/Gender for all matched non-duplicate rows (even if scores are blank)
+    extractedRows.forEach(item => {
+      if (!item.matchedStudent || item.matchType === 'duplicate') return;
+      const student = item.matchedStudent;
       const nextStudentId = item.excelId && item.excelId.trim() !== '' ? item.excelId.trim() : student.studentId;
       const nextSex = item.excelSex && (item.excelSex === 'Male' || item.excelSex === 'Female')
         ? item.excelSex
@@ -2563,6 +2563,10 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
           sex: nextSex
         });
       }
+    });
+
+    rowsToImport.forEach(item => {
+      const student = item.matchedStudent!;
 
       const existing = state.scores.find(
         s => s.studentId === student.id && Number(s.quarter) === normalizedQuarter
