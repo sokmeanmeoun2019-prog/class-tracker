@@ -53,15 +53,29 @@ const hashString = (input: string): number => {
   return Math.abs(hash);
 };
 
-const getFirstName = (fullName: string): string => {
+const fmtPct = (val: number): string => {
+  const rounded = Number(val.toFixed(1));
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded}%`;
+};
+
+const formatStudentDisplayName = (fullName: string): string => {
   const clean = fullName.trim();
-  if (!clean) return 'This student';
-  const parts = clean.split(/\s+/);
-  const token = parts[0] || 'This student';
-  if (token === token.toUpperCase() && token.length > 1) {
-    return token.charAt(0).toUpperCase() + token.slice(1).toLowerCase();
-  }
-  return token;
+  if (!clean) return 'there';
+  return clean
+    .split(/\s+/)
+    .map(token =>
+      token === token.toUpperCase() && token.length > 1
+        ? token.charAt(0).toUpperCase() + token.slice(1).toLowerCase()
+        : token
+    )
+    .join(' ');
+};
+
+const getNextQuarterPhrase = (quarter: Quarter): string => {
+  if (quarter === 1) return 'Quarter 2';
+  if (quarter === 2) return 'Quarter 3';
+  if (quarter === 3) return 'Quarter 4';
+  return 'next term';
 };
 
 const hasEnteredFields = (score: ScoreRecord | undefined): boolean => {
@@ -81,7 +95,9 @@ const hasEnteredFields = (score: ScoreRecord | undefined): boolean => {
 };
 
 interface ScoreFeedbackInputs {
-  firstName: string;
+  fullName: string;
+  quarter: Quarter;
+  nextQuarter: string;
   overallScore: number;
   letterGrade: 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
   rank: number;
@@ -110,331 +126,411 @@ interface ScoreFeedbackInputs {
   attendanceSettings: AttendanceSettings;
 }
 
-const buildOpeningOptions = (d: ScoreFeedbackInputs): string[] => {
-  const scoreStr = `${d.overallScore}%`;
-  const isAboveAvg = d.classScoreAvg > 0 && d.overallScore >= d.classScoreAvg + 5;
-  const isNearAvg = d.classScoreAvg > 0 && Math.abs(d.overallScore - d.classScoreAvg) < 5;
+const buildHumanOpenings = (d: ScoreFeedbackInputs): string[] => {
+  const scoreStr = fmtPct(d.overallScore);
+  const aboveAvg = d.classScoreAvg > 0 && d.overallScore >= d.classScoreAvg + 5;
+  const qLabel = `Quarter ${d.quarter}`;
 
   switch (d.letterGrade) {
     case 'A':
       return [
-        `${d.firstName} achieved an outstanding ${scoreStr} (Grade A) this quarter, demonstrating thorough mastery of the course material.`,
-        `With an impressive overall result of ${scoreStr} (Grade A), ${d.firstName} consistently met and exceeded quarter expectations.`,
-        `${d.firstName} delivered exceptional academic work this quarter, finishing with ${scoreStr} (Grade A).`,
-        `An excellent quarter overall for ${d.firstName}, who earned ${scoreStr} (Grade A) through steady focus and high-quality work.`,
-        `${d.firstName} performed at a top level throughout the quarter, earning ${scoreStr} (Grade A).`,
-        `Finishing the quarter with ${scoreStr} (Grade A), ${d.firstName} showed strong command of key skills and concepts.`
+        `You wrapped up ${qLabel} with an impressive ${scoreStr} (Grade A), and it shows how much care you put into your studies every week.`,
+        `Finishing ${qLabel} at ${scoreStr} (Grade A) is something to be genuinely proud of, especially knowing the effort it took to stay consistent.`,
+        `You had a fantastic ${qLabel} overall, earning ${scoreStr} and finishing with a solid Grade A${aboveAvg ? ' well ahead of the class pace' : ''}.`,
+        `Your hard work really paid off in ${qLabel}, bringing your overall average up to ${scoreStr} (Grade A).`,
+        `Closing out ${qLabel} with ${scoreStr} (Grade A) reflects real discipline and genuine curiosity in what we covered.`,
+        `Well done on earning ${scoreStr} (Grade A) in ${qLabel}—you approached your work with confidence and strong follow-through.`,
+        `I am really proud of how you performed in ${qLabel}, finishing with ${scoreStr} (Grade A) across your coursework and exams.`
       ];
     case 'B':
       return [
-        `${d.firstName} earned a strong ${scoreStr} (Grade B) this quarter, showing solid understanding across coursework.`,
-        `With a commendable quarter score of ${scoreStr} (Grade B), ${d.firstName} demonstrated dependable effort and steady grasp of concepts.`,
-        `${d.firstName} had a very good quarter, achieving ${scoreStr} (Grade B) and staying well positioned for top marks.`,
-        `Finishing with ${scoreStr} (Grade B), ${d.firstName} showed consistent capability and clear readiness to push toward an A.`,
-        `${d.firstName} produced reliable results this quarter, attaining ${scoreStr} (Grade B)${isAboveAvg ? ' above the class average' : ''}.`,
-        `A very solid performance from ${d.firstName}, who reached ${scoreStr} (Grade B) through regular engagement with the lessons.`
+        `You finished ${qLabel} with a strong ${scoreStr} (Grade B), showing good understanding across the lessons we covered.`,
+        `Reaching ${scoreStr} (Grade B) in ${qLabel} is a solid result, and you are right on the doorstep of top marks.`,
+        `You had a very dependable ${qLabel}, finishing with ${scoreStr} (Grade B)${aboveAvg ? ' above the class average' : ''} and plenty to feel good about.`,
+        `With an overall score of ${scoreStr} (Grade B) in ${qLabel}, it is clear that you stayed engaged and kept up steadily with class expectations.`,
+        `You put together a good ${qLabel} and earned ${scoreStr} (Grade B), giving yourself a strong base to build on.`,
+        `Closing ${qLabel} at ${scoreStr} (Grade B) shows real ability—just a few small adjustments can easily push you into the A range.`,
+        `Nice work across ${qLabel} to finish at ${scoreStr} (Grade B); your steady effort kept your results healthy throughout the term.`
       ];
     case 'C':
       return [
-        `${d.firstName} completed the quarter with ${scoreStr} (Grade C), showing a satisfactory foundation in core topics.`,
-        `Finishing at ${scoreStr} (Grade C), ${d.firstName} demonstrated steady progress${isNearAvg ? ' in line with the class pace' : ''} with clear room to grow.`,
-        `${d.firstName} achieved ${scoreStr} (Grade C) this quarter, meeting basic requirements while building more consistent habits.`,
-        `With an overall score of ${scoreStr} (Grade C), ${d.firstName} showed a workable grasp of lessons that can rise further with focused review.`,
-        `${d.firstName} earned ${scoreStr} (Grade C) for the quarter, reflecting moderate understanding and potential for stronger results.`,
-        `At ${scoreStr} (Grade C), ${d.firstName} kept up with key class expectations and has a good opportunity to move into the B range.`
+        `You closed ${qLabel} at ${scoreStr} (Grade C), showing that you understand the core ideas even though a few topics still felt tricky.`,
+        `Finishing ${qLabel} with ${scoreStr} (Grade C) shows steady progress, and with a few sharper habits your scores can climb much higher.`,
+        `You worked through ${qLabel} and earned ${scoreStr} (Grade C), keeping up with the main lessons while leaving clear room to grow.`,
+        `At ${scoreStr} (Grade C) for ${qLabel}, you have a workable foundation in place and a real chance to move up into the B group next term.`,
+        `You reached ${scoreStr} (Grade C) in ${qLabel}, showing decent grasp of the basics alongside some ups and downs on graded work.`,
+        `Completing ${qLabel} with ${scoreStr} (Grade C) shows you are hanging in there with the material, and tightening up a couple of routines will pay off fast.`,
+        `Your ${qLabel} score of ${scoreStr} (Grade C) reflects honest effort and shows you are capable of much stronger marks once everything clicks together.`
       ];
     case 'D':
       return [
-        `${d.firstName} finished the quarter with ${scoreStr} (Grade D), showing a basic understanding alongside noticeable gaps in key areas.`,
-        `With ${scoreStr} (Grade D), ${d.firstName} demonstrated partial familiarity with quarter material but needs steadier follow-through.`,
-        `${d.firstName} earned ${scoreStr} (Grade D) this quarter, indicating that foundational concepts require closer reinforcement.`,
-        `At ${scoreStr} (Grade D), ${d.firstName} showed moments of understanding, though overall results remained below the target benchmark.`,
-        `${d.firstName} completed the quarter at ${scoreStr} (Grade D), highlighting a need for more structured study and task completion.`,
-        `Finishing with ${scoreStr} (Grade D), ${d.firstName} will benefit from regular check-ins and stronger daily review habits.`
+        `You finished ${qLabel} at ${scoreStr} (Grade D), which tells me some parts of the class made sense to you while other pieces still need more practice.`,
+        `Closing ${qLabel} with ${scoreStr} (Grade D) shows that you tried to keep up, though a few gaps held back your final result.`,
+        `Your ${qLabel} total came to ${scoreStr} (Grade D), meaning you caught some of the key ideas but need steadier study habits to raise your mark.`,
+        `At ${scoreStr} (Grade D) for ${qLabel}, there were moments where you showed good potential, even though your scores ended lower than we want.`,
+        `You wrapped up ${qLabel} with ${scoreStr} (Grade D); don't get discouraged by that grade, because targeted daily practice can lift it quickly.`,
+        `With ${scoreStr} (Grade D) in ${qLabel}, it is clear the material challenged you at times, yet there is plenty we can fix step by step.`,
+        `Finishing ${qLabel} at ${scoreStr} (Grade D) is a signal to tighten up your weekly routine so your understanding shows up clearly on paper.`
       ];
     case 'E':
       return [
-        `${d.firstName} concluded the quarter with ${scoreStr} (Grade E), showing developing effort while still working to master essential skills.`,
-        `At ${scoreStr} (Grade E), ${d.firstName} experienced difficulty across several graded tasks and needs targeted support to build momentum.`,
-        `${d.firstName} earned ${scoreStr} (Grade E) this quarter, signaling that core concepts and study routines need steady reinforcement.`,
-        `With an overall score of ${scoreStr} (Grade E), ${d.firstName} is encouraged to focus on foundational understanding step by step.`,
-        `${d.firstName} finished at ${scoreStr} (Grade E), and strengthening daily preparation will help turn effort into higher scores.`,
-        `Reaching ${scoreStr} (Grade E) this quarter shows there are important fundamentals ${d.firstName} should revisit with guided practice.`
+        `You finished ${qLabel} with ${scoreStr} (Grade E), and while this quarter felt difficult, I want you to know that improvement is very achievable.`,
+        `Ending ${qLabel} at ${scoreStr} (Grade E) shows that several lessons felt overwhelming, especially when quizzes and tests came around.`,
+        `With ${scoreStr} (Grade E) in ${qLabel}, this was a challenging term, and building stronger daily habits now will make things feel much lighter.`,
+        `You closed ${qLabel} at ${scoreStr} (Grade E); I know you are capable of more than this score shows once we get the basics feeling comfortable.`,
+        `At ${scoreStr} (Grade E) for ${qLabel}, it took real effort just to stay with the class, and now is a good moment to reset how you review each week.`,
+        `Your ${qLabel} result of ${scoreStr} (Grade E) tells us we need to slow down and shore up the fundamentals together rather than rushing ahead.`,
+        `Seeing ${scoreStr} (Grade E) at the end of ${qLabel} can feel frustrating, so let's treat it as a clear starting point for rebuilding step by step.`
       ];
     case 'F':
     default:
       return [
-        `${d.firstName} ended the quarter with ${scoreStr} (Grade F), indicating substantial challenges across assessments and coursework.`,
-        `With a quarter total of ${scoreStr} (Grade F), ${d.firstName} needs immediate, structured support to rebuild core foundations.`,
-        `${d.firstName} achieved ${scoreStr} (Grade F) this quarter and would benefit greatly from closer guidance and regular task completion.`,
-        `Finishing at ${scoreStr} (Grade F), ${d.firstName} experienced consistent difficulty this term, making steady support a top priority.`,
-        `At ${scoreStr} (Grade F), ${d.firstName} has clear room to recover by focusing on basic lesson concepts and completing missing work.`,
-        `${d.firstName} recorded ${scoreStr} (Grade F) for the quarter; with consistent attendance, guided help, and small daily goals, progress is achievable.`
+        `You finished ${qLabel} with ${scoreStr} (Grade F), which reflects a tough quarter across graded work, though it does not mean you cannot turn things around.`,
+        `Ending ${qLabel} at ${scoreStr} (Grade F) shows how hard this term felt for you, and I want us to work closely together so things go better from here.`,
+        `With ${scoreStr} (Grade F) in ${qLabel}, it was a rocky term on paper, and getting extra help early will make a big difference in how confident you feel.`,
+        `At ${scoreStr} (Grade F) for ${qLabel}, several graded tasks pulled your score down quickly, so our focus now is rebuilding one skill at a time.`,
+        `Closing ${qLabel} at ${scoreStr} (Grade F) was not the result either of us hoped for, yet small consistent steps can change that story fast.`,
+        `Your ${qLabel} score ended at ${scoreStr} (Grade F); please don't give up on yourself, because regular review and early questions can lift this significantly.`,
+        `I know ${scoreStr} (Grade F) in ${qLabel} is discouraging to see, so let's use it as a clear wake-up call to get back on track with steady support.`
       ];
   }
 };
 
-const buildStrengthOptions = (d: ScoreFeedbackInputs): string[] => {
-  const academicParts: { key: 'tests' | 'quizzes' | 'homework'; pct: number; label: string }[] = [];
-  if (d.hasTest) academicParts.push({ key: 'tests', pct: d.testTotal, label: `monthly tests (${d.testTotal}%)` });
-  if (d.hasQuiz) academicParts.push({ key: 'quizzes', pct: d.quizTotal, label: `quizzes (${d.quizTotal}%)` });
-  if (d.hasHw) academicParts.push({ key: 'homework', pct: d.hwTotal, label: `homework (${d.hwTotal}%)` });
+const buildHumanStrengths = (d: ScoreFeedbackInputs): string[] => {
+  const parts: { key: 'tests' | 'quizzes' | 'homework'; pct: number; text: string }[] = [];
+  if (d.hasTest) parts.push({ key: 'tests', pct: d.testTotal, text: fmtPct(d.testTotal) });
+  if (d.hasQuiz) parts.push({ key: 'quizzes', pct: d.quizTotal, text: fmtPct(d.quizTotal) });
+  if (d.hasHw) parts.push({ key: 'homework', pct: d.hwTotal, text: fmtPct(d.hwTotal) });
 
-  const sortedAcad = [...academicParts].sort((a, b) => b.pct - a.pct);
-  const topAcad = sortedAcad[0];
-  const lowAcad = sortedAcad[sortedAcad.length - 1];
-  const acadBalanced =
-    sortedAcad.length >= 2 && topAcad && lowAcad && topAcad.pct - lowAcad.pct < 8 && lowAcad.pct >= 75;
+  const sorted = [...parts].sort((a, b) => b.pct - a.pct);
+  const best = sorted[0];
+  const worst = sorted[sorted.length - 1];
+  const isEvenlyStrong =
+    sorted.length >= 2 && best && worst && best.pct - worst.pct < 8 && worst.pct >= 75;
 
-  const highConduct = d.hasConduct && d.conductPct >= 0.85;
-  const highCp = d.cpPct >= 0.80;
-  const strongAttendance = d.attendance.total > 0 && d.attendance.rate >= 95 && d.attendance.unexcused === 0;
+  const goodConduct = d.hasConduct && d.conductPct >= 0.8;
+  const greatConduct = d.hasConduct && d.conductPct >= 0.9;
+  const goodCp = d.cpPct >= 0.8;
+  const decentCp = d.cpPct >= 0.6;
+  const goodAttendance =
+    d.attendance.total > 0 && d.attendance.rate >= 95 && d.attendance.unexcused === 0;
 
-  // For lower grades (E/F), highlight genuine bright spots without inventing academic praise
-  if ((d.letterGrade === 'E' || d.letterGrade === 'F') && (!topAcad || topAcad.pct < 65)) {
-    if (highConduct && strongAttendance) {
+  const conductMention = goodConduct ? `${d.conductVal}/${d.conductMax} in conduct` : '';
+  const cpMention = goodCp ? `${d.cpVal}/${d.cpMax} in participation` : '';
+
+  // E / F: Highlight what genuinely went well without sugarcoating academic struggles
+  if ((d.letterGrade === 'E' || d.letterGrade === 'F') && (!best || best.pct < 68)) {
+    if (best && best.key === 'homework' && best.pct >= 50) {
       return [
-        `Positive classroom conduct (${d.conductVal}/${d.conductMax}) and dependable attendance (${d.attendance.rate}%) provide a strong base to build on.`,
-        `${d.firstName} maintained respectful behavior (${d.conductVal}/${d.conductMax}) and reliable attendance, showing readiness when guided.`,
-        `Consistent attendance and polite conduct (${d.conductVal}/${d.conductMax}) stand out as encouraging strengths to carry into next quarter.`,
-        `${d.firstName} demonstrated respectful conduct in class, giving us a supportive starting point for academic recovery.`,
-        `Good classroom attitude (${d.conductVal}/${d.conductMax}) and steady presence in lessons show willingness to stay engaged.`,
-        `${d.firstName}'s positive behavior and regular attendance help create a productive foundation for stronger test and assignment results.`
+        `At the same time, I appreciate that you kept putting effort into your homework (${best.text})${goodConduct ? ` and showed respectful classroom conduct (${conductMention})` : ''}, proving you do care when working through assignments.`,
+        `One thing that genuinely stood out in your favor was your homework (${best.text})${goodConduct ? ` alongside polite behavior in class (${conductMention})` : ''}, which shows you are willing to try on your own time.`,
+        `Even with tough exam scores, you stayed more steady on homework (${best.text})${goodAttendance ? ` and showed up reliably to class` : ''}, and that willingness to put in daily work gives us something real to build on.`,
+        `Your homework score of ${best.text} shows you can handle material much better when you are not under test pressure${goodConduct ? `, and your ${conductMention} made you pleasant to teach every day` : ''}.`,
+        `I noticed you did not give up on your assignments—scoring ${best.text} on homework${goodCp ? ` and ${cpMention}` : ''} shows there is real effort behind the scenes.`,
+        `Compared to your timed exams, homework (${best.text}) was where you held things together best${goodConduct ? `, paired with steady conduct (${conductMention})` : ''}, showing that practice outside class actually helps you.`
       ];
     }
-    if (highConduct) {
+    if (goodConduct && goodCp) {
       return [
-        `Conduct in class was a clear positive (${d.conductVal}/${d.conductMax}), showing respect toward lessons and peers.`,
-        `${d.firstName} maintained cooperative conduct (${d.conductVal}/${d.conductMax}), which gives a solid base for improving academic tasks.`,
-        `Polite behavior during class (${d.conductVal}/${d.conductMax}) is a meaningful strength that will support closer teacher guidance.`,
-        `${d.firstName} showed respectful classroom conduct throughout the quarter even while finding graded work challenging.`,
-        `Dependable conduct (${d.conductVal}/${d.conductMax}) reflects a positive attitude toward classroom expectations.`,
-        `Maintaining good conduct (${d.conductVal}/${d.conductMax}) puts ${d.firstName} in a good position to benefit from extra support.`
+        `What really kept me encouraged about your quarter was how respectful and involved you stayed in class (${conductMention} and ${cpMention}), even when written work felt hard.`,
+        `You brought a polite attitude (${conductMention}) and real classroom energy (${cpMention}) every week, which tells me you want to learn and just need better tools for tests.`,
+        `Despite low written scores, your daily conduct (${conductMention}) and willingness to speak up (${cpMention}) stood out in the best way.`,
+        `Your attitude in the room—earning ${conductMention} and participating actively (${cpMention})—shows maturity and keeps the door wide open for faster progress.`,
+        `I really value the way you carried yourself in class (${conductMention}) and stayed part of discussions (${cpMention}), even while struggling on paper.`,
+        `Staying cooperative (${conductMention}) and engaged during lessons (${cpMention}) is a big plus, because students who stay tuned in always bounce back faster once we fix study habits.`
       ];
     }
-    if (highCp) {
+    if (goodConduct) {
       return [
-        `Active class participation (${d.cpVal}/${d.cpMax}) shows strong engagement during lessons despite lower test or written marks.`,
-        `${d.firstName} contributed actively in class (${d.cpVal}/${d.cpMax}), demonstrating curiosity and willingness to stay involved.`,
-        `Strong participation (${d.cpVal}/${d.cpMax}) is a valuable strength that can now be channeled into written practice.`,
-        `${d.firstName} stayed verbally engaged in class (${d.cpVal}/${d.cpMax}), which shows real interest in understanding the lessons.`,
-        `Consistent participation (${d.cpVal}/${d.cpMax}) highlights ${d.firstName}'s engagement during class activities.`,
-        `Good classroom involvement (${d.cpVal}/${d.cpMax}) shows ${d.firstName} connects with lessons and can translate that into stronger written scores.`
+        `One genuine bright spot was your classroom conduct (${conductMention})—you were respectful, patient, and cooperative whenever I worked with you.`,
+        `Even when lessons felt tough, your good behavior (${conductMention})${goodAttendance ? ` and reliable attendance` : ''} made a positive impression and showed real respect for learning.`,
+        `I appreciate how polite and attentive you were in class (${conductMention}); having that calm attitude makes it much easier for us to work through difficult topics together.`,
+        `Your conduct mark (${conductMention}) speaks well of your character and shows you are willing to listen and accept guidance when things get hard.`,
+        `Thank you for bringing respectful conduct (${conductMention}) to the room every day—good behavior like yours is always the best starting block for turning grades around.`,
+        `Keeping solid conduct (${conductMention})${decentCp ? ` while staying present in class activities` : ''} shows you care about doing the right thing even during a hard quarter.`
       ];
     }
-    if (topAcad && topAcad.pct >= 45) {
+    if (goodCp) {
       return [
-        `${d.firstName}'s strongest academic effort appeared in ${topAcad.label}, showing greater comfort there than in other areas.`,
-        `Performance in ${topAcad.label} was a relative bright spot this quarter and offers a model for how to approach other tasks.`,
-        `${d.firstName} showed comparatively better traction in ${topAcad.label}, demonstrating potential when work is approached steadily.`,
-        `Among graded areas, ${topAcad.label} stood out as ${d.firstName}'s most promising starting point.`,
-        `${d.firstName} had better results in ${topAcad.label}, which can serve as a stepping stone for raising overall scores.`,
-        `The progress visible in ${topAcad.label} shows that ${d.firstName} can build confidence when skills are practiced step by step.`
+        `I really appreciated how actively you participated in class (${cpMention})—you stayed curious and engaged even when tests and quizzes didn't go your way.`,
+        `Speaking up and staying involved in lessons (${cpMention}) showed me that you understand more verbally than your exam scores gave you credit for.`,
+        `Your class participation (${cpMention}) was a clear strength, proving you are listening and thinking during discussions even if written exams felt tricky.`,
+        `Even with low test results, you never tuned out—earning ${cpMention} shows genuine involvement when topics are discussed live.`,
+        `Staying vocal and involved in class (${cpMention}) is something to be proud of, because it means your brain is engaged and ready once we sharpen written review.`,
+        `You consistently jumped into class activities (${cpMention}), which tells me you have the interest needed to raise your written scores too.`
+      ];
+    }
+    if (best && best.pct >= 40) {
+      return [
+        `Looking closely at your numbers, ${best.key === 'tests' ? 'monthly tests' : best.key} (${best.text}) went noticeably better than your other categories, giving you a clue about what study approach works best for you.`,
+        `Compared to the rest of your marks, your ${best.key === 'tests' ? 'test' : best.key} score (${best.text}) showed moments where concepts did make sense.`,
+        `Your strongest showing came on ${best.key === 'tests' ? 'tests' : best.key} at ${best.text}, proving you are capable of getting points on the board when you lock in.`,
+        `Even in a hard quarter, earning ${best.text} in ${best.key === 'tests' ? 'tests' : best.key} gives us proof that things click when you have enough practice.`,
+        `There were signs of progress in ${best.key === 'tests' ? 'tests' : best.key} (${best.text}), which is an encouraging sign we can expand into other areas.`,
+        `Your effort in ${best.key === 'tests' ? 'tests' : best.key} (${best.text}) held up better than the rest of your grades and is worth building upon.`
       ];
     }
     return [
-      `Continuing to show up and engage with guided class activities will be key to turning current effort into steady progress.`,
-      `${d.firstName} can use small, manageable wins in daily classwork to rebuild confidence across the quarter.`,
-      `With consistent support and encouragement, ${d.firstName} has the opportunity to strengthen core skills early next term.`,
-      `Staying connected during lessons and attempting every task will help ${d.firstName} gain firmer footing going forward.`,
-      `${d.firstName} showed potential to respond well when tasks are broken down into clear, manageable steps.`,
-      `Building one reliable habit at a time will help ${d.firstName} turn daily classroom effort into stronger assessment scores.`
+      `Seeing you continue coming to class${goodAttendance ? ' regularly' : ''} and sticking with the term shows quiet persistence even when assignments feel uphill.`,
+      `Every quarter is a chance to reset, and staying connected with classroom routines instead of giving up is already half the battle.`,
+      `Even when grades drop, showing up ready to try one task at a time gives us everything we need to start rebuilding together.`,
+      `I know you can respond well once expectations feel manageable and we break lessons down into smaller daily chunks.`,
+      `Keeping an open mind and letting yourself accept extra help early will help your effort finally turn into passing marks.`,
+      `Staying present in the classroom and attempting each step bit by bit is how real turnarounds begin.`
     ];
   }
 
-  if (acadBalanced && topAcad) {
+  if (isEvenlyStrong && best) {
     return [
-      `Performance was remarkably balanced across coursework and assessments (Homework ${d.hwTotal}%, Quizzes ${d.quizTotal}%, Tests ${d.testTotal}%).`,
-      `${d.firstName} maintained consistent quality across homework (${d.hwTotal}%), quizzes (${d.quizTotal}%), and tests (${d.testTotal}%)${highCp ? `, backed by strong participation (${d.cpVal}/${d.cpMax})` : ''}.`,
-      `Steady results across assignments and exams highlight disciplined preparation throughout the entire quarter.`,
-      `${d.firstName} demonstrated even consistency across every academic category without major dips in performance.`,
-      `Both daily coursework and formal assessments were handled reliably${highConduct ? `, alongside exemplary conduct (${d.conductVal}/${d.conductMax})` : ''}.`,
-      `Well-rounded results across homework, quizzes, and tests show dependable study habits from week to week.`
+      `What impressed me most was how steady you were everywhere—homework (${fmtPct(d.hwTotal)}), quizzes (${fmtPct(d.quizTotal)}), and monthly tests (${fmtPct(d.testTotal)}) all stayed consistently solid without any big drops.`,
+      `You avoided cramming and kept all your categories balanced—scoring ${fmtPct(d.hwTotal)} on homework, ${fmtPct(d.quizTotal)} on quizzes, and ${fmtPct(d.testTotal)} on tests${greatConduct ? ` with great conduct (${conductMention})` : ''}.`,
+      `Your consistency across daily assignments, short quizzes, and major tests showed genuine reliability week after week${goodCp ? `, backed up by active class participation (${cpMention})` : ''}.`,
+      `I loved seeing steady marks across homework, quizzes, and tests alike—it shows you stay on top of lessons as they happen rather than waiting until the last minute.`,
+      `From daily homework (${fmtPct(d.hwTotal)}) right through to monthly tests (${fmtPct(d.testTotal)}), your work had a calm, dependable rhythm all quarter long.`,
+      `Keeping every academic area above ${fmtPct(worst.pct)} while maintaining ${goodConduct ? conductMention : 'a positive attitude'} shows strong self-discipline.`
     ];
   }
 
-  if (topAcad && topAcad.key === 'tests' && topAcad.pct >= 70) {
+  if (best && best.key === 'tests' && best.pct >= 70) {
     return [
-      `Monthly tests were a standout strength (${d.testTotal}%), reflecting solid comprehension under exam conditions.`,
-      `${d.firstName} excelled on formal assessments (${d.testTotal}%), applying concepts accurately on longer tests.`,
-      `Strong exam performance (${d.testTotal}%) shows ${d.firstName} retains and synthesizes core material effectively.`,
-      `Assessment readiness stood out this quarter, with ${d.testTotal}% on monthly tests leading ${d.firstName}'s results.`,
-      `${d.firstName} demonstrated impressive accuracy on monthly tests (${d.testTotal}%)${highCp ? ` as well as active class participation (${d.cpVal}/${d.cpMax})` : ''}.`,
-      `High scores on tests (${d.testTotal}%) highlight strong analytical thinking and solid preparation for major evaluations.`
+      `You really shone on monthly tests (${best.text}), handling longer exam questions calmly and showing solid command of what we studied.`,
+      `Your performance on monthly tests (${best.text}) stood out right away—you clearly know how to pull ideas together under exam conditions.`,
+      `Tests were definitely your strongest moment (${best.text}), showing that you can focus well and apply what you learned when it counts most.`,
+      `Scoring ${best.text} on monthly tests proves you truly understand the deeper concepts${goodCp ? ` and your ${cpMention} added great energy to class too` : ''}.`,
+      `I was especially pleased with your monthly test results (${best.text}), which showed careful thinking and solid retention.`,
+      `When major exams came around, you stepped up and delivered ${best.text}${goodConduct ? ` alongside respectful conduct (${conductMention})` : ''}.`
     ];
   }
 
-  if (topAcad && topAcad.key === 'homework' && topAcad.pct >= 70) {
+  if (best && best.key === 'homework' && best.pct >= 70) {
     return [
-      `Homework completion was a clear strength (${d.hwTotal}%), showing responsibility and steady effort outside class.`,
-      `${d.firstName} excelled on homework tasks (${d.hwTotal}%), submitting thorough and dependable assignments.`,
-      `Strong homework results (${d.hwTotal}%) reflect reliable daily organization and care with practice tasks.`,
-      `Consistent dedication to assignments (${d.hwTotal}%)${highConduct ? ` paired with respectful conduct (${d.conductVal}/${d.conductMax})` : ''} anchored ${d.firstName}'s performance.`,
-      `${d.firstName} performed particularly well on homework (${d.hwTotal}%), demonstrating persistence on independent tasks.`,
-      `Diligent homework habits (${d.hwTotal}%) gave ${d.firstName} a strong foundation across the quarter.`
+      `Your homework (${best.text}) was a real highlight this quarter—you took assignments seriously, turned work in reliably, and showed strong independence.`,
+      `Scoring ${best.text} on homework shows terrific responsibility outside the classroom and proves you put genuine thought into practice tasks.`,
+      `I really appreciate the care you put into homework (${best.text})${goodConduct ? ` and your respectful conduct in class (${conductMention})` : ''}; reliable daily work makes a huge difference.`,
+      `You led with your homework average (${best.text}), showing neat, dependable effort on regular assignments week after week.`,
+      `Your dedication on homework (${best.text}) kept your grade anchored all term and shows you know how to follow through on tasks.`,
+      `Consistency on assignments (${best.text})${goodAttendance ? ' along with dependable attendance' : ''} reflects strong daily habits that any student would be proud of.`
     ];
   }
 
-  if (topAcad && topAcad.key === 'quizzes' && topAcad.pct >= 70) {
+  if (best && best.key === 'quizzes' && best.pct >= 70) {
     return [
-      `Quizzes were a particular strength (${d.quizTotal}%), showing quick recall and attentive lesson review.`,
-      `${d.firstName} scored well on regular quizzes (${d.quizTotal}%), keeping up effectively with ongoing topics.`,
-      `Strong quiz performance (${d.quizTotal}%) demonstrates timely preparation and firm grasp of shorter units.`,
-      `${d.firstName} showed reliable accuracy on quizzes (${d.quizTotal}%)${highCp ? ` alongside solid class participation (${d.cpVal}/${d.cpMax})` : ''}.`,
-      `Consistent quiz marks (${d.quizTotal}%) confirm that ${d.firstName} stays engaged with material as it is taught.`,
-      `Preparation for weekly checks paid off in ${d.firstName}'s strong quiz average (${d.quizTotal}%).`
+      `You did a great job staying sharp for quizzes (${best.text}), showing that you review lessons quickly while ideas are still fresh.`,
+      `Quizzes were where you really stood out (${best.text}), proving you keep up well with week-to-week vocabulary and problem steps.`,
+      `Your strong quiz marks (${best.text}) show attentive listening during class and prompt preparation before short check-ins.`,
+      `Hitting ${best.text} across quizzes showed great focus on day-to-day lessons${goodCp ? `, matching your active involvement in discussions (${cpMention})` : ''}.`,
+      `I liked how quickly you grasped weekly topics on quizzes (${best.text})—that kind of timely review really pays off.`,
+      `Staying ready for short quizzes (${best.text})${goodConduct ? ` with cooperative conduct (${conductMention})` : ''} kept your momentum positive throughout the quarter.`
     ];
   }
 
-  if (highCp) {
+  if (goodCp) {
     return [
-      `Class participation stood out (${d.cpVal}/${d.cpMax}), bringing valuable energy and engagement to daily lessons.`,
-      `${d.firstName} participated enthusiastically in class (${d.cpVal}/${d.cpMax})${highConduct ? ` and upheld respectful conduct (${d.conductVal}/${d.conductMax})` : ''}.`,
-      `Consistent involvement in discussions (${d.cpVal}/${d.cpMax}) shows strong curiosity and readiness to contribute.`,
-      `${d.firstName}'s active voice during lessons (${d.cpVal}/${d.cpMax}) helped make classroom activities more dynamic.`,
-      `Strong classroom engagement (${d.cpVal}/${d.cpMax}) is a notable strength that supports deeper learning.`,
-      `${d.firstName} regularly stepped up during class activities (${d.cpVal}/${d.cpMax}), demonstrating genuine involvement.`
+      `Your energy in class participation (${cpMention}) really stood out—you asked thoughtful questions and helped keep discussions lively.`,
+      `I always enjoyed hearing your voice in class (${cpMention})${goodConduct ? ` and seeing your respectful attitude (${conductMention})` : ''}; active involvement like yours makes every lesson better.`,
+      `Scoring ${cpMention} shows how engaged and curious you stay during live activities and group work.`,
+      `You consistently stepped forward during lessons (${cpMention}), bringing confidence and positive focus to classroom discussions.`,
+      `Your strong participation (${cpMention})${goodAttendance ? ' backed by reliable attendance' : ''} shows you are genuinely tuned in during class.`,
+      `Contributing regularly (${cpMention}) gave you a strong classroom presence and showed you are never afraid to engage with new ideas.`
     ];
   }
 
-  if (highConduct) {
+  if (goodConduct) {
     return [
-      `Respectful conduct (${d.conductVal}/${d.conductMax}) set a positive tone and showed cooperation in every lesson.`,
-      `${d.firstName} maintained admirable classroom behavior (${d.conductVal}/${d.conductMax}), listening attentively and following expectations.`,
-      `Positive conduct (${d.conductVal}/${d.conductMax})${strongAttendance ? ` and strong attendance (${d.attendance.rate}%)` : ''} provided steady support for learning.`,
-      `${d.firstName} was cooperative and respectful throughout the quarter (${d.conductVal}/${d.conductMax}).`,
-      `Consistent classroom conduct (${d.conductVal}/${d.conductMax}) reflects maturity and readiness to collaborate with peers.`,
-      `${d.firstName}'s attentive attitude (${d.conductVal}/${d.conductMax}) helped create a supportive classroom environment.`
+      `Your conduct in class (${conductMention}) was consistently mature and respectful, making the classroom a better place for everyone around you.`,
+      `I appreciated your calm, polite behavior (${conductMention}) all quarter long—you listened well and set a positive example for peers.`,
+      `With ${conductMention}${goodAttendance ? ` and reliable attendance (${fmtPct(d.attendance.rate)})` : ''}, your daily classroom habits gave you a great foundation.`,
+      `You were cooperative, attentive, and respectful every week (${conductMention}), which goes a long way toward steady learning.`,
+      `Showing ${conductMention} proved you take classroom expectations seriously and know how to stay respectful during group and solo work.`,
+      `Your thoughtful attitude (${conductMention})${best ? ` along with ${best.text} in ${best.key === 'tests' ? 'tests' : best.key}` : ''} showed solid character throughout the quarter.`
     ];
   }
 
   return [
-    `${d.firstName} showed moments of steady focus across the quarter${topAcad ? `, especially in ${topAcad.label}` : ''}.`,
-    `Effort across classroom tasks showed helpful progress${strongAttendance ? ` backed by reliable attendance (${d.attendance.rate}%)` : ''}.`,
-    `${d.firstName} demonstrated growing familiarity with routine expectations and key lesson activities.`,
-    `Keeping consistent attention on classwork gave ${d.firstName} useful experience to refine going forward.`,
-    `${d.firstName} responded constructively to class activities and can build further on this base next quarter.`,
-    `Continued engagement with daily tasks helped ${d.firstName} sustain momentum through the term.`
+    `There were clear moments this quarter where your focus paid off${best ? `, especially seeing ${best.text} in ${best.key === 'tests' ? 'tests' : best.key}` : ''}.`,
+    `You kept working through class tasks steadily${goodAttendance ? ` and maintained dependable attendance (${fmtPct(d.attendance.rate)})` : ''}, giving yourself solid ground to improve from.`,
+    `Your steady presence and willingness to stay engaged with routine work showed good effort even during busy weeks.`,
+    `Staying attentive during guided practice helped you pick up key routines that will serve you well going forward.`,
+    `You showed good moments of focus and persistence when tasks were clear, proving you can step up when you lock into a routine.`,
+    `Your continued effort through classroom exercises gave you useful experience to build sharper accuracy from.`
   ];
 };
 
-const buildImprovementOptions = (d: ScoreFeedbackInputs): string[] => {
-  const attendanceConcern =
+const buildHumanImprovements = (d: ScoreFeedbackInputs): string[] => {
+  const attendanceIssue =
     d.attendance.total > 0 &&
     (d.attendance.unexcused >= d.attendanceSettings.warningThreshold || d.attendance.rate < 85);
 
-  if (attendanceConcern) {
+  if (attendanceIssue) {
     return [
-      `Prioritizing consistent attendance (${d.attendance.rate}% rate, ${d.attendance.unexcused} unexcused absence${d.attendance.unexcused === 1 ? '' : 's'}) will ensure ${d.firstName} does not miss essential explanations and practice.`,
-      `Improving regular class attendance (${d.attendance.unexcused} unexcused) is the most immediate step to help ${d.firstName} keep pace and boost scores.`,
-      `Being present consistently for lessons (${d.attendance.rate}% attendance) will give ${d.firstName} stronger continuity and confidence on assessments.`,
-      `Reducing missed classes (${d.attendance.unexcused} unexcused) and catching up promptly on notes will directly strengthen future results.`,
-      `Steady daily attendance should be a top goal next quarter so ${d.firstName} stays connected with core instruction before quizzes and tests.`,
-      `Focusing on arriving consistently and reviewing missed material right away will help close current learning gaps.`
+      `The biggest hurdle holding your score back was attendance (${fmtPct(d.attendance.rate)} with ${d.attendance.unexcused} unexcused absence${d.attendance.unexcused === 1 ? '' : 's'})—missing explanations in person makes tests and quizzes feel twice as hard, so making class attendance a top habit and catching up on missed notes right away will help immediately.`,
+      `Being out for several classes (${d.attendance.unexcused} unexcused) made it tough to keep pace when topics moved forward; showing up regularly and asking a classmate or me for missed examples the very next day will noticeably lift your grades.`,
+      `Right now, strengthening attendance (${fmtPct(d.attendance.rate)}) is your quickest win—when you are in your seat consistently, lessons click much faster and quiz days stop feeling like surprises.`,
+      `Work on reducing unexcused absences (${d.attendance.unexcused}) first, because regular presence in the room will give you the confidence and background needed for stronger homework and exam scores.`,
+      `Missing lessons interrupted your momentum (${fmtPct(d.attendance.rate)} attendance), so prioritizing consistent arrival and reviewing missed classwork promptly will make a clear difference next term.`,
+      `Making steady daily attendance a priority—and checking in right after any missed day—will keep small gaps from piling up before monthly tests.`
     ];
   }
 
-  const academicAreas: { key: 'hw' | 'quiz' | 'test'; pct: number }[] = [];
-  if (d.hasHw) academicAreas.push({ key: 'hw', pct: d.hwTotal });
-  if (d.hasQuiz) academicAreas.push({ key: 'quiz', pct: d.quizTotal });
-  if (d.hasTest) academicAreas.push({ key: 'test', pct: d.testTotal });
+  const academicAreas: { key: 'hw' | 'quiz' | 'test'; pct: number; label: string }[] = [];
+  if (d.hasHw) academicAreas.push({ key: 'hw', pct: d.hwTotal, label: fmtPct(d.hwTotal) });
+  if (d.hasQuiz) academicAreas.push({ key: 'quiz', pct: d.quizTotal, label: fmtPct(d.quizTotal) });
+  if (d.hasTest) academicAreas.push({ key: 'test', pct: d.testTotal, label: fmtPct(d.testTotal) });
   academicAreas.sort((a, b) => a.pct - b.pct);
   const weakest = academicAreas[0];
+  const secondWeakest = academicAreas[1];
 
-  const conductLow = d.hasConduct && d.conductPct < 0.75;
-  const cpLow = d.cpPct < 0.70;
+  const lowConduct = d.hasConduct && d.conductPct < 0.75;
+  const lowCp = d.cpPct < 0.70;
 
-  if (conductLow && (!weakest || d.conductPct * 100 <= weakest.pct)) {
+  if (lowConduct && (!weakest || d.conductPct * 100 <= weakest.pct)) {
     return [
-      `Strengthening daily classroom focus and readiness (${d.conductVal}/${d.conductMax} conduct) will directly improve learning retention and marks.`,
-      `Paying closer attention to classroom routines and staying on task throughout lessons (${d.conductVal}/${d.conductMax}) is a key area for growth.`,
-      `${d.firstName} is encouraged to bring calmer focus and consistent preparation to each lesson to raise conduct (${d.conductVal}/${d.conductMax}) and achievement together.`,
-      `Maintaining consistent self-discipline during class time will help ${d.firstName} get much more out of teacher explanations.`,
-      `Focusing on respectful listening and organized class habits will positively lift both conduct (${d.conductVal}/${d.conductMax}) and overall performance.`,
-      `Improving daily classroom focus and minimizing distractions will support steadier results next quarter.`
+      `Where you can make the biggest jump is classroom focus—bringing calmer listening habits and staying tuned in from start to finish (currently ${d.conductVal}/${d.conductMax} conduct) will help you catch important details the first time they are taught.`,
+      `Pay closer attention to staying settled and focused during lessons (${d.conductVal}/${d.conductMax} conduct); cutting down distractions during explanation time makes homework and tests much easier later on.`,
+      `Working on daily self-discipline and classroom readiness (${d.conductVal}/${d.conductMax} conduct) will immediately improve how much you take away from each lesson.`,
+      `Try coming into class organized and staying locked onto the task at hand—improving conduct from ${d.conductVal}/${d.conductMax} goes hand in hand with higher test marks.`,
+      `Limiting side chatter and staying attentive throughout group and teacher explanations will lift both your conduct (${d.conductVal}/${d.conductMax}) and overall confidence.`,
+      `Giving every lesson your full attention from bell to bell is the simplest change you can make right now to get stronger results.`
     ];
   }
 
-  // If Grade A and everything is genuinely strong (>= 85%)
-  if (d.letterGrade === 'A' && (!weakest || weakest.pct >= 85) && !cpLow) {
+  // Grade A with strong marks everywhere -> genuine extension challenge
+  if (d.letterGrade === 'A' && (!weakest || weakest.pct >= 85) && !lowCp) {
     return [
-      `Going forward, ${d.firstName} can challenge themselves with deeper analysis questions and mentor peers during collaborative activities.`,
-      `To grow even further, ${d.firstName} is encouraged to explore extension problems and refine small details on high-level tasks.`,
-      `Maintaining this strong consistency while tackling more complex critical-thinking challenges will keep ${d.firstName} excelling.`,
-      `${d.firstName} is ready to take on independent stretch goals and share leadership in class discussions next quarter.`,
-      `Continuing to double-check subtle details while pushing into advanced applications will sharpen ${d.firstName}'s mastery even more.`,
-      `Setting personal stretch targets and explaining reasoning clearly to classmates will elevate ${d.firstName}'s work to the next level.`
+      `Since you already have the core material well under control, your next step is pushing yourself with harder extension questions and helping classmates talk through tricky concepts during group tasks.`,
+      `Because your fundamentals are so strong, try taking on deeper challenge problems and double-checking tiny details on exams so you keep sharpening your edge.`,
+      `Now that you have mastered the main expectations, don't settle—ask bigger "why" questions, explore tougher problems beyond the basics, and keep encouraging quieter teammates around you.`,
+      `As someone setting the pace in class, challenge yourself next quarter to explain your reasoning clearly out loud and look closely at multi-step questions where small details count.`,
+      `To keep growing at this level, look for ways to stretch your thinking on open-ended problems and act as a steady leader during collaborative work.`,
+      `Keep guarding against small rushing mistakes on high-scoring work, and push yourself on complex critical-thinking questions whenever you finish early.`
     ];
   }
 
-  // If CP is noticeably lagging behind solid academic grades or clearly lowest
-  if (cpLow && (!weakest || d.cpPct * 100 + 8 < weakest.pct || (d.letterGrade === 'A' && weakest.pct >= 88))) {
+  // Quiet student whose CP lags behind solid written grades
+  if (lowCp && (!weakest || d.cpPct * 100 + 8 < weakest.pct || (d.letterGrade === 'A' && weakest.pct >= 88))) {
     return [
-      `Sharing ideas and asking clarifying questions more frequently in class (${d.cpVal}/${d.cpMax} participation) will deepen ${d.firstName}'s confidence and understanding.`,
-      `${d.firstName} clearly understands more than they voice aloud; speaking up more often in discussions (${d.cpVal}/${d.cpMax}) is a great next step.`,
-      `Contributing at least one response or question each week will raise class participation (${d.cpVal}/${d.cpMax}) to match ${d.firstName}'s potential.`,
-      `Engaging more actively during group and whole-class discussions (${d.cpVal}/${d.cpMax}) will help reinforce concepts in real time.`,
-      `${d.firstName} is encouraged to volunteer thoughts more regularly in lessons so participation (${d.cpVal}/${d.cpMax}) reflects strong preparation.`,
-      `Taking small steps to join class discussions more consistently will strengthen both confidence and overall standing.`
+      `One easy area to grow is speaking up more during lessons—your participation (${d.cpVal}/${d.cpMax}) doesn't yet show how much you actually understand on paper, so try sharing one answer or question each week.`,
+      `You clearly follow the material well, so don't hold back during class discussions! Raising your hand more often (currently ${d.cpVal}/${d.cpMax} CP) will build confidence and add great insights to the room.`,
+      `Challenge yourself to voice at least one thought or question every few lessons—lifting your participation from ${d.cpVal}/${d.cpMax} will round out an already strong profile.`,
+      `Sometimes quiet students think their answer isn't ready yet, but sharing even partial ideas during class (${d.cpVal}/${d.cpMax} CP) helps sharpen your thinking fast.`,
+      `Bringing more of your strong written thinking into live discussions (${d.cpVal}/${d.cpMax} CP) is a simple, rewarding goal that will also boost leadership skills.`,
+      `Try jumping into partner or whole-class sharing a little more often (${d.cpVal}/${d.cpMax} CP)—your classmates benefit from hearing your perspective too.`
     ];
   }
 
   if (weakest && weakest.key === 'test') {
+    const alsoWeakQuiz = secondWeakest && secondWeakest.key === 'quiz' && secondWeakest.pct < 65;
     return [
-      `To lift overall results, ${d.firstName} should focus on monthly test preparation (${d.testTotal}%) through timed practice and reviewing cumulative topics earlier.`,
-      `Strengthening exam review strategies for monthly tests (${d.testTotal}%)—especially practicing multi-step questions ahead of time—will make the biggest difference.`,
-      `Connecting daily lesson notes directly to sample test questions will help raise ${d.firstName}'s test scores (${d.testTotal}%) closer to their other strengths.`,
-      `${d.firstName} will benefit from reviewing earlier units well before test week so monthly exam results (${d.testTotal}%) match daily effort.`,
-      `Checking test questions carefully and pacing review sessions across the week will boost confidence and marks on tests (${d.testTotal}%).`,
-      `Targeted practice on core exam concepts before monthly tests (${d.testTotal}%) is the clearest path toward a higher grade next quarter.`
+      `The main score holding you back was monthly tests (${weakest.label})${alsoWeakQuiz ? ` alongside quizzes (${secondWeakest.label})` : ''}; instead of cramming right before test day, try breaking your review into short twenty-minute blocks across the week before exams and practicing problems without looking at examples first.`,
+      `Your biggest opportunity for a grade jump is monthly test prep (${weakest.label})—reworking missed homework and quiz questions a few days early will make longer test questions feel familiar instead of overwhelming.`,
+      `Notice how much better your other work is compared to tests (${weakest.label}); slowing down to read every exam question twice and writing out each step clearly will save lots of unnecessary lost points.`,
+      `Test time (${weakest.label}) is where you can gain the most ground${alsoWeakQuiz ? `, along with weekly quizzes (${secondWeakest.label})` : ''}, so start building small summary sheets after each unit and testing yourself ahead of time.`,
+      `To bring your monthly test score (${weakest.label}) closer to your daily work, spend time practicing mixed review questions several days before exams and always review where points were lost on past tests.`,
+      `Working on exam pacing and checking your answers calmly before turning in monthly tests (${weakest.label}) will immediately unlock points you are already capable of earning.`
     ];
   }
 
   if (weakest && weakest.key === 'quiz') {
+    const alsoWeakTest = secondWeakest && secondWeakest.key === 'test' && secondWeakest.pct < 65;
     return [
-      `Brief, regular review of class notes before each quiz will help raise ${d.firstName}'s quiz scores (${d.quizTotal}%) quickly.`,
-      `To move higher, ${d.firstName} should revisit tricky concepts right after each lesson and double-check past quiz feedback (${d.quizTotal}%).`,
-      `Consistent short study sessions during the week will sharpen accuracy on quizzes (${d.quizTotal}%) and reinforce longer-term memory.`,
-      `${d.firstName} is encouraged to prepare a few days ahead for quizzes (${d.quizTotal}%) and clarify confusing points before quiz day.`,
-      `Reviewing key vocabulary and worked examples before short assessments will bring quiz marks (${d.quizTotal}%) in line with strengths.`,
-      `Building a habit of quick weekly recaps will turn minor quiz slips (${d.quizTotal}%) into reliable points next quarter.`
+      `Where points slipped away most was on quizzes (${weakest.label})${alsoWeakTest ? ` and monthly tests (${secondWeakest.label})` : ''}, usually when small gaps build up between classes; spending ten minutes reviewing your notes right after each lesson—and asking quickly whenever something feels blurry—will make quiz days feel way less stressful.`,
+      `Quizzes (${weakest.label}) dragged your average down more than anything else, so try doing a quick five-minute recap twice a week instead of waiting until quiz morning to look back at your notebook.`,
+      `Look closely at missed questions from quizzes (${weakest.label}) and correct them the day you get them back—fixing minor misunderstandings early keeps them from showing up again on bigger tests${alsoWeakTest ? ` (currently ${secondWeakest.label})` : ''}.`,
+      `Your quiz average (${weakest.label}) is the clearest place to tighten up; jotting down one summary point after each class and drilling key rules before quizzes will turn those marks right around.`,
+      `Focusing on short, regular note reviews before quiz days (${weakest.label}) will sharpen accuracy quickly and reinforce concepts before longer exams arrive.`,
+      `Try quizzing yourself briefly two nights before short assessments (${weakest.label}) and speaking up immediately in class whenever a step doesn't quite click.`
     ];
   }
 
   if (weakest && weakest.key === 'hw') {
     return [
-      `Prioritizing timely, complete homework submissions (${d.hwTotal}%) is the fastest way for ${d.firstName} to strengthen understanding and raise their grade.`,
-      `${d.firstName} should focus on completing every homework assignment thoroughly (${d.hwTotal}%), using class examples as a guide.`,
-      `Setting aside a consistent daily routine for homework (${d.hwTotal}%) will prevent missing points and reinforce classroom lessons.`,
-      `Checking assignment instructions carefully and submitting homework on time (${d.hwTotal}%) will create a much steadier grade foundation.`,
-      `Consistent practice through completed homework (${d.hwTotal}%) will pay off directly on quizzes and tests next term.`,
-      `${d.firstName} is encouraged to seek clarification early on difficult homework items so all tasks (${d.hwTotal}%) are completed accurately.`
+      `The quickest way to boost your overall mark is getting all your homework turned in carefully and on time (currently ${weakest.label}); missing or rushed assignments leave easy points on the table and take away valuable practice before tests.`,
+      `Homework (${weakest.label}) pulled your score down unnecessarily—setting aside a fixed twenty-minute block at home each day to finish and double-check assignments will pay off twice over in better grades and stronger understanding.`,
+      `Right now, your biggest gain sits right in homework (${weakest.label}); using class examples while working through problems—and asking for clarification before due dates if you get stuck—will lift your average fast.`,
+      `Focus first on completing every assignment completely (${weakest.label}) rather than leaving blanks; daily homework practice is the bridge that makes quizzes and tests much easier.`,
+      `Building a simple checklist for homework (${weakest.label}) and checking each answer before submitting will recover easy points and sharpen your mastery of weekly lessons.`,
+      `When assignments (${weakest.label}) are skipped or hurried, both your daily average and test readiness feel the impact—making homework completion non-negotiable will change your whole quarter.`
     ];
   }
 
   if (d.letterGrade === 'E' || d.letterGrade === 'F') {
     return [
-      `Seeking extra teacher support early, keeping a steady study schedule, and completing foundational practice tasks will help ${d.firstName} build stronger results.`,
-      `Focusing on core lesson basics, asking questions right away when stuck, and finishing daily tasks step by step will help ${d.firstName} recover momentum.`,
-      `Regular review of essential notes paired with guided practice after class is strongly recommended to rebuild confidence next quarter.`,
-      `${d.firstName} is encouraged to break study time into short daily blocks and check in frequently for support on challenging topics.`,
-      `Staying on top of basic assignments and attending review opportunities will help ${d.firstName} turn effort into steady progress.`,
-      `Rebuilding core concepts with patient, consistent practice and asking for help early will set up a much stronger next quarter.`
+      `The best thing you can do right now is stop trying to figure everything out alone—come check in with me during extra help, start with core basic examples step by step, and focus on completing one small study task every day.`,
+      `Rather than feeling buried by everything at once, pick one foundational topic a week to review with guided examples, ask questions the moment you feel lost, and make sure every daily assignment gets attempted.`,
+      `Consistent short practice sessions—fifteen focused minutes a day reviewing notes and redoing class examples—along with asking for support early will steadily rebuild both your confidence and your scores.`,
+      `Let's focus on daily habits first: keep organized notes in class, finish basic practice tasks before moving on, and never hesitate to speak up when an explanation goes too fast.`,
+      `Getting back to solid footing starts with showing up prepared, asking clarifying questions early instead of waiting until exam week, and tackling basic exercises patiently.`,
+      `Working closely with guidance on core concepts and completing steady practice work each week will help clear up confusion before assessments arrive.`
     ];
   }
 
   return [
-    `Establishing a steady weekly revision routine and double-checking work for detail will help ${d.firstName} push into the next tier.`,
-    `Reviewing challenging topics consistently and asking clarifying questions in class will help ${d.firstName} maintain upward progress.`,
-    `${d.firstName} should keep reinforcing study habits and reviewing feedback carefully to improve accuracy across all tasks.`,
-    `Continued attention to detail and early preparation before assessments will support even stronger results next quarter.`,
-    `Building steady weekly study habits across all subjects of coursework will help ${d.firstName} reach higher consistency.`,
-    `Balancing daily review with active reflection on past feedback will keep ${d.firstName} progressing smoothly.`
+    `To take the next step forward, build a steady weekly habit of reviewing notes for ten to fifteen minutes and checking over small mistakes on returned work.`,
+    `Setting aside regular review time each week and asking follow-up questions whenever a detail feels uncertain will help lift your consistency across every task.`,
+    `Slowing down slightly to double-check your work for small careless errors and preparing a few days ahead of assessments will keep your scores climbing.`,
+    `Focusing on steady weekly revision rather than last-minute review will turn good understanding into even stronger marks.`,
+    `Keep refining your study routine by organizing key ideas after each lesson and revisiting tough examples until they feel natural.`,
+    `Checking feedback carefully on returned work and applying those tips right away will give you a noticeable boost next time.`
   ];
 };
 
+const buildHumanClosings = (d: ScoreFeedbackInputs): string[] => {
+  const nq = d.nextQuarter;
+  switch (d.letterGrade) {
+    case 'A':
+      return [
+        `Keep bringing this same curiosity and high standard into ${nq}—you are doing wonderful work.`,
+        `I am excited to see what you take on in ${nq}; keep trusting your habits and staying humble and curious.`,
+        `Carry this awesome momentum right into ${nq}, and keep setting such a strong example in our classroom.`,
+        `You have earned every bit of this success—keep enjoying the challenge as we head into ${nq}.`,
+        `Looking ahead to ${nq}, stay proud of how hard you work and keep pushing your thinking even further.`,
+        `Keep shining in ${nq}—your consistency and positive attitude are a real joy to have in class.`
+      ];
+    case 'B':
+      return [
+        `An A is well within your reach in ${nq}—keep up your momentum and trust that small refinements will take you right there.`,
+        `You are very close to the top tier; bring that same steady drive into ${nq} and watch how far you climb.`,
+        `Keep believing in your progress—with one or two sharper study tweaks in ${nq}, you can easily surpass this mark.`,
+        `You have built great habits already; keep tightening the details in ${nq} and aim high.`,
+        `Heading into ${nq}, stay confident—you are doing so much right, and your best work is still ahead of you.`,
+        `I know you have an A inside you for ${nq}; stay focused, ask questions freely, and finish strong.`
+      ];
+    case 'C':
+      return [
+        `You have real potential here—lock in those small weekly habits in ${nq}, and I know we will see you pushing into the B range.`,
+        `Don't underestimate what steady daily effort can do in ${nq}; stay patient with yourself and keep aiming higher.`,
+        `Heading into ${nq}, bring a little more structure to your review routine, and you will feel much stronger on assessment days.`,
+        `You are closer to a big jump than you might realize—keep showing up, ask more questions in ${nq}, and watch your confidence grow.`,
+        `Use ${nq} to turn your steady foundation into higher scores; I am cheering for your progress every step of the way.`,
+        `With just a bit more consistency outside class in ${nq}, this C can easily turn into a solid B.`
+      ];
+    case 'D':
+      return [
+        `Please don't let a Grade D discourage you—${nq} is a fresh slate, and I know that with regular practice you can climb much higher.`,
+        `Small changes each week really do add up; bring steady determination into ${nq}, ask for help early, and you will see real improvement.`,
+        `I believe you can turn this around in ${nq}—keep showing up, tackle one topic at a time, and don't hesitate to lean on me for support.`,
+        `Take what you learned about your habits this quarter into ${nq}; once your weekly routine gets steadier, your grades will follow.`,
+        `Heading into ${nq}, focus on progress rather than perfection—every finished assignment and asked question moves you forward.`,
+        `You have the ability to do much better than a D, and ${nq} is your chance to prove it to yourself step by step.`
+      ];
+    case 'E':
+    case 'F':
+    default:
+      return [
+        `One hard quarter never defines what you can do—treat ${nq} as a fresh start, ask for help right away whenever you get stuck, and let's rebuild your confidence together.`,
+        `I truly want to see you succeed in ${nq}; start with small daily goals, lean on teacher support early, and trust that your scores will begin moving up.`,
+        `Don't lose heart—every student hits a rough patch at some point, and coming into ${nq} ready to ask questions and stay consistent can turn everything around.`,
+        `You are worth the effort it takes to turn this grade around; let's work closely together from day one of ${nq} so you feel supported and capable.`,
+        `Take ${nq} one day and one lesson at a time—keep bringing your effort to class, speak up early when confused, and give yourself a real chance to surprise yourself.`,
+        `Keep your head up moving into ${nq}; with steady attendance, daily practice, and early support, you can absolutely move onto stronger ground.`
+      ];
+  }
+};
+
 interface ParticipationOnlyInputs {
-  firstName: string;
+  fullName: string;
+  quarter: Quarter;
+  nextQuarter: string;
   count: number;
   classAvg: number;
   maxCount: number;
@@ -449,112 +545,128 @@ interface ParticipationOnlyInputs {
   attendanceSettings: AttendanceSettings;
 }
 
-const buildParticipationOnlyComment = (
+const buildHumanParticipationComment = (
   d: ParticipationOnlyInputs,
-  variantIndex: number
+  variantIndex: number,
+  noScoreNotice: boolean
 ): string => {
-  const typeNote = d.topType ? `, most often through ${d.topType.toLowerCase()}` : '';
-  const attConcern =
+  const qLabel = `Quarter ${d.quarter}`;
+  const nq = d.nextQuarter;
+  const typeText = d.topType ? d.topType.toLowerCase() : 'class discussions';
+  const attIssue =
     d.attendance.total > 0 &&
     (d.attendance.unexcused >= d.attendanceSettings.warningThreshold || d.attendance.rate < 85);
 
   let openings: string[];
-  let actions: string[];
+  let bodies: string[];
+  let closings: string[];
 
   if (d.count === 0) {
     openings = [
-      `${d.firstName} has not logged class participation yet this quarter (0 entries).`,
-      `No participation entries were recorded for ${d.firstName} so far this quarter (0 entries).`,
-      `${d.firstName} had 0 recorded participations this quarter while observing lessons.`,
-      `So far this quarter, ${d.firstName} has 0 participation logs on record.`,
-      `${d.firstName} remained quiet in logged class discussions this quarter (0 participations).`,
-      `Recorded participation for ${d.firstName} stands at 0 this quarter.`
+      `Across ${qLabel}, we did not get to hear your voice much in logged class participation yet (0 recorded entries), even though I know you are taking in the lessons quietly.`,
+      `It looks like you stayed mostly quiet during logged ${qLabel} participation (0 entries), listening along while classmates took the floor.`,
+      `Your ${qLabel} participation count stayed at 0 this term, which makes me want to help you feel much more comfortable sharing out loud.`,
+      `So far in ${qLabel}, you have 0 participation logs recorded—many thoughtful students hold back until they feel completely sure, so you are definitely not alone.`
     ];
-    actions = [
-      `Setting a small goal to ask one question or share one response each week will help build confidence in class.`,
-      `Starting with brief contributions in partner or small-group activities is a supportive way to get involved.`,
-      `Sharing even one observation or question per lesson will make ${d.firstName}'s voice a helpful part of class discussions.`,
-      `Connecting during class check-ins and trying one response next week will kick-start active engagement.`,
-      `${d.firstName} is encouraged to contribute thoughts step by step so classroom understanding grows visibly.`,
-      `Asking a clarifying question whenever a lesson topic feels tricky is a great first step into participation.`
+    bodies = [
+      `Even one small step—like asking a quick question when something feels unclear or sharing one answer with a partner first—makes a huge difference in building confidence and locking ideas into memory.`,
+      `You do not need a perfect answer every time to speak up; sharing an observation, reading an example aloud, or asking "why does this step work?" helps both you and everyone around you learn deeper.`,
+      `Starting small is the secret: aim for just one brief comment or question each week during warm-ups or group tasks so speaking up starts feeling natural rather than intimidating.`,
+      `When you put ideas into your own words out loud, lessons stick twice as well—try testing out an idea with a classmate next to you before sharing it with the class.`
+    ];
+    closings = [
+      `I would genuinely love to hear your thoughts in ${nq}; take one small chance next week and see how quickly your confidence grows.`,
+      `Your perspective matters in our classroom—let's make ${nq} the quarter you start letting your voice be heard.`,
+      `Heading into ${nq}, set a gentle goal of one contribution a week, and remember that every question is welcome here.`,
+      `Step into ${nq} knowing you belong in every discussion, and never worry about getting every word perfect on the first try.`
     ];
   } else if (d.classAvg > 0 && d.count < Math.max(1, d.classAvg * 0.6)) {
     openings = [
-      `${d.firstName} logged ${d.count} participation${d.count === 1 ? '' : 's'} this quarter${typeNote}, below the class average of ${d.classAvg}.`,
-      `With ${d.count} recorded participation${d.count === 1 ? '' : 's'}${typeNote}, ${d.firstName} participated less frequently than the class average (${d.classAvg}).`,
-      `${d.firstName} contributed ${d.count} time${d.count === 1 ? '' : 's'} this quarter${typeNote}, showing an initial start compared to the ${d.classAvg} average.`,
-      `Recording ${d.count} participation${d.count === 1 ? '' : 's'} this quarter${typeNote}, ${d.firstName} is beginning to share ideas in class.`,
-      `${d.firstName} made ${d.count} contribution${d.count === 1 ? '' : 's'} during the quarter${typeNote} (class average: ${d.classAvg}).`,
-      `At ${d.count} participation${d.count === 1 ? '' : 's'} this quarter${typeNote}, ${d.firstName} has room to speak up more often.`
+      `You logged ${d.count} participation${d.count === 1 ? '' : 's'} in ${qLabel}, mostly through ${typeText}, giving yourself a modest start compared to the class average of ${d.classAvg}.`,
+      `With ${d.count} contribution${d.count === 1 ? '' : 's'} recorded in ${qLabel} (${typeText}), you began joining in, though your voice was quieter than much of the class (average ${d.classAvg}).`,
+      `I appreciated the ${d.count} time${d.count === 1 ? '' : 's'} you stepped in during ${qLabel} via ${typeText}, even though you held back more often than average (${d.classAvg}).`,
+      `In ${qLabel}, you participated ${d.count} time${d.count === 1 ? '' : 's'} through ${typeText}, showing that you are willing to share when the moment feels comfortable.`
     ];
-    actions = [
-      `Aiming for one extra contribution each week will bring ${d.firstName} closer to the class pace and deepen understanding.`,
-      `Joining group discussions or answering quick review prompts more regularly will strengthen classroom confidence.`,
-      `Building a routine of sharing one idea or question every couple of lessons will steadily raise engagement.`,
-      `${d.firstName} is encouraged to voice observations during activities to reinforce concepts in real time.`,
-      `Taking more frequent opportunities to ask questions will help clarify lessons early and boost participation.`,
-      `Stepping forward during warm-up reviews is a practical way to increase engagement next quarter.`
+    bodies = [
+      `You have already broken the ice by jumping in a few times, so the next step is pushing yourself just slightly past your comfort zone—try volunteering once or twice extra each week during class reviews.`,
+      `Aiming for one additional comment or question every couple of lessons will quickly bring you right up with your classmates and help clarify tricky ideas before quizzes arrive.`,
+      `Try stretching beyond ${typeText} into asking follow-up questions or explaining a step during group activities—engaging out loud makes lessons stick much better.`,
+      `Keep building on those first contributions by speaking up early during warm-ups, when questions feel lighter and easier to share.`
+    ];
+    closings = [
+      `With a little more boldness in ${nq}, your engagement and understanding will grow right alongside each other.`,
+      `Keep pushing yourself gently in ${nq}—every time you share, your confidence in the subject gets stronger.`,
+      `I look forward to hearing even more from you in ${nq} as you build on this start.`,
+      `Carry that momentum into ${nq} and give yourself credit each time you raise your hand.`
     ];
   } else if (d.maxCount > 0 && d.count >= Math.max(2, d.maxCount * 0.85) && d.count > d.classAvg * 1.15) {
     openings = [
-      `${d.firstName} led the way in class engagement with ${d.count} participations this quarter${typeNote} (class average: ${d.classAvg}).`,
-      `With an impressive ${d.count} participations${typeNote}, ${d.firstName} was one of the most active voices in the classroom.`,
-      `${d.firstName} showed outstanding participation this quarter, contributing ${d.count} times${typeNote}.`,
-      `Logging ${d.count} participations${typeNote}, ${d.firstName} consistently energized class lessons well above the ${d.classAvg} average.`,
-      `${d.firstName} demonstrated exceptional classroom involvement with ${d.count} contributions this quarter${typeNote}.`,
-      `Finishing near the top of the class at ${d.count} participations${typeNote}, ${d.firstName} brought steady focus to discussions.`
+      `You were one of the brightest voices in the room throughout ${qLabel}, logging an outstanding ${d.count} participations led by ${typeText} (well above the ${d.classAvg} average).`,
+      `With ${d.count} contributions in ${qLabel}—especially through ${typeText}—your enthusiasm helped energize the whole class.`,
+      `I loved your energy all quarter long: ${d.count} participations in ${qLabel} (class average ${d.classAvg}) showed real curiosity and leadership during ${typeText}.`,
+      `Finishing near the top of the class with ${d.count} participations in ${qLabel}, you consistently brought focus and active thinking into ${typeText}.`
     ];
-    actions = [
-      `Continuing to ask thoughtful deeper questions while encouraging quieter peers in group work will make ${d.firstName} an even stronger classroom leader.`,
-      `Using this strong engagement to guide collaborative tasks and sharpen written accuracy will keep momentum high.`,
-      `Channeling this active curiosity into challenging extension problems will help sustain excellence next quarter.`,
-      `Helping teammates explain concepts during group activities is a great next challenge for ${d.firstName}.`,
-      `Balancing frequent contributions with careful listening to classmates will further enrich class discussions.`,
-      `Carrying this same energy into formal assessments and projects will support strong overall success.`
+    bodies = [
+      `Because classmates look to active voices like yours, your next fun challenge is helping pull quieter teammates into group discussions and asking deeper "what if" questions that stretch everyone's thinking.`,
+      `Keep pairing that wonderful verbal energy with careful written check-ins and thoughtful listening so your curiosity shines both out loud and on paper.`,
+      `Try channeling this high engagement into mentoring peers during partner work and testing your own ideas against harder challenge questions.`,
+      `Make sure you also leave space for teammates to think alongside you—guiding others in how you solved a problem deepens your own mastery even more.`
+    ];
+    closings = [
+      `Keep bringing that infectious curiosity into ${nq}—classes are always better with leaders like you involved.`,
+      `I cannot wait to see what thoughtful questions you ask in ${nq}; stay curious and keep setting a warm example.`,
+      `Hold onto this awesome energy heading into ${nq}, and keep pushing yourself to grow even deeper.`,
+      `Thank you for making ${qLabel} discussions so lively—keep leading with kindness and focus in ${nq}.`
     ];
   } else {
     openings = [
-      `${d.firstName} maintained solid class participation with ${d.count} contribution${d.count === 1 ? '' : 's'} this quarter${typeNote} (class average: ${d.classAvg}).`,
-      `With ${d.count} participation${d.count === 1 ? '' : 's'} recorded${typeNote}, ${d.firstName} stayed steadily engaged alongside peers.`,
-      `${d.firstName} participated reliably this quarter, logging ${d.count} contribution${d.count === 1 ? '' : 's'}${typeNote}.`,
-      `Recording ${d.count} participation${d.count === 1 ? '' : 's'}${typeNote}, ${d.firstName} kept up nicely with classroom discussions.`,
-      `${d.firstName} showed dependable classroom involvement at ${d.count} participation${d.count === 1 ? '' : 's'} this quarter${typeNote}.`,
-      `At ${d.count} participation${d.count === 1 ? '' : 's'}${typeNote}, ${d.firstName} demonstrated steady engagement throughout the quarter.`
+      `You stayed reliably engaged in ${qLabel} with ${d.count} participation${d.count === 1 ? '' : 's'}, most notably through ${typeText} (class average ${d.classAvg}).`,
+      `With ${d.count} contribution${d.count === 1 ? '' : 's'} recorded in ${qLabel} via ${typeText}, you kept a steady, dependable presence in class discussions.`,
+      `I appreciated your consistent involvement across ${qLabel}, where you logged ${d.count} participation${d.count === 1 ? '' : 's'} alongside your classmates.`,
+      `Your ${d.count} participation${d.count === 1 ? '' : 's'} in ${qLabel}—especially in ${typeText}—showed steady focus and willingness to contribute when called on or inspired.`
     ];
-    actions = [
-      `Taking on occasional leadership roles in discussions or offering explanations at the board will lift engagement even higher.`,
-      `Challenging themselves to share reasoning step by step in class will deepen understanding next quarter.`,
-      `Keeping up this steady involvement while asking follow-up questions on harder topics will drive further growth.`,
-      `Volunteering to summarize key ideas or assist in group activities is a great next goal for ${d.firstName}.`,
-      `Staying consistent from week to week and pairing discussion with careful review will pay off on tests and tasks.`,
-      `Aiming to contribute across varied activity types will make participation even more well-rounded.`
+    bodies = [
+      `To push from solid to standout, try stepping slightly outside your routine—volunteer occasionally to walk through an answer at the board or ask a clarifying question whenever something feels nuanced.`,
+      `Keeping this weekly rhythm while mixing in more collaborative leadership or peer explanations will deepen how firmly you hold onto tough concepts.`,
+      `You already listen and engage well, so challenging yourself to speak up one extra time per week on trickier questions is a great next stretch goal.`,
+      `Pairing your dependable participation with focused weekly review will turn steady classroom engagement into even stronger assessment confidence.`
+    ];
+    closings = [
+      `Keep up that dependable presence in ${nq}—steady contributors like you make every class run smoother and stronger.`,
+      `Looking ahead to ${nq}, trust your voice even more and keep building on these solid habits.`,
+      `Stay consistent into ${nq}, and don't hesitate to step forward into bigger leadership roles in discussions.`,
+      `Well done this quarter—keep bringing that reliable energy into ${nq}.`
     ];
   }
 
-  const attNotes = attConcern
-    ? [
-        ` Improving attendance consistency (${d.attendance.rate}% rate, ${d.attendance.unexcused} unexcused) will also support stronger continuity.`,
-        ` Regular class attendance (${d.attendance.unexcused} unexcused absence${d.attendance.unexcused === 1 ? '' : 's'}) should remain a priority going forward.`
-      ]
-    : [''];
+  const attSentence = attIssue
+    ? ` Also, try keeping attendance as steady as possible (${fmtPct(d.attendance.rate)}, ${d.attendance.unexcused} unexcused) so you don't miss live discussions.`
+    : '';
+  const scoreNote = noScoreNotice
+    ? ` (Note: academic score entries in the Score List have not been added yet for this quarter.)`
+    : '';
 
-  const openIdx = variantIndex % openings.length;
-  const actIdx = Math.floor(variantIndex / openings.length) % actions.length;
-  const attIdx = Math.floor(variantIndex / (openings.length * actions.length)) % attNotes.length;
+  const oIdx = variantIndex % openings.length;
+  const bIdx = Math.floor(variantIndex / openings.length) % bodies.length;
+  const cIdx = Math.floor(variantIndex / (openings.length * bodies.length)) % closings.length;
 
-  return `${openings[openIdx]} ${actions[actIdx]}${attNotes[attIdx]}`.trim();
+  return `${openings[oIdx]} ${bodies[bIdx]}${attSentence} ${closings[cIdx]}${scoreNote}`.replace(/\s+/g, ' ').trim();
 };
 
 const composeScoreFeedback = (d: ScoreFeedbackInputs, variantIndex: number): string => {
-  const openings = buildOpeningOptions(d);
-  const strengths = buildStrengthOptions(d);
-  const improvements = buildImprovementOptions(d);
+  const openings = buildHumanOpenings(d);
+  const strengths = buildHumanStrengths(d);
+  const improvements = buildHumanImprovements(d);
+  const closings = buildHumanClosings(d);
 
-  const openIdx = variantIndex % openings.length;
-  const strIdx = Math.floor(variantIndex / openings.length) % strengths.length;
-  const impIdx = Math.floor(variantIndex / (openings.length * strengths.length)) % improvements.length;
+  const oIdx = variantIndex % openings.length;
+  const sIdx = Math.floor(variantIndex / openings.length) % strengths.length;
+  const iIdx = Math.floor(variantIndex / (openings.length * strengths.length)) % improvements.length;
+  const cIdx =
+    Math.floor(variantIndex / (openings.length * strengths.length * improvements.length)) %
+    closings.length;
 
-  return `${openings[openIdx]} ${strengths[strIdx]} ${improvements[impIdx]}`;
+  return `${openings[oIdx]} ${strengths[sIdx]} ${improvements[iIdx]} ${closings[cIdx]}`;
 };
 
 export const generateQuarterClassFeedback = (params: {
@@ -616,7 +728,7 @@ export const generateQuarterClassFeedback = (params: {
     const conductVal = hasConductVal ? score!.conduct : undefined;
     const conductPct =
       hasConductVal && gradingSettings.maxScores.conduct > 0
-        ? (score!.conduct! / gradingSettings.maxScores.conduct)
+        ? score!.conduct! / gradingSettings.maxScores.conduct
         : 0;
 
     const calculated = calculateStudentGrades(
@@ -631,8 +743,9 @@ export const generateQuarterClassFeedback = (params: {
 
     const attendance = getStudentAttendanceQuarter(attendanceRecords, student.id, quarter);
 
-    // Find most frequent logged participation type for this student in this quarter
-    const studentPartRecords = records.filter(r => r.studentId === student.id && r.quarter === quarter);
+    const studentPartRecords = records.filter(
+      r => r.studentId === student.id && r.quarter === quarter
+    );
     let topParticipationType: ParticipationType | undefined;
     if (studentPartRecords.length > 0) {
       const counts = new Map<ParticipationType, number>();
@@ -681,11 +794,11 @@ export const generateQuarterClassFeedback = (params: {
   const mostParticipation = partCounts.length > 0 ? Math.max(...partCounts) : 0;
   const leastParticipation = partCounts.length > 0 ? Math.min(...partCounts) : 0;
 
-  // Track used comments across the entire class so no two students receive the exact same text
+  const nextQuarter = getNextQuarterPhrase(quarter);
   const usedComments = new Set<string>();
 
   const analyses: StudentQuarterAnalysis[] = rawEntries.map((entry, idx) => {
-    const firstName = getFirstName(entry.student.name);
+    const fullName = formatStudentDisplayName(entry.student.name);
     const rank = rankMap[entry.student.id] || idx + 1;
     const baseSeed = hashString(
       `${entry.student.id}_${entry.student.name}_Q${quarter}_${entry.calculated.overallScore}_${entry.rawCp}_${seedOffset}`
@@ -696,12 +809,12 @@ export const generateQuarterClassFeedback = (params: {
     if (classHasScores) {
       if (!entry.hasStudentScoreFields && entry.rawCp === 0) {
         const noDataTemplates = [
-          `No scores or participation logs have been entered yet for ${firstName} in Quarter ${quarter}. Please record assessments or coursework in the Score List to generate performance feedback.`,
-          `${firstName} does not have any quarter scores or participation records entered yet for Quarter ${quarter}. Once initial assignments or tests are recorded, feedback will align with those results.`,
-          `Quarter ${quarter} scores are not yet recorded for ${firstName}. Updating homework, quiz, test, or participation entries will allow an accurate progress summary.`,
-          `No graded entries are on file yet for ${firstName} this quarter. Please ensure assessments or missing tasks are logged to evaluate current standing.`,
-          `${firstName} currently has no recorded scores or participation counts for Quarter ${quarter}. Add initial scores in the Score List to review individualized feedback.`,
-          `Awaiting initial Quarter ${quarter} score entries for ${firstName}; once coursework or exam marks are added, tailored constructive feedback will update automatically.`
+          `Hi ${fullName} — your Quarter ${quarter} scores and participation logs have not been entered yet. Once your assignments, quizzes, and exams are recorded in the Score List, I will put together personalized feedback to help guide you into ${nextQuarter}.`,
+          `Quarter ${quarter} grades are still blank on file for ${fullName} right now. As soon as your coursework and test results are updated in the Score List, tailored feedback will appear here for ${nextQuarter}.`,
+          `No scores or participation logs are recorded yet for ${fullName} in Quarter ${quarter}. Please check with me if any missing assignments or assessments still need to be turned in before we wrap up for ${nextQuarter}.`,
+          `There are currently no graded entries recorded for ${fullName} this quarter. Once your scores are added to the Score List, this space will show specific feedback matched to your results.`,
+          `Quarter ${quarter} entries have not been filled in yet for ${fullName}. Updating your homework, quiz, or exam marks will let us review your progress and set clear goals for ${nextQuarter}.`,
+          `Awaiting Quarter ${quarter} score entries for ${fullName}—once your work is logged in the Score List, we can highlight your strengths and map out next steps for ${nextQuarter}.`
         ];
         for (let attempt = 0; attempt < noDataTemplates.length; attempt++) {
           const candidate = noDataTemplates[(baseSeed + idx + attempt) % noDataTemplates.length];
@@ -712,7 +825,9 @@ export const generateQuarterClassFeedback = (params: {
         }
       } else if (!entry.hasStudentScoreFields && entry.rawCp > 0) {
         const pInputs: ParticipationOnlyInputs = {
-          firstName,
+          fullName,
+          quarter,
+          nextQuarter,
           count: entry.rawCp,
           classAvg: classPartAvg,
           maxCount: mostParticipation,
@@ -720,9 +835,13 @@ export const generateQuarterClassFeedback = (params: {
           attendance: entry.attendance,
           attendanceSettings
         };
-        const maxAttempts = 72;
+        const maxAttempts = 64;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          const candidate = `${buildParticipationOnlyComment(pInputs, baseSeed + idx * 5 + attempt)} Academic score fields in the Score List have not been entered yet for ${firstName}.`;
+          const candidate = buildHumanParticipationComment(
+            pInputs,
+            baseSeed + idx * 7 + attempt,
+            true
+          );
           if (!usedComments.has(candidate) || attempt === maxAttempts - 1) {
             comment = candidate;
             break;
@@ -730,7 +849,9 @@ export const generateQuarterClassFeedback = (params: {
         }
       } else {
         const inputs: ScoreFeedbackInputs = {
-          firstName,
+          fullName,
+          quarter,
+          nextQuarter,
           overallScore: entry.calculated.overallScore,
           letterGrade: entry.calculated.letterGrade as 'A' | 'B' | 'C' | 'D' | 'E' | 'F',
           rank,
@@ -753,9 +874,10 @@ export const generateQuarterClassFeedback = (params: {
           attendanceSettings
         };
 
-        const maxAttempts = 216;
+        // Step across openings, strengths, improvements, and closings so every student receives unique feedback
+        const maxAttempts = 600;
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          const candidate = composeScoreFeedback(inputs, baseSeed + idx * 7 + attempt);
+          const candidate = composeScoreFeedback(inputs, baseSeed + idx * 13 + attempt);
           if (!usedComments.has(candidate) || attempt === maxAttempts - 1) {
             comment = candidate;
             break;
@@ -764,7 +886,9 @@ export const generateQuarterClassFeedback = (params: {
       }
     } else {
       const pInputs: ParticipationOnlyInputs = {
-        firstName,
+        fullName,
+        quarter,
+        nextQuarter,
         count: entry.rawCp,
         classAvg: classPartAvg,
         maxCount: mostParticipation,
@@ -773,9 +897,13 @@ export const generateQuarterClassFeedback = (params: {
         attendanceSettings
       };
 
-      const maxAttempts = 72;
+      const maxAttempts = 64;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const candidate = buildParticipationOnlyComment(pInputs, baseSeed + idx * 5 + attempt);
+        const candidate = buildHumanParticipationComment(
+          pInputs,
+          baseSeed + idx * 7 + attempt,
+          false
+        );
         if (!usedComments.has(candidate) || attempt === maxAttempts - 1) {
           comment = candidate;
           break;

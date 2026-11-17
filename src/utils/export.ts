@@ -749,7 +749,7 @@ export const exportToExcel = async (data: any[], filename: string) => {
         const valStr = String(data[i][k] ?? '');
         if (valStr.length > maxLen) maxLen = valStr.length;
       }
-      const maxCap = /feedback|comment/i.test(k) ? 68 : 55;
+      const maxCap = /feedback|comment/i.test(k) ? 74 : 55;
       return Math.min(Math.max(maxLen + 4, 10), maxCap);
     });
 
@@ -786,7 +786,7 @@ export const exportToExcel = async (data: any[], filename: string) => {
           if (lines > maxLines) maxLines = lines;
         }
       });
-      const rowHeight = maxLines > 1 ? Math.min(Math.max(maxLines * 15 + 10, 26), 140) : 22;
+      const rowHeight = maxLines > 1 ? Math.min(Math.max(maxLines * 15 + 12, 26), 210) : 22;
 
       sheetDataXml += `<row r="${rowNum}" ht="${rowHeight}" customHeight="1">`;
       keys.forEach((key, colIdx) => {
