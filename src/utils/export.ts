@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Student, ParticipationRecord, Class, Quarter } from '../types';
+import { Student, ParticipationRecord, Class, Quarter, GradingSettings } from '../types';
 import { 
   getStudentQuarterTotal, 
   getStudentSemesterTotal, 
@@ -8,6 +8,7 @@ import {
   calculateStudentGrades,
   getClassScoreRanks 
 } from './calculations';
+import { StudentQuarterAnalysis } from './quarterFeedbackGenerator';
 
 // ==========================================
 // PURE TYPESCRIPT OPENXML (.XLSX) GENERATOR
@@ -748,7 +749,8 @@ export const exportToExcel = async (data: any[], filename: string) => {
         const valStr = String(data[i][k] ?? '');
         if (valStr.length > maxLen) maxLen = valStr.length;
       }
-      return Math.min(Math.max(maxLen + 4, 10), 55);
+      const maxCap = /feedback|comment/i.test(k) ? 68 : 55;
+      return Math.min(Math.max(maxLen + 4, 10), maxCap);
     });
 
     let colsXml = '<cols>';
@@ -773,7 +775,20 @@ export const exportToExcel = async (data: any[], filename: string) => {
       const sCenter = isWhiteRow ? 6 : 10;
       const sLeft = isWhiteRow ? 7 : 11;
 
-      sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+      let maxLines = 1;
+      keys.forEach((key, colIdx) => {
+        const val = row[key];
+        if (typeof val === 'string' && val.length > 0) {
+          const approxCols = Math.max(colWidths[colIdx] - 3, 12);
+          const lines = val
+            .split(/\r?\n/)
+            .reduce((acc, part) => acc + Math.max(1, Math.ceil(part.length / approxCols)), 0);
+          if (lines > maxLines) maxLines = lines;
+        }
+      });
+      const rowHeight = maxLines > 1 ? Math.min(Math.max(maxLines * 15 + 10, 26), 140) : 22;
+
+      sheetDataXml += `<row r="${rowNum}" ht="${rowHeight}" customHeight="1">`;
       keys.forEach((key, colIdx) => {
         const cellRef = `${colName(colIdx)}${rowNum}`;
         const val = row[key];
@@ -829,22 +844,61 @@ export const exportQuarterSummary = async (
   students: Student[], 
   records: ParticipationRecord[], 
   classObj: Class, 
-  quarter: Quarter
+  quarter: Quarter,
+  analyses?: StudentQuarterAnalysis[],
+  gradingSettings?: GradingSettings
 ) => {
   const sortedStudents = getClassRoster(students, classObj.id);
+  const analysisMap = new Map((analyses || []).map(a => [a.student.id, a] as const));
+  const hasAnalyses = analysisMap.size > 0;
+  const classHasScores = (analyses || []).some(a => a.classHasScores);
+  const hasConduct = (analyses || []).some(a => a.hasConductInClass);
+  const hasHw = (analyses || []).some(a => a.hasHwInClass);
+  const hasQuiz = (analyses || []).some(a => a.hasQuizInClass);
+  const hasTest = (analyses || []).some(a => a.hasTestInClass);
+  const hasAttendance = (analyses || []).some(a => a.attendance.total > 0);
 
-  const data = sortedStudents.map(student => ({
-    'Student Number': student.displayNum,
-    'Name': student.name,
-    'Student ID': student.studentId || '',
-    'Q1': getStudentQuarterTotal(records, student.id, 1),
-    'Q2': getStudentQuarterTotal(records, student.id, 2),
-    'Q3': getStudentQuarterTotal(records, student.id, 3),
-    'Q4': getStudentQuarterTotal(records, student.id, 4),
-    'Semester 1 Total': getStudentSemesterTotal(records, student.id, 1),
-    'Semester 2 Total': getStudentSemesterTotal(records, student.id, 2),
-    'Year Total': getStudentYearTotal(records, student.id)
-  }));
+  const data = sortedStudents.map(student => {
+    const analysis = analysisMap.get(student.id);
+    const row: Record<string, string | number> = {
+      'Student Number': student.displayNum,
+      'Name': student.name,
+      'Name in Khmer': student.nameKhmer || '',
+      'Student ID': student.studentId || ''
+    };
+
+    if (hasAnalyses && classHasScores) {
+      if (hasConduct) {
+        row[`Conduct (${gradingSettings?.maxScores.conduct ?? 10})`] =
+          analysis?.conductVal !== undefined ? analysis.conductVal : '';
+      }
+      row[`CP (${gradingSettings?.maxScores.cp ?? 10})`] = analysis ? analysis.effectiveCp : '';
+      if (hasHw) row['HW (%)'] = analysis?.hasStudentScoreFields ? analysis.hwTotal : '';
+      if (hasQuiz) row['Quiz (%)'] = analysis?.hasStudentScoreFields ? analysis.quizTotal : '';
+      if (hasTest) row['Test (%)'] = analysis?.hasStudentScoreFields ? analysis.testTotal : '';
+      row[`Q${quarter} Overall (%)`] = analysis?.hasStudentScoreFields ? analysis.overallScore : '';
+      row['Grade'] = analysis?.hasStudentScoreFields ? analysis.letterGrade : '';
+      row['Rank'] = analysis?.hasStudentScoreFields ? analysis.rank : '';
+    }
+
+    if (hasAnalyses && hasAttendance) {
+      row['Attendance (%)'] = analysis && analysis.attendance.total > 0 ? analysis.attendance.rate : '';
+    }
+
+    row['Q1'] = getStudentQuarterTotal(records, student.id, 1);
+    row['Q2'] = getStudentQuarterTotal(records, student.id, 2);
+    row['Q3'] = getStudentQuarterTotal(records, student.id, 3);
+    row['Q4'] = getStudentQuarterTotal(records, student.id, 4);
+    row['Semester 1 Total'] = getStudentSemesterTotal(records, student.id, 1);
+    row['Semester 2 Total'] = getStudentSemesterTotal(records, student.id, 2);
+    row['Year Total'] = getStudentYearTotal(records, student.id);
+
+    if (hasAnalyses) {
+      row['Constructive Feedback'] = analysis?.comment || '';
+    }
+
+    return row;
+  });
   
   const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
   await exportToExcel(data, `Class_${cleanClassName}_Q${quarter}_Summary`);

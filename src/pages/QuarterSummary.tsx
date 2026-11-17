@@ -94,7 +94,14 @@ const QuarterSummary = () => {
 
   const handleExport = async () => {
     if (currentClass) {
-      await exportQuarterSummary(classStudents, state.records, currentClass, state.currentQuarter!);
+      await exportQuarterSummary(
+        classStudents,
+        state.records,
+        currentClass,
+        state.currentQuarter!,
+        feedbackReport.analyses,
+        state.gradingSettings
+      );
     }
   };
 
