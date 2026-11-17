@@ -568,12 +568,11 @@ export const exportScoreList = async (
 
     const totalRows = rowsToRender.length + 1; // 1 header row + N student rows
 
-    // Build column configuration dynamically
+    // Build column configuration dynamically (prefer exact title match before prefix match)
     const colConfigs = headersToRender.map((hdr, idx) => {
-      const match = baseColumns.find(bc => 
-        bc.title.toLowerCase() === hdr.toLowerCase() || 
-        hdr.toLowerCase().startsWith(bc.title.toLowerCase())
-      );
+      const match =
+        baseColumns.find(bc => bc.title.toLowerCase() === hdr.toLowerCase()) ||
+        baseColumns.find(bc => hdr.toLowerCase().startsWith(bc.title.toLowerCase()));
       if (match) return match;
 
       const isLeft = /name|achievement|attitude|areas|improve/i.test(hdr);

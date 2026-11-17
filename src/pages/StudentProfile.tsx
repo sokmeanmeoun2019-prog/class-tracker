@@ -38,9 +38,9 @@ const StudentProfile = () => {
   ];
 
   const renderQuarterScore = (q: 1|2|3|4, rawCp: number) => {
-    const score = state.scores.find(s => s.studentId === student.id && s.quarter === q);
+    const score = state.scores.find(s => s.studentId === student.id && Number(s.quarter) === q);
     if (!score) return <div className="text-gray-400 italic text-sm mt-2">No scores recorded for Q{q}</div>;
-    const classScores = state.scores.filter(s => s.classId === currentClass?.id && s.quarter === q);
+    const classScores = state.scores.filter(s => (!s.classId || s.classId === currentClass?.id) && Number(s.quarter) === q);
     const calc = calculateStudentGrades(score, rawCp, state.gradingSettings, student.id, q, currentClass?.name || '', classScores);
     const cappedRawCp = Math.min(rawCp, state.gradingSettings.maxScores.cp);
     

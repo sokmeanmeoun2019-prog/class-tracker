@@ -1538,7 +1538,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                                       .filter(s => !isMetadataLabel(s.name))
                                       .map(s => (
                                         <option key={s.id} value={s.id}>
-                                          {s.displayNum ? `${s.displayNum}. ` : ''}{s.name}
+                                          {s.rosterNumber ? `${s.rosterNumber}. ` : ''}{s.name}
                                         </option>
                                       ))}
                                   </select>
