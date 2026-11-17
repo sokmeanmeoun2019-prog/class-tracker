@@ -26,6 +26,7 @@ type Action =
   | { type: 'SET_CURRENT_CLASS'; payload: string | null }
   | { type: 'SET_CURRENT_QUARTER'; payload: Quarter | null }
   | { type: 'IMPORT_STUDENTS'; payload: Student[] }
+  | { type: 'UPSERT_STUDENTS'; payload: { classId: string; students: Student[] } }
   | { type: 'CLEAR_ALL_DATA' }
   | { type: 'RESTORE_TRASH_ITEM'; payload: string }
   | { type: 'DELETE_TRASH_ITEM'; payload: string }
@@ -386,6 +387,44 @@ const reducer = (state: AppState, action: Action): AppState => {
         attendanceRecords: otherAttendance,
         ptcRecords: otherPtc,
         trash: updatedTrash
+      };
+    }
+    case 'UPSERT_STUDENTS': {
+      const { classId, students: incoming } = action.payload;
+      if (!classId || !incoming || incoming.length === 0) return state;
+
+      const existingClassStudents = state.students.filter(s => s.classId === classId);
+      const otherStudents = state.students.filter(s => s.classId !== classId);
+
+      const updatedClassStudents = [...existingClassStudents];
+
+      for (const inc of incoming) {
+        const existingIdx = updatedClassStudents.findIndex(s => s.id === inc.id);
+        if (existingIdx !== -1) {
+          // Update existing student: keep existing fields unless provided in incoming
+          const existing = updatedClassStudents[existingIdx];
+          updatedClassStudents[existingIdx] = {
+            ...existing,
+            name: inc.name?.trim() ? inc.name.trim() : existing.name,
+            studentId: inc.studentId !== undefined && inc.studentId !== '' ? inc.studentId : existing.studentId,
+            sex: inc.sex !== undefined && inc.sex !== '' ? inc.sex : existing.sex,
+            rosterNumber: inc.rosterNumber || existing.rosterNumber
+          };
+        } else {
+          // Add new student
+          updatedClassStudents.push(inc);
+        }
+      }
+
+      // Ensure each student in this class has a rosterNumber
+      const finalized = updatedClassStudents.map((s, idx) => ({
+        ...s,
+        rosterNumber: s.rosterNumber !== undefined && s.rosterNumber > 0 ? s.rosterNumber : idx + 1
+      }));
+
+      return {
+        ...state,
+        students: [...otherStudents, ...finalized]
       };
     }
     case 'ADD_SESSION':

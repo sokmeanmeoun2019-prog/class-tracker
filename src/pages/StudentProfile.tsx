@@ -112,11 +112,26 @@ const StudentProfile = () => {
       
       <div className="bg-white p-6 rounded-lg shadow-sm border flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">{student.name}</h2>
-          <p className="text-gray-500 mt-1">
-            Student No: {displayNum} {student.sex ? ` | ${student.sex}` : ''} {student.studentId ? ` | ID: ${student.studentId}` : ''}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-3xl font-bold text-gray-800">{student.name}</h2>
+            {student.sex && (
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                student.sex === 'Male'
+                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                  : 'bg-pink-100 text-pink-800 border-pink-200'
+              }`}>
+                {student.sex}
+              </span>
+            )}
+            {student.studentId && (
+              <span className="font-mono bg-gray-100 text-gray-800 border border-gray-300 px-2.5 py-0.5 rounded text-xs font-bold">
+                ID: {student.studentId}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-500 mt-1.5 text-sm">
+            Roster No: <strong>{displayNum}</strong> • {currentClass?.name} ({yearName})
           </p>
-          <p className="text-gray-500">{currentClass?.name} ({yearName})</p>
         </div>
         <div className="text-right">
           <div className="text-sm text-gray-500 uppercase tracking-wide">Year Participation Total</div>
