@@ -96,14 +96,64 @@ echo Would you like to launch Class Tracker locally now?
 set "START_APP="
 set /p "START_APP=(Y/N) [Default: Y]: "
 if not defined START_APP set "START_APP=Y"
-if /i "!START_APP!"=="Y" (
+if /i not "!START_APP!"=="Y" exit /b 0
+
+:: 5. LOCATE NODE.JS / NPM
+set "NPM_FOUND="
+where npm >nul 2>&1
+if !errorlevel! equ 0 set "NPM_FOUND=1"
+
+if not defined NPM_FOUND if exist "!ProgramFiles!\nodejs\npm.cmd" (
+    set "PATH=!ProgramFiles!\nodejs;!PATH!"
+    set "NPM_FOUND=1"
+)
+if not defined NPM_FOUND if exist "!ProgramFiles(x86)!\nodejs\npm.cmd" (
+    set "PATH=!ProgramFiles(x86)!\nodejs;!PATH!"
+    set "NPM_FOUND=1"
+)
+if not defined NPM_FOUND if exist "!LOCALAPPDATA!\Programs\nodejs\npm.cmd" (
+    set "PATH=!LOCALAPPDATA!\Programs\nodejs;!PATH!"
+    set "NPM_FOUND=1"
+)
+
+if not defined NPM_FOUND (
     echo.
     echo ============================================================
-    echo Starting local development server at http://localhost:5173...
-    echo Your browser will open automatically in 3 seconds...
+    echo ERROR: Node.js / npm was not found on this computer.
+    echo Please install Node.js LTS from https://nodejs.org/ and try again.
     echo ============================================================
     echo.
-    start /b cmd /c "timeout /t 3 /nobreak >nul && start http://localhost:5173"
-    call npm run dev
+    pause
+    exit /b 1
+)
+
+if not exist "node_modules\vite" (
+    echo.
+    echo Installing app dependencies for first launch...
+    call npm install
+    if !errorlevel! neq 0 (
+        echo.
+        echo ERROR: Dependency installation failed.
+        pause
+        exit /b 1
+    )
+)
+
+echo.
+echo ============================================================
+echo Starting local development server at http://localhost:5173...
+echo Your browser will open automatically once the server is ready.
+echo Keep this window open while using Class Tracker.
+echo ============================================================
+echo.
+call npm run dev -- --open
+if !errorlevel! neq 0 (
+    echo.
+    echo ============================================================
+    echo ERROR: Local server failed to start or stopped unexpectedly.
+    echo ============================================================
+    echo.
+    pause
+    exit /b 1
 )
 exit /b 0
