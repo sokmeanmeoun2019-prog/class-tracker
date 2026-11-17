@@ -263,7 +263,15 @@ const ScoreList = () => {
   };
 
   const handleSexChange = (student: Student, sex: 'Male' | 'Female') => {
+    setSaveStatus('saving');
     dispatch({ type: 'UPDATE_STUDENT', payload: { ...student, sex } });
+    setTimeout(() => setSaveStatus('saved'), 500);
+  };
+
+  const handleStudentIdChange = (student: Student, studentId: string) => {
+    setSaveStatus('saving');
+    dispatch({ type: 'UPDATE_STUDENT', payload: { ...student, studentId } });
+    setTimeout(() => setSaveStatus('saved'), 500);
   };
 
   // Cell rendering helpers
@@ -390,6 +398,7 @@ const ScoreList = () => {
                 <th className="p-2 border-r bg-gray-100 sticky left-0 z-30 min-w-[40px] text-center print:static">No.</th>
                 <th className="p-2 border-r bg-gray-100 sticky left-[40px] z-30 min-w-[180px] print:static">Name</th>
                 <th className="p-2 border-r bg-gray-100 text-center min-w-[80px]">Sex</th>
+                <th className="p-2 border-r bg-gray-100 text-center min-w-[100px]">ID</th>
                 <th className="p-2 border-r text-center" title={`Max ${settings.maxScores.conduct}`}>Conduct<br/><span className="text-xs text-gray-500 font-normal">/{settings.maxScores.conduct}</span></th>
                 <th className="p-2 border-r text-center bg-blue-50" title="Class Participation (Auto-filled but editable)">C.P<br/><span className="text-xs text-gray-500 font-normal">/{settings.maxScores.cp}</span></th>
                 <th className="p-2 border-r text-center" title={`Max ${settings.maxScores.hw}`}>HW1</th>
@@ -442,6 +451,18 @@ const ScoreList = () => {
                         <option value="Male">M</option>
                         <option value="Female">F</option>
                       </select>
+                    </td>
+
+                    {/* Student ID */}
+                    <td className="p-1 border-r text-center">
+                      <input
+                        type="text"
+                        className="w-24 p-1 text-center font-mono text-xs border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-gray-700"
+                        value={student.studentId || ''}
+                        onChange={(e) => handleStudentIdChange(student, e.target.value)}
+                        placeholder="-"
+                        title="Student ID (preserved as text, including leading zeros)"
+                      />
                     </td>
 
                     {/* Numeric Scores */}

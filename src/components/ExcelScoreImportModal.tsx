@@ -2222,11 +2222,13 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         }
       }
 
-      if (!hasAnyScore) {
+      const hasProfileData = Boolean((rawId && rawId.trim() !== '') || (rawSex && (rawSex === 'Male' || rawSex === 'Female')));
+
+      if (!hasAnyScore && !hasProfileData) {
         warnings.push('No numeric scores found on this row');
       }
 
-      const defaultSelected = Boolean(matchedStudent && matchType !== 'duplicate' && hasAnyScore);
+      const defaultSelected = Boolean(matchedStudent && matchType !== 'duplicate' && (hasAnyScore || hasProfileData));
       const isSelected = deselectedRows[r] !== undefined ? !deselectedRows[r] : defaultSelected;
 
       results.push({
@@ -2512,17 +2514,36 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
   };
 
   const handleConfirmImport = () => {
-    const rowsToImport = extractedRows.filter(
-      r => r.selected && r.matchedStudent && r.matchType !== 'duplicate' && r.hasAnyScore
+    const selectedMatchedRows = extractedRows.filter(
+      r => r.selected && r.matchedStudent && r.matchType !== 'duplicate'
     );
+    const rowsToImport = selectedMatchedRows.filter(r => r.hasAnyScore);
 
-    if (rowsToImport.length === 0) {
-      setErrorMessage('No matched students with valid scores are selected for import.');
+    // Collect Student ID and Sex/Gender updates for all selected matched students
+    const updatedStudentProfiles: Student[] = [];
+    selectedMatchedRows.forEach(item => {
+      const student = item.matchedStudent!;
+      const nextStudentId = item.excelId && item.excelId.trim() !== '' ? item.excelId.trim() : student.studentId;
+      const nextSex = item.excelSex && (item.excelSex === 'Male' || item.excelSex === 'Female')
+        ? item.excelSex
+        : student.sex;
+
+      if (nextStudentId !== student.studentId || nextSex !== student.sex) {
+        updatedStudentProfiles.push({
+          ...student,
+          studentId: nextStudentId,
+          sex: nextSex
+        });
+      }
+    });
+
+    if (rowsToImport.length === 0 && updatedStudentProfiles.length === 0) {
+      setErrorMessage('No matched students with scores, ID, or gender data are selected for import.');
       return;
     }
 
     // Safety Verification: Ensure no student belongs to another class
-    const wrongClassStudent = rowsToImport.find(
+    const wrongClassStudent = selectedMatchedRows.find(
       r => r.matchedStudent && r.matchedStudent.classId !== lockedClassId
     );
     if (wrongClassStudent) {
@@ -2544,26 +2565,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     }
 
     const updatedScoreRecords: ScoreRecord[] = [];
-    const updatedStudentProfiles: Student[] = [];
     const normalizedQuarter = Number(lockedQuarter) as Quarter;
-
-    // Sync Student ID and Sex/Gender for all matched non-duplicate rows (even if scores are blank)
-    extractedRows.forEach(item => {
-      if (!item.matchedStudent || item.matchType === 'duplicate') return;
-      const student = item.matchedStudent;
-      const nextStudentId = item.excelId && item.excelId.trim() !== '' ? item.excelId.trim() : student.studentId;
-      const nextSex = item.excelSex && (item.excelSex === 'Male' || item.excelSex === 'Female')
-        ? item.excelSex
-        : student.sex;
-
-      if (nextStudentId !== student.studentId || nextSex !== student.sex) {
-        updatedStudentProfiles.push({
-          ...student,
-          studentId: nextStudentId,
-          sex: nextSex
-        });
-      }
-    });
 
     rowsToImport.forEach(item => {
       const student = item.matchedStudent!;
@@ -2607,7 +2609,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       fileName: fileName || 'E-GradeBook.xlsx',
       sheetName: selectedSheet,
       uploadedAt: new Date().toISOString(),
-      matchedCount: rowsToImport.length,
+      matchedCount: selectedMatchedRows.length,
       totalRows: extractedRows.length
     };
 
@@ -2623,10 +2625,12 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       });
     }
 
-    dispatch({
-      type: 'BULK_UPDATE_SCORES',
-      payload: updatedScoreRecords
-    });
+    if (updatedScoreRecords.length > 0) {
+      dispatch({
+        type: 'BULK_UPDATE_SCORES',
+        payload: updatedScoreRecords
+      });
+    }
 
     setImportSuccess(true);
     if (state.currentClassId !== lockedClassId) {
@@ -2646,7 +2650,11 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     r => r.matchedStudent && r.missingFields.length > 0
   ).length;
   const selectedImportCount = extractedRows.filter(
-    r => r.selected && r.matchedStudent && r.matchType !== 'duplicate' && r.hasAnyScore
+    r =>
+      r.selected &&
+      r.matchedStudent &&
+      r.matchType !== 'duplicate' &&
+      (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex))
   ).length;
 
   const rosterStudentsNotInExcel = targetClassStudents.filter(
@@ -3333,7 +3341,12 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                             checked={
                               extractedRows.length > 0 &&
                               extractedRows
-                                .filter(r => r.matchedStudent && r.matchType !== 'duplicate' && r.hasAnyScore)
+                                .filter(
+                                  r =>
+                                    r.matchedStudent &&
+                                    r.matchType !== 'duplicate' &&
+                                    (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex))
+                                )
                                 .every(r => r.selected)
                             }
                             onChange={e => {
@@ -3413,7 +3426,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                               <td className="p-2 text-center border-r border-gray-100">
                                 <input
                                   type="checkbox"
-                                  disabled={!item.matchedStudent || isDuplicate || !item.hasAnyScore}
+                                  disabled={!item.matchedStudent || isDuplicate || (!item.hasAnyScore && !item.excelId && !item.excelSex)}
                                   checked={item.selected}
                                   onChange={e =>
                                     setDeselectedRows(prev => ({
