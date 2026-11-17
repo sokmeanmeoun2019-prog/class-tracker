@@ -12,7 +12,8 @@ import {
   SlidersHorizontal,
   Search,
   UserCheck,
-  FileCheck
+  FileCheck,
+  ShieldCheck
 } from 'lucide-react';
 import { Student } from '../types';
 import { useData } from '../store/DataContext';
@@ -53,6 +54,8 @@ interface GridExtract {
   numRows: number;
   numCols: number;
 }
+
+type ImportMode = 'update-only' | 'add-and-update';
 
 // Convert Khmer numerals (០-៩) to ASCII digits (0-9)
 const replaceKhmerDigits = (input: string): string => {
@@ -100,9 +103,26 @@ const isScoreOrOtherHeader = (h: string): boolean => {
   return /\b(conduct|c\.?\s*p\.?|participation|hw|homework|quiz|qz|test|exam|total|average|overall|grade|rank|remark|comment|achievement|attitude|improve|score|points|weight)\b/i.test(h);
 };
 
+// Detect school/settings metadata labels so they are NEVER mistaken for Student Name column or Student rows
+const isMetadataLabel = (raw: string): boolean => {
+  const h = normalizeText(raw);
+  if (!h) return false;
+  if (
+    /^(campus|academic\s*year|year|quarter|semester|grade|class|teacher(?:\s*s)?\s*name|subject|submitted\s*date|date|school\s*name|school|director|principal|signature|prepared\s*by|approved\s*by|note|notes|remark|remarks|total|average|mean|summary|max|min|max\s*score|full\s*score|points|weight|scoring\s*system|grading\s*system)$/i.test(
+      h
+    )
+  ) {
+    return true;
+  }
+  if (/(ឈ្មោះគ្រូ|ឆ្នាំសិក្សា|ត្រីមាស|ថ្នាក់ទី|មុខវិជ្ជា|កាលបរិច្ឆេទ|សាខា|សាលា|ហត្ថលេខា|សរុប|មធ្យមភាគ)/i.test(h)) {
+    return true;
+  }
+  return false;
+};
+
 const isIdHeader = (rawHeader: string): boolean => {
   const h = normalizeText(rawHeader);
-  if (!h || isNoHeader(h) || isScoreOrOtherHeader(h)) return false;
+  if (!h || isNoHeader(h) || isScoreOrOtherHeader(h) || isMetadataLabel(rawHeader)) return false;
   if (/(អត្តលេខ|លេខសម្គាល់|កូដ)/i.test(h)) return true;
   if (/\b(student\s*id|student\s*code|student\s*number|student\s*no|std\s*id|id\s*no|id\s*number|idno|sid|code\s*id)\b/i.test(h)) {
     return true;
@@ -113,8 +133,13 @@ const isIdHeader = (rawHeader: string): boolean => {
 
 const isNameHeader = (rawHeader: string): boolean => {
   const h = normalizeText(rawHeader);
-  if (!h || isScoreOrOtherHeader(h)) return false;
-  if (/\b(school|class|teacher|subject|file|course|parent|guardian)\s*name\b/i.test(h)) return false;
+  if (!h || isScoreOrOtherHeader(h) || isMetadataLabel(rawHeader)) return false;
+  if (/\b(teacher(?:\s*s)?|school|campus|class|subject|file|course|parent|guardian|director|principal)\b/i.test(h)) {
+    return false;
+  }
+  if (/(គ្រូ|សាលា|មុខវិជ្ជា|សាខា)/i.test(h)) {
+    return false;
+  }
   if (/(ឈ្មោះ|គោត្តនាម)/i.test(h)) return true;
   if (/\b(student\s*name|students\s*name|full\s*name|english\s*name|latin\s*name|khmer\s*name|name)\b/i.test(h)) {
     return true;
@@ -125,7 +150,7 @@ const isNameHeader = (rawHeader: string): boolean => {
 
 const isGenderHeader = (rawHeader: string): boolean => {
   const h = normalizeText(rawHeader);
-  if (!h || isScoreOrOtherHeader(h)) return false;
+  if (!h || isScoreOrOtherHeader(h) || isMetadataLabel(rawHeader)) return false;
   if (/(ភេទ|ប្រុស\s*ស្រី)/i.test(h)) return true;
   if (/\b(sex|sexes|gender|genders|male\s*female)\b/i.test(h)) return true;
   if (/(?:^|\s)m\s*f(?:\s|$)/i.test(h)) return true;
@@ -192,7 +217,7 @@ const extractTextGrid = (ws: XLSX.WorkSheet): GridExtract => {
 
     const colSpan = endC - startC + 1;
     const rowSpan = endR - startR + 1;
-    if (colSpan > 8 && rowSpan === 1) continue; // Ignore wide title banners
+    if (colSpan > 8 && rowSpan === 1) continue;
 
     const topVal = grid[startR][startC];
     if (!topVal) continue;
@@ -224,11 +249,10 @@ const matchStudentInRoster = (
       return {
         matchedStudent: byExactId,
         matchType: 'id',
-        matchReason: `Matched by Student ID: ${byExactId.studentId}`
+        matchReason: `Matched by ID: ${byExactId.studentId}`
       };
     }
 
-    // Fallback ID match ignoring leading zeros (e.g. existing "123" vs Excel "00123")
     const strippedId = trimmedId.replace(/^0+/, '');
     if (strippedId) {
       const byStrippedId = roster.find(
@@ -238,14 +262,14 @@ const matchStudentInRoster = (
         return {
           matchedStudent: byStrippedId,
           matchType: 'id',
-          matchReason: `Matched by Student ID: ${byStrippedId.studentId}`
+          matchReason: `Matched by ID: ${byStrippedId.studentId}`
         };
       }
     }
   }
 
   // 2. Secondary Match: Student Name
-  if (rawName) {
+  if (rawName && !isMetadataLabel(rawName)) {
     const normTarget = normalizeText(cleanStudentNameForMatch(rawName));
     if (normTarget) {
       const byExactName = roster.find(
@@ -259,7 +283,6 @@ const matchStudentInRoster = (
         };
       }
 
-      // Latin-only comparison (for bilingual Khmer/English rosters)
       const latinTarget = extractLatinName(rawName);
       if (latinTarget && latinTarget.length >= 3) {
         const byLatin = roster.find(s => extractLatinName(s.name) === latinTarget);
@@ -272,7 +295,6 @@ const matchStudentInRoster = (
         }
       }
 
-      // Token-order independent match ("Kun Sokmean" vs "Sokmean Kun")
       const tokensTarget = normTarget.split(' ').filter(Boolean).sort();
       if (tokensTarget.length >= 2) {
         const byTokens = roster.find(s => {
@@ -296,7 +318,7 @@ const matchStudentInRoster = (
   return { matchType: 'new' };
 };
 
-// Detect header row, column mapping, and sample labels from an extracted grid
+// Detect header row, column mapping, and roster match stats from an extracted grid
 const analyzeWorksheet = (
   extracted: GridExtract,
   roster: Student[],
@@ -305,6 +327,7 @@ const analyzeWorksheet = (
   mapping: ColumnMapping;
   colOptions: { index: number; label: string }[];
   autoDetected: boolean;
+  rosterMatchCount: number;
   sheetScore: number;
 } => {
   const { grid, numRows, numCols } = extracted;
@@ -313,28 +336,40 @@ const analyzeWorksheet = (
       mapping: { idCol: -1, nameCol: -1, genderCol: -1, headerRowIndex: 0 },
       colOptions: [],
       autoDetected: false,
+      rosterMatchCount: 0,
       sheetScore: -1
     };
   }
 
-  // Locate first row containing a known roster student (if any) to bound header search
+  // Step 1: Scan ALL columns to find which column actually holds the class roster student names
+  let bestRosterMatchCol = -1;
+  let bestRosterMatchCount = 0;
   let firstRosterRow = -1;
+
   if (roster.length > 0) {
-    for (let r = 0; r < Math.min(numRows, 40); r++) {
-      for (let c = 0; c < Math.min(numCols, 8); c++) {
+    for (let c = 0; c < numCols; c++) {
+      const matchedIds = new Set<string>();
+      let firstRowInCol = -1;
+      for (let r = 0; r < Math.min(numRows, 100); r++) {
         const val = grid[r][c];
-        if (!val || val.length < 3 || isNameHeader(val) || isIdHeader(val) || isGenderHeader(val)) continue;
+        if (!val || val.length < 3 || isMetadataLabel(val) || isNameHeader(val) || isIdHeader(val) || isGenderHeader(val)) {
+          continue;
+        }
         const m = matchStudentInRoster(val, '', roster);
         if (m.matchedStudent) {
-          firstRosterRow = r;
-          break;
+          matchedIds.add(m.matchedStudent.id);
+          if (firstRowInCol === -1) firstRowInCol = r;
         }
       }
-      if (firstRosterRow !== -1) break;
+      if (matchedIds.size > bestRosterMatchCount) {
+        bestRosterMatchCount = matchedIds.size;
+        bestRosterMatchCol = c;
+        firstRosterRow = firstRowInCol;
+      }
     }
   }
 
-  const headerSearchLimit = firstRosterRow > 0 ? firstRosterRow : Math.min(numRows, 25);
+  const headerSearchLimit = firstRosterRow > 0 ? firstRosterRow : Math.min(numRows, 30);
 
   let bestHeaderRow = 0;
   let detectedNameCol = -1;
@@ -348,6 +383,7 @@ const analyzeWorksheet = (
     detectedIdCol = customMapping.idCol ?? -1;
     detectedGenderCol = customMapping.genderCol ?? -1;
   } else {
+    // Step 2: Detect table header row. Prefer rows that contain multiple student-table headers together.
     for (let r = 0; r < headerSearchLimit; r++) {
       let score = 0;
       let nameIdx = -1;
@@ -357,14 +393,14 @@ const analyzeWorksheet = (
       for (let c = 0; c < numCols; c++) {
         const cell = grid[r][c];
         if (!cell) continue;
-        // Also combine stacked previous row if row r-1 looks like a header label too
-        const combined = r > 0 && grid[r - 1][c] && !/\d{3,}/.test(grid[r - 1][c])
-          ? `${grid[r - 1][c]} ${cell}`
-          : cell;
+        const combined =
+          r > 0 && grid[r - 1][c] && !/\d{3,}/.test(grid[r - 1][c])
+            ? `${grid[r - 1][c]} ${cell}`
+            : cell;
 
         if (isNameHeader(cell) && nameIdx === -1) {
           nameIdx = c;
-          score += 5;
+          score += c === bestRosterMatchCol ? 10 : 5;
         } else if (isIdHeader(cell) && idIdx === -1) {
           idIdx = c;
           score += 4;
@@ -374,7 +410,7 @@ const analyzeWorksheet = (
         } else if (combined !== cell) {
           if (isNameHeader(combined) && nameIdx === -1) {
             nameIdx = c;
-            score += 4;
+            score += c === bestRosterMatchCol ? 8 : 4;
           } else if (isIdHeader(combined) && idIdx === -1) {
             idIdx = c;
             score += 3;
@@ -385,6 +421,10 @@ const analyzeWorksheet = (
         }
       }
 
+      // Extra bonus if row has multiple distinct table columns (Name + ID or Name + Sex or ID + Sex)
+      const hitKinds = (nameIdx !== -1 ? 1 : 0) + (idIdx !== -1 ? 1 : 0) + (genderIdx !== -1 ? 1 : 0);
+      if (hitKinds >= 2) score += 6;
+
       if (score >= maxHeaderScore && score > 0) {
         maxHeaderScore = score;
         bestHeaderRow = r;
@@ -394,8 +434,8 @@ const analyzeWorksheet = (
       }
     }
 
-    // Check if row right after bestHeaderRow is a secondary sub-header row (e.g. Khmer on top, English below)
-    if (bestHeaderRow + 1 < numRows && maxHeaderScore > 0) {
+    // Check secondary sub-header row right under bestHeaderRow
+    if (bestHeaderRow + 1 < headerSearchLimit && maxHeaderScore > 0) {
       const nextRow = grid[bestHeaderRow + 1];
       let subHits = 0;
       for (let c = 0; c < numCols; c++) {
@@ -415,11 +455,15 @@ const analyzeWorksheet = (
       }
     }
 
-    // Data-driven fallback inference for columns missed by header labels
-    const dataStart = maxHeaderScore > 0 ? bestHeaderRow + 1 : 0;
-    const scanEnd = Math.min(numRows, dataStart + 35);
+    // Always prefer the column that actually matched real roster students!
+    if (bestRosterMatchCol !== -1 && bestRosterMatchCount >= 1) {
+      detectedNameCol = bestRosterMatchCol;
+    }
 
-    // Infer Gender column from cell values (M/F/Male/Female/ប្រុស/ស្រី)
+    const dataStart = firstRosterRow > bestHeaderRow ? firstRosterRow : maxHeaderScore > 0 ? bestHeaderRow + 1 : 0;
+    const scanEnd = Math.min(numRows, dataStart + 45);
+
+    // Infer Gender column from cell values across ALL columns if header missed it
     if (detectedGenderCol === -1) {
       for (let c = 0; c < numCols; c++) {
         if (c === detectedNameCol || c === detectedIdCol) continue;
@@ -429,8 +473,7 @@ const analyzeWorksheet = (
           const val = grid[r][c];
           if (!val) continue;
           nonEmpty++;
-          const g = normalizeGender(val);
-          if (g.gender !== '') genderHits++;
+          if (normalizeGender(val).gender !== '') genderHits++;
         }
         if (genderHits >= 2 && nonEmpty > 0 && genderHits / nonEmpty >= 0.55) {
           detectedGenderCol = c;
@@ -439,48 +482,12 @@ const analyzeWorksheet = (
       }
     }
 
-    // Infer Name column if missing
-    if (detectedNameCol === -1) {
-      let bestTextCol = -1;
-      let bestTextScore = 0;
-      for (let c = 0; c < Math.min(numCols, 8); c++) {
-        if (c === detectedGenderCol || c === detectedIdCol) continue;
-        const hdr = grid[bestHeaderRow]?.[c] || '';
-        if (isNoHeader(hdr)) continue;
-
-        let textRows = 0;
-        let rosterMatches = 0;
-        for (let r = dataStart; r < scanEnd; r++) {
-          const val = grid[r][c];
-          if (!val) continue;
-          if (roster.length > 0 && matchStudentInRoster(val, '', roster).matchedStudent) {
-            rosterMatches++;
-          }
-          if (val.length >= 3 && /[a-zA-Z\u1780-\u17ff]{2,}/.test(val) && normalizeGender(val).gender === '') {
-            textRows++;
-          }
-        }
-        const colScore = rosterMatches * 5 + textRows;
-        if (colScore > bestTextScore && textRows >= 2) {
-          bestTextScore = colScore;
-          bestTextCol = c;
-        }
-      }
-      if (bestTextCol !== -1) {
-        detectedNameCol = bestTextCol;
-      } else if (numCols >= 2) {
-        detectedNameCol = 1;
-      } else if (numCols === 1) {
-        detectedNameCol = 0;
-      }
-    }
-
-    // Infer Student ID column if missing (must look like real IDs, never sequential row numbers 1,2,3 or scores)
+    // Infer Student ID column across ALL columns if header missed it
     if (detectedIdCol === -1) {
-      for (let c = 0; c < Math.min(numCols, 8); c++) {
+      for (let c = 0; c < numCols; c++) {
         if (c === detectedNameCol || c === detectedGenderCol) continue;
         const hdr = grid[bestHeaderRow]?.[c] || '';
-        if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr)) continue;
+        if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr) || isMetadataLabel(hdr)) continue;
 
         let nonEmpty = 0;
         let idLikeCount = 0;
@@ -501,6 +508,40 @@ const analyzeWorksheet = (
         }
       }
     }
+
+    // Infer Name column ONLY if still -1 (for brand-new classes with 0 existing students)
+    if (detectedNameCol === -1) {
+      let bestTextCol = -1;
+      let bestTextScore = 0;
+      for (let c = 0; c < numCols; c++) {
+        if (c === detectedGenderCol || c === detectedIdCol) continue;
+        const hdr = grid[bestHeaderRow]?.[c] || '';
+        if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr) || isMetadataLabel(hdr)) continue;
+
+        let textRows = 0;
+        let metadataHits = 0;
+        for (let r = dataStart; r < scanEnd; r++) {
+          const val = grid[r][c];
+          if (!val) continue;
+          if (isMetadataLabel(val)) {
+            metadataHits++;
+            continue;
+          }
+          if (val.length >= 3 && /[a-zA-Z\u1780-\u17ff]{2,}/.test(val) && normalizeGender(val).gender === '') {
+            textRows++;
+          }
+        }
+        // Strongly penalize columns containing form/settings labels
+        const colScore = textRows - metadataHits * 5;
+        if (colScore > bestTextScore && textRows >= 2) {
+          bestTextScore = colScore;
+          bestTextCol = c;
+        }
+      }
+      if (bestTextCol !== -1) {
+        detectedNameCol = bestTextCol;
+      }
+    }
   }
 
   const effectiveNameCol = customMapping?.nameCol ?? detectedNameCol;
@@ -512,9 +553,8 @@ const analyzeWorksheet = (
   for (let c = 0; c < numCols; c++) {
     const headerText = grid[effectiveHeaderRow]?.[c] || '';
     const letter = XLSX.utils.encode_col(c);
-    // Find first non-empty sample value below header row
     let sample = '';
-    for (let r = effectiveHeaderRow + 1; r < Math.min(numRows, effectiveHeaderRow + 10); r++) {
+    for (let r = effectiveHeaderRow + 1; r < Math.min(numRows, effectiveHeaderRow + 15); r++) {
       if (grid[r][c]) {
         sample = grid[r][c].slice(0, 18);
         break;
@@ -528,11 +568,11 @@ const analyzeWorksheet = (
   }
 
   const sheetScore =
+    bestRosterMatchCount * 20 +
     maxHeaderScore +
     (effectiveNameCol !== -1 ? 5 : 0) +
-    (effectiveIdCol !== -1 ? 4 : 0) +
-    (effectiveGenderCol !== -1 ? 4 : 0) +
-    Math.min(numRows, 50) * 0.1;
+    (effectiveIdCol !== -1 ? 6 : 0) +
+    (effectiveGenderCol !== -1 ? 6 : 0);
 
   return {
     mapping: {
@@ -543,6 +583,7 @@ const analyzeWorksheet = (
     },
     colOptions,
     autoDetected: effectiveNameCol !== -1 && (effectiveIdCol !== -1 || effectiveGenderCol !== -1),
+    rosterMatchCount: bestRosterMatchCount,
     sheetScore
   };
 };
@@ -560,6 +601,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
   const [activeFile, setActiveFile] = useState<File | null>(initialFile || null);
   const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
+  const [sheetMatchCounts, setSheetMatchCounts] = useState<Record<string, number>>({});
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [gridExtract, setGridExtract] = useState<GridExtract>({ grid: [], numRows: 0, numCols: 0 });
 
@@ -573,6 +615,11 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
   const [showMappingConfig, setShowMappingConfig] = useState(false);
   const [autoDetected, setAutoDetected] = useState(false);
 
+  // Import Mode: when class already has students, default to updating existing students only (adding Sex & Student ID safely)
+  const [importMode, setImportMode] = useState<ImportMode>(
+    classStudents.length > 0 ? 'update-only' : 'add-and-update'
+  );
+
   // Extracted data and row selections
   const [extractedRows, setExtractedRows] = useState<ExtractedStudentRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -584,6 +631,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
 
   useEffect(() => {
     if (isOpen && initialFile) {
+      setImportMode(classStudents.length > 0 ? 'update-only' : 'add-and-update');
       loadFile(initialFile);
     }
   }, [initialFile, isOpen]);
@@ -603,21 +651,24 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
       setWorkbook(wb);
       setSheetNames(wb.SheetNames);
 
-      // Score each worksheet to auto-select the tab containing the student list
       let bestSheet = wb.SheetNames[0] || '';
       let bestScore = -Infinity;
+      const counts: Record<string, number> = {};
+
       for (const name of wb.SheetNames) {
         const ws = wb.Sheets[name];
         const extracted = extractTextGrid(ws);
         const analysis = analyzeWorksheet(extracted, classStudents);
+        counts[name] = analysis.rosterMatchCount;
         if (analysis.sheetScore > bestScore) {
           bestScore = analysis.sheetScore;
           bestSheet = name;
         }
       }
 
+      setSheetMatchCounts(counts);
       setSelectedSheet(bestSheet);
-      processWorksheet(wb, bestSheet);
+      processWorksheet(wb, bestSheet, undefined, classStudents.length > 0 ? 'update-only' : 'add-and-update');
     } catch (err) {
       console.error('Error reading student Excel file:', err);
       alert('Could not read Excel file. Please ensure it is a valid .xlsx, .xls, or .csv file.');
@@ -627,7 +678,13 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
   };
 
   // Process selected worksheet
-  const processWorksheet = (wb: XLSX.WorkBook, sheetName: string, customMapping?: Partial<ColumnMapping>) => {
+  const processWorksheet = (
+    wb: XLSX.WorkBook,
+    sheetName: string,
+    customMapping?: Partial<ColumnMapping>,
+    modeOverride?: ImportMode
+  ) => {
+    const activeMode = modeOverride ?? importMode;
     const ws = wb.Sheets[sheetName];
     const extracted = extractTextGrid(ws);
     setGridExtract(extracted);
@@ -645,7 +702,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     setAutoDetected(analysis.autoDetected);
     setAvailableCols(analysis.colOptions);
 
-    // Auto-open column mapper if any of the 3 fields wasn't detected so the user can pick it immediately
+    // Auto-open column mapper if any of the 3 fields wasn't detected
     if (!customMapping && (idCol === -1 || nameCol === -1 || genderCol === -1)) {
       setShowMappingConfig(true);
     }
@@ -663,11 +720,11 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
       // Skip completely empty rows
       if (!rawId && !rawName && !rawGender) continue;
 
-      // Skip trailing summary / header-repeat rows
-      if (/^(total|average|mean|summary|prepared\s*by|approved\s*by|teacher|signature)$/i.test(rawName)) {
+      // Skip metadata/form rows and header-repeat rows
+      if (rawName && (isMetadataLabel(rawName) || isNameHeader(rawName))) {
         continue;
       }
-      if (rawName && (isNameHeader(rawName) || (rawId && isIdHeader(rawId)))) {
+      if (rawId && (isIdHeader(rawId) || isMetadataLabel(rawId))) {
         continue;
       }
 
@@ -703,6 +760,8 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
       }
 
       const matchResult = matchStudentInRoster(rawName, rawId, classStudents);
+      const isSelectedByDefault =
+        isValid && (activeMode === 'update-only' ? matchResult.matchType !== 'new' : true);
 
       rows.push({
         rowIndex: r + 1,
@@ -715,7 +774,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
         matchType: matchResult.matchType,
         matchReason: matchResult.matchReason,
         warnings,
-        selected: isValid,
+        selected: isSelectedByDefault,
         isValid
       });
     }
@@ -728,6 +787,16 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     if (workbook) {
       processWorksheet(workbook, sheet);
     }
+  };
+
+  const handleImportModeChange = (nextMode: ImportMode) => {
+    setImportMode(nextMode);
+    setExtractedRows(prev =>
+      prev.map(r => ({
+        ...r,
+        selected: r.isValid && (nextMode === 'update-only' ? r.matchType !== 'new' : true)
+      }))
+    );
   };
 
   const handleCustomMappingChange = (field: keyof ColumnMapping, val: number) => {
@@ -749,7 +818,13 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
 
   const toggleSelectAll = (select: boolean) => {
     setExtractedRows(prev =>
-      prev.map(r => ({ ...r, selected: r.isValid ? select : false }))
+      prev.map(r => ({
+        ...r,
+        selected:
+          r.isValid && (importMode === 'update-only' ? r.matchType !== 'new' : true)
+            ? select
+            : false
+      }))
     );
   };
 
@@ -800,7 +875,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
       if (r.matchedStudent) {
         preparedStudents.push({
           ...r.matchedStudent,
-          name: r.rawName.trim(),
+          name: r.matchedStudent.name,
           studentId: r.rawId ? r.rawId.trim() : r.matchedStudent.studentId,
           sex: r.normalizedGender ? r.normalizedGender : r.matchedStudent.sex
         });
@@ -830,8 +905,8 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     alert(
       `Import Successful!\n\n` +
       `• Total Processed: ${toImport.length} students\n` +
-      `• New Students Added: ${newAdded}\n` +
-      `• Existing Students Updated: ${updated}\n\n` +
+      `• Existing Students Updated (ID & Sex): ${updated}\n` +
+      `• New Students Added: ${newAdded}\n\n` +
       `Student ID and Gender have been saved permanently.`
     );
 
@@ -898,7 +973,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
               {activeFile && (
                 <div className="flex items-center gap-1.5 text-xs text-gray-700 font-medium">
                   <span className="text-gray-400">•</span>
-                  <span className="truncate max-w-[220px]" title={activeFile.name}>
+                  <span className="truncate max-w-[200px]" title={activeFile.name}>
                     {activeFile.name}
                   </span>
                 </div>
@@ -912,11 +987,14 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                     onChange={e => handleSheetChange(e.target.value)}
                     className="border border-gray-300 rounded-lg px-2.5 py-1 bg-white font-medium text-gray-800 text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
                   >
-                    {sheetNames.map(s => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
+                    {sheetNames.map(s => {
+                      const cnt = sheetMatchCounts[s] || 0;
+                      return (
+                        <option key={s} value={s}>
+                          {s}{cnt > 0 ? ` (${cnt}/${classStudents.length} matched)` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               )}
@@ -950,6 +1028,44 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
             </div>
           </div>
 
+          {/* Safe Import Mode Selector when class already has students */}
+          {classStudents.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 px-3.5 py-2.5 bg-blue-50/70 border border-blue-200 rounded-xl text-xs">
+              <div className="flex items-center gap-2 text-blue-900 font-medium">
+                <ShieldCheck size={16} className="text-blue-600 shrink-0" />
+                <span>
+                  {importMode === 'update-only'
+                    ? 'Safe Update Mode: Only existing students in this class will be updated with Student ID & Sex (no extra rows added).'
+                    : 'Add & Update Mode: Matching students will be updated, and unmatched rows will be added as new students.'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleImportModeChange('update-only')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold border transition ${
+                    importMode === 'update-only'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-blue-800 border-blue-200 hover:bg-blue-100'
+                  }`}
+                >
+                  Update Existing Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleImportModeChange('add-and-update')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold border transition ${
+                    importMode === 'add-and-update'
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  + Also Add New
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Manual Column Mapping Panel */}
           {showMappingConfig && (
             <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-3">
@@ -964,7 +1080,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                     onChange={e => handleCustomMappingChange('headerRowIndex', parseInt(e.target.value))}
                     className="border border-gray-300 rounded-lg px-2 py-1 text-xs bg-white font-medium text-gray-800"
                   >
-                    {gridExtract.grid.slice(0, 20).map((row, idx) => {
+                    {gridExtract.grid.slice(0, 25).map((row, idx) => {
                       const preview = row.filter(Boolean).slice(0, 4).join(' | ').slice(0, 45);
                       return (
                         <option key={idx} value={idx}>
@@ -976,7 +1092,6 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* Student Name */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Student Name <span className="text-rose-500">*</span>
@@ -997,7 +1112,6 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                   </select>
                 </div>
 
-                {/* Student ID */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Student ID <span className="text-gray-400 font-normal">(Leading zeros kept)</span>
@@ -1018,7 +1132,6 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                   </select>
                 </div>
 
-                {/* Sex / Gender */}
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
                     Sex / Gender <span className="text-gray-400 font-normal">(M/F, Male/Female)</span>
@@ -1059,17 +1172,6 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStatusFilter('new')}
-                  className={`px-3 py-1.5 rounded-full border transition-all ${
-                    statusFilter === 'new'
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                  }`}
-                >
-                  + New Students ({summary.newCount})
-                </button>
-                <button
-                  type="button"
                   onClick={() => setStatusFilter('update')}
                   className={`px-3 py-1.5 rounded-full border transition-all ${
                     statusFilter === 'update'
@@ -1077,7 +1179,18 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                       : 'bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100'
                   }`}
                 >
-                  ⟳ Updates to Existing ({summary.updateCount})
+                  ⟳ Matched Updates ({summary.updateCount})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter('new')}
+                  className={`px-3 py-1.5 rounded-full border transition-all ${
+                    statusFilter === 'new'
+                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                  }`}
+                >
+                  + New / Unmatched ({summary.newCount})
                 </button>
                 {summary.warningCount > 0 && (
                   <button
@@ -1094,7 +1207,6 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                 )}
               </div>
 
-              {/* Search in preview */}
               <div className="relative">
                 <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
                 <input
@@ -1118,7 +1230,13 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                       <th className="p-2.5 w-10 text-center">
                         <input
                           type="checkbox"
-                          checked={summary.selectedCount > 0 && summary.selectedCount === extractedRows.filter(r => r.isValid).length}
+                          checked={
+                            summary.selectedCount > 0 &&
+                            summary.selectedCount ===
+                              extractedRows.filter(
+                                r => r.isValid && (importMode === 'update-only' ? r.matchType !== 'new' : true)
+                              ).length
+                          }
                           onChange={e => toggleSelectAll(e.target.checked)}
                           className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                         />
@@ -1193,8 +1311,14 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                         <td className="p-2.5">
                           <div className="space-y-1">
                             {row.matchType === 'new' ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded text-[11px] font-bold">
-                                <UserPlus size={12} /> New Student
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border ${
+                                  row.selected
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                    : 'bg-gray-100 text-gray-600 border-gray-300'
+                                }`}
+                              >
+                                <UserPlus size={12} /> {row.selected ? 'New Student' : 'Skipped (Unmatched)'}
                               </span>
                             ) : (
                               <div className="flex flex-col gap-0.5">
@@ -1237,7 +1361,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
           <div className="text-xs text-gray-600 font-medium">
             {summary.selectedCount > 0 ? (
               <span>
-                Ready to import <strong className="text-indigo-900 font-bold">{summary.selectedCount}</strong> student{summary.selectedCount > 1 ? 's' : ''} into{' '}
+                Ready to process <strong className="text-indigo-900 font-bold">{summary.selectedCount}</strong> student{summary.selectedCount > 1 ? 's' : ''} in{' '}
                 <strong className="text-indigo-900 font-bold">{currentClassName}</strong>
               </span>
             ) : (
