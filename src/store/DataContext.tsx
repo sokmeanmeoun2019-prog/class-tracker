@@ -406,6 +406,7 @@ const reducer = (state: AppState, action: Action): AppState => {
           updatedClassStudents[existingIdx] = {
             ...existing,
             name: inc.name?.trim() ? inc.name.trim() : existing.name,
+            nameKhmer: inc.nameKhmer !== undefined && inc.nameKhmer.trim() !== '' ? inc.nameKhmer.trim() : existing.nameKhmer,
             studentId: inc.studentId !== undefined && inc.studentId !== '' ? inc.studentId : existing.studentId,
             sex: inc.sex !== undefined && inc.sex !== '' ? inc.sex : existing.sex,
             rosterNumber: inc.rosterNumber || existing.rosterNumber

@@ -490,6 +490,7 @@ export const exportScoreList = async (
     const baseColumns = [
       { key: 'no', title: 'No.', width: 6, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
       { key: 'name', title: 'Name', width: 26, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
+      { key: 'nameKhmer', title: 'Name in Khmer', width: 24, headerStyle: 2, isLeft: true, isTotal: false, isIndigo: false },
       { key: 'sex', title: 'Sex', width: 9, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
       { key: 'studentId', title: 'ID', width: 13, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
       { key: 'conduct', title: 'Conduct', width: 11, headerStyle: 1, isLeft: false, isTotal: false, isIndigo: false },
@@ -538,6 +539,7 @@ export const exportScoreList = async (
         return [
           student.displayNum,
           student.name,
+          student.nameKhmer || '',
           sexDisplay,
           student.studentId || '',
           score?.conduct ?? '',
@@ -692,6 +694,7 @@ export const exportScoreList = async (
       return {
         'No.': student.displayNum,
         'Name': student.name,
+        'Name in Khmer': student.nameKhmer || '',
         'Sex': student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || ''),
         'ID': student.studentId || '',
         'Conduct': score?.conduct ?? '',

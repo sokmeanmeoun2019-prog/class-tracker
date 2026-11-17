@@ -45,6 +45,7 @@ export interface ExtractedStudentScore {
   excelId?: string;
   excelSex?: 'Male' | 'Female' | '';
   excelName: string;
+  excelNameKhmer?: string;
   matchedStudent?: Student;
   matchType: 'exact-id' | 'exact-name' | 'fuzzy-name' | 'manual' | 'unmatched' | 'duplicate';
   matchConfidence: 'high' | 'medium' | 'low' | 'none';
@@ -66,6 +67,7 @@ export interface ExtractedStudentScore {
 
 interface ColumnMapping {
   nameCol: number;
+  nameKhmerCol: number;
   idCol: number;
   sexCol: number;
   conductCol: number;
@@ -646,7 +648,7 @@ const parseScoreCellValue = (rawVal: any, formattedVal?: string): number | undef
 };
 
 // Detect parent category from a header string (handling punctuation like C.P., H.W., Q.Z., M.T., and Khmer headers)
-type MajorCategory = 'conduct' | 'cp' | 'hw' | 'quiz' | 'test' | 'id' | 'name' | 'sex' | 'summary' | 'unknown';
+type MajorCategory = 'conduct' | 'cp' | 'hw' | 'quiz' | 'test' | 'id' | 'name' | 'khmer_name' | 'sex' | 'summary' | 'unknown';
 
 // Identify worksheets that belong to unrelated sections or documentation/settings tabs
 // so we ONLY import from the main score sheet (Conduct, CP, Homework, Quizzes, Monthly Test).
@@ -727,10 +729,19 @@ const classifyCategoryText = (text: string): MajorCategory => {
     return 'test';
   }
 
-  // Student Name
+  // Student Name in Khmer (must be checked before English Student Name so it isn't swallowed as English name)
   if (
-    /(?:^|[\s\(\[\-\/])(student\s*name|students?\s*name|full\s*name|english\s*name|khmer\s*name|name\s*in\s*latin|student|name|pupil)(?:$|[\s\)\]\-\/:])/i.test(t) ||
-    /(ឈ្មោះ|គោត្តនាម)/i.test(t)
+    /(?:^|[\s\(\[\-\/])(name\s*in\s*khmer|khmer\s*name|students?\s*name\s*\(?khmer\)?|khmer\s*full\s*name|name\s*\(khmer\))(?:$|[\s\)\]\-\/:])/i.test(t) ||
+    (/(ឈ្មោះខ្មែរ|ឈ្មោះ\s*\(?ខ្មែរ\)?|ឈ្មោះជាភាសាខ្មែរ|គោត្តនាម\s*(?:និង\s*)?នាម|គោត្តនាម)/i.test(t) &&
+      !/(teacher|គ្រូ|អង់គ្លេស|latin|english)/i.test(t))
+  ) {
+    return 'khmer_name';
+  }
+
+  // Student Name (English / Latin)
+  if (
+    /(?:^|[\s\(\[\-\/])(student\s*name|students?\s*name|full\s*name|english\s*name|name\s*in\s*english|name\s*in\s*latin|latin\s*name|student|name|pupil)(?:$|[\s\)\]\-\/:])/i.test(t) ||
+    (/ឈ្មោះ/.test(t) && !/(teacher|គ្រូ)/i.test(t))
   ) {
     return 'name';
   }
@@ -850,6 +861,7 @@ const detectColumns = (
     dataStartRowIndex: 1,
     mapping: {
       nameCol: -1,
+      nameKhmerCol: -1,
       idCol: -1,
       sexCol: -1,
       conductCol: -1,
@@ -1068,7 +1080,7 @@ const detectColumns = (
       if (cat === 'hw' || cat === 'quiz' || cat === 'test') {
         activeParentText = cellText;
         activeParentCat = cat;
-      } else if (cat === 'conduct' || cat === 'cp' || cat === 'summary' || cat === 'name' || cat === 'id' || cat === 'sex') {
+      } else if (cat === 'conduct' || cat === 'cp' || cat === 'summary' || cat === 'name' || cat === 'khmer_name' || cat === 'id' || cat === 'sex') {
         activeParentText = '';
         activeParentCat = 'unknown';
       } else if (cellText === '' && activeParentText !== '') {
@@ -1129,6 +1141,7 @@ const detectColumns = (
 
   const mapping: ColumnMapping = {
     nameCol: -1,
+    nameKhmerCol: -1,
     idCol: -1,
     sexCol: -1,
     conductCol: -1,
@@ -1172,18 +1185,21 @@ const detectColumns = (
     if (cat === 'name' && mapping.nameCol === -1) {
       mapping.nameCol = c;
     }
+    if (cat === 'khmer_name' && mapping.nameKhmerCol === -1) {
+      mapping.nameKhmerCol = c;
+    }
     if (cat === 'sex' && mapping.sexCol === -1) {
       mapping.sexCol = c;
     }
   }
 
-  if (bestRosterMatchCol !== -1 && bestRosterMatches >= 1) {
+  if (bestRosterMatchCol !== -1 && bestRosterMatches >= 1 && bestRosterMatchCol !== mapping.nameKhmerCol) {
     mapping.nameCol = bestRosterMatchCol;
   }
 
   if (mapping.nameCol === -1) {
     for (let c = 0; c < Math.min(numCols, 8); c++) {
-      if (c === mapping.idCol || c === mapping.sexCol) continue;
+      if (c === mapping.idCol || c === mapping.sexCol || c === mapping.nameKhmerCol) continue;
       let textRows = 0;
       for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 20); r++) {
         const val = String(formattedGrid[r]?.[c] || '').trim();
@@ -1201,7 +1217,7 @@ const detectColumns = (
   // Fallback inference for Sex/Gender column from cell values if header wasn't matched
   if (mapping.sexCol === -1) {
     for (let c = 0; c < Math.min(numCols, 10); c++) {
-      if (c === mapping.nameCol || c === mapping.idCol) continue;
+      if (c === mapping.nameCol || c === mapping.idCol || c === mapping.nameKhmerCol) continue;
       let nonEmpty = 0;
       let sexHits = 0;
       for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 30); r++) {
@@ -1220,7 +1236,7 @@ const detectColumns = (
   // Fallback inference for Student ID column from zero-padded or alphanumeric IDs
   if (mapping.idCol === -1) {
     for (let c = 0; c < Math.min(numCols, 8); c++) {
-      if (c === mapping.nameCol || c === mapping.sexCol) continue;
+      if (c === mapping.nameCol || c === mapping.sexCol || c === mapping.nameKhmerCol) continue;
       const hdrCat = classifyCategoryText(colHeaderParts[c].join(' '));
       if (hdrCat !== 'unknown' && hdrCat !== 'id') continue;
       let nonEmpty = 0;
@@ -1236,6 +1252,32 @@ const detectColumns = (
       }
       if (idHits >= 2 && nonEmpty > 0 && idHits / nonEmpty >= 0.55) {
         mapping.idCol = c;
+        break;
+      }
+    }
+  }
+
+  // Fallback inference for Name in Khmer column from Khmer-script values
+  if (mapping.nameKhmerCol === -1) {
+    for (let c = 0; c < Math.min(numCols, 8); c++) {
+      if (c === mapping.nameCol || c === mapping.idCol || c === mapping.sexCol) continue;
+      const hdrCat = classifyCategoryText(colHeaderParts[c].join(' '));
+      if (hdrCat !== 'unknown' && hdrCat !== 'khmer_name') continue;
+      let nonEmpty = 0;
+      let khmerHits = 0;
+      for (let r = dataStartRowIndex; r < Math.min(numRows, dataStartRowIndex + 30); r++) {
+        const val = String(formattedGrid[r]?.[c] || '').trim();
+        if (!val) continue;
+        if (/^(campus|academic\s*year|quarter|grade|teacher'?s?\s*name|subject|submitted\s*date|ឆ្នាំសិក្សា|ត្រីមាស|ថ្នាក់ទី|ឈ្មោះគ្រូ|មុខវិជ្ជា|កាលបរិច្ឆេទ|សាលា|សាខា|សរុប|មធ្យមភាគ|ហត្ថលេខា)/i.test(val)) {
+          continue;
+        }
+        nonEmpty++;
+        if (/[\u1780-\u17FF]{2,}/.test(val) && normalizeExcelSex(val) === '') {
+          khmerHits++;
+        }
+      }
+      if (khmerHits >= 2 && nonEmpty > 0 && khmerHits / nonEmpty >= 0.5) {
+        mapping.nameKhmerCol = c;
         break;
       }
     }
@@ -1938,6 +1980,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
   const [sampleValues, setSampleValues] = useState<string[]>([]);
   const [columnMapping, setColumnMapping] = useState<ColumnMapping>({
     nameCol: -1,
+    nameKhmerCol: -1,
     idCol: -1,
     sexCol: -1,
     conductCol: -1,
@@ -2091,6 +2134,10 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       if (!rawRow || !fmtRow) continue;
 
       const rawName = String(fmtRow[columnMapping.nameCol] ?? rawRow[columnMapping.nameCol] ?? '').trim();
+      const rawNameKhmer =
+        columnMapping.nameKhmerCol !== -1
+          ? String(fmtRow[columnMapping.nameKhmerCol] ?? rawRow[columnMapping.nameKhmerCol] ?? '').trim()
+          : undefined;
       const rawId =
         columnMapping.idCol !== -1
           ? String(fmtRow[columnMapping.idCol] ?? rawRow[columnMapping.idCol] ?? '').trim()
@@ -2222,7 +2269,11 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         }
       }
 
-      const hasProfileData = Boolean((rawId && rawId.trim() !== '') || (rawSex && (rawSex === 'Male' || rawSex === 'Female')));
+      const hasProfileData = Boolean(
+        (rawId && rawId.trim() !== '') ||
+        (rawSex && (rawSex === 'Male' || rawSex === 'Female')) ||
+        (rawNameKhmer && rawNameKhmer.trim() !== '')
+      );
 
       if (!hasAnyScore && !hasProfileData) {
         warnings.push('No numeric scores found on this row');
@@ -2236,6 +2287,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         excelId: rawId,
         excelSex: rawSex,
         excelName: rawName,
+        excelNameKhmer: rawNameKhmer || undefined,
         matchedStudent,
         matchType,
         matchConfidence,
@@ -2413,6 +2465,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
         id: newId,
         classId: lockedClassId,
         name: cleanName,
+        nameKhmer: row.excelNameKhmer || '',
         studentId: row.excelId || '',
         sex: row.excelSex || '',
         rosterNumber: currentRoster.length + i + 1
@@ -2433,7 +2486,8 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     rowIndex: number,
     excelName: string,
     excelId?: string,
-    excelSex?: 'Male' | 'Female' | ''
+    excelSex?: 'Male' | 'Female' | '',
+    excelNameKhmer?: string
   ) => {
     const currentRoster = state.students.filter(s => s.classId === lockedClassId);
     const cleanName = cleanStudentName(excelName);
@@ -2442,6 +2496,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       id: newId,
       classId: lockedClassId,
       name: cleanName,
+      nameKhmer: excelNameKhmer || '',
       studentId: excelId || '',
       sex: excelSex || '',
       rosterNumber: currentRoster.length + 1
@@ -2519,7 +2574,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
     );
     const rowsToImport = selectedMatchedRows.filter(r => r.hasAnyScore);
 
-    // Collect Student ID and Sex/Gender updates for all selected matched students
+    // Collect Student ID, Sex/Gender, and Khmer Name updates for all selected matched students
     const updatedStudentProfiles: Student[] = [];
     selectedMatchedRows.forEach(item => {
       const student = item.matchedStudent!;
@@ -2527,18 +2582,27 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       const nextSex = item.excelSex && (item.excelSex === 'Male' || item.excelSex === 'Female')
         ? item.excelSex
         : student.sex;
+      const nextNameKhmer =
+        item.excelNameKhmer && item.excelNameKhmer.trim() !== ''
+          ? item.excelNameKhmer.trim()
+          : student.nameKhmer;
 
-      if (nextStudentId !== student.studentId || nextSex !== student.sex) {
+      if (
+        nextStudentId !== student.studentId ||
+        nextSex !== student.sex ||
+        nextNameKhmer !== student.nameKhmer
+      ) {
         updatedStudentProfiles.push({
           ...student,
           studentId: nextStudentId,
-          sex: nextSex
+          sex: nextSex,
+          nameKhmer: nextNameKhmer
         });
       }
     });
 
     if (rowsToImport.length === 0 && updatedStudentProfiles.length === 0) {
-      setErrorMessage('No matched students with scores, ID, or gender data are selected for import.');
+      setErrorMessage('No matched students with scores, Khmer name, ID, or gender data are selected for import.');
       return;
     }
 
@@ -2654,7 +2718,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
       r.selected &&
       r.matchedStudent &&
       r.matchType !== 'duplicate' &&
-      (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex))
+      (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex) || Boolean(r.excelNameKhmer))
   ).length;
 
   const rosterStudentsNotInExcel = targetClassStudents.filter(
@@ -3222,6 +3286,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     {renderColumnSelect('Student Name Column *', 'nameCol', 'bg-indigo-100 text-indigo-800')}
+                    {renderColumnSelect('Name in Khmer (Optional)', 'nameKhmerCol', 'bg-amber-100 text-amber-800')}
                     {renderColumnSelect('Student ID (Optional)', 'idCol', 'bg-gray-200 text-gray-700')}
                     {renderColumnSelect('Sex / Gender (Optional)', 'sexCol', 'bg-pink-100 text-pink-800')}
                     {renderColumnSelect('1. Conduct → Conduct', 'conductCol', 'bg-emerald-100 text-emerald-800')}
@@ -3345,7 +3410,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                                   r =>
                                     r.matchedStudent &&
                                     r.matchType !== 'duplicate' &&
-                                    (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex))
+                                    (r.hasAnyScore || Boolean(r.excelId) || Boolean(r.excelSex) || Boolean(r.excelNameKhmer))
                                 )
                                 .every(r => r.selected)
                             }
@@ -3426,7 +3491,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                               <td className="p-2 text-center border-r border-gray-100">
                                 <input
                                   type="checkbox"
-                                  disabled={!item.matchedStudent || isDuplicate || (!item.hasAnyScore && !item.excelId && !item.excelSex)}
+                                  disabled={!item.matchedStudent || isDuplicate || (!item.hasAnyScore && !item.excelId && !item.excelSex && !item.excelNameKhmer)}
                                   checked={item.selected}
                                   onChange={e =>
                                     setDeselectedRows(prev => ({
@@ -3441,6 +3506,9 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                               {/* Excel Student Name */}
                               <td className="p-2 font-medium text-gray-900 border-r border-gray-100">
                                 <div>{item.excelName}</div>
+                                {item.excelNameKhmer && (
+                                  <div className="text-[11px] text-gray-600 mt-0.5">{item.excelNameKhmer}</div>
+                                )}
                                 {(item.excelId || item.excelSex) && (
                                   <div className="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                                     {item.excelId && <span className="font-mono">ID: {item.excelId}</span>}
@@ -3461,7 +3529,7 @@ export const ExcelScoreImportModal: React.FC<ExcelScoreImportModalProps> = ({
                                     onChange={e => {
                                       const val = e.target.value;
                                       if (val === '__ENROLL__') {
-                                        handleEnrollSingleStudent(item.rowIndex, item.excelName, item.excelId, item.excelSex);
+                                        handleEnrollSingleStudent(item.rowIndex, item.excelName, item.excelId, item.excelSex, item.excelNameKhmer);
                                       } else {
                                         setManualMatches(prev => ({
                                           ...prev,

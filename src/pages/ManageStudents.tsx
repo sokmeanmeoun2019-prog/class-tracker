@@ -17,6 +17,7 @@ const ManageStudents = () => {
   }, [state.currentClassId]);
 
   const [name, setName] = useState('');
+  const [nameKhmer, setNameKhmer] = useState('');
   const [studentIdStr, setStudentIdStr] = useState('');
   const [sex, setSex] = useState<'Male' | 'Female' | ''>('');
 
@@ -54,12 +55,14 @@ const ManageStudents = () => {
         id: uuidv4(),
         classId: selectedClassId,
         name: name.trim(),
+        nameKhmer: nameKhmer.trim() || "",
         studentId: studentIdStr.trim() || "",
         sex: sex || '',
         rosterNumber: classStudents.length + 1
       }
     });
     setName('');
+    setNameKhmer('');
     setStudentIdStr('');
     setSex('');
   };
@@ -143,6 +146,10 @@ const ManageStudents = () => {
                   <input type="text" required value={name} onChange={e=>setName(e.target.value)} placeholder="Full Name" className="w-full border-2 border-indigo-50 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 bg-white/50 shadow-inner" />
                 </div>
                 <div>
+                  <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Name in Khmer (Optional)</label>
+                  <input type="text" value={nameKhmer} onChange={e=>setNameKhmer(e.target.value)} placeholder="ឈ្មោះជាភាសាខ្មែរ" className="w-full border-2 border-indigo-50 rounded-xl px-4 py-2.5 focus:outline-none focus:border-indigo-500 bg-white/50 shadow-inner" />
+                </div>
+                <div>
                   <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Sex / Gender</label>
                   <select
                     value={sex}
@@ -167,7 +174,7 @@ const ManageStudents = () => {
             <div className="glass-card p-6 rounded-3xl">
               <h3 className="text-xl font-bold text-indigo-900 mb-2">Import via Excel</h3>
               <p className="text-sm text-gray-500 mb-4">
-                Upload an Excel roster with <strong>Student ID</strong>, <strong>Name</strong>, and <strong>Sex/Gender</strong>.
+                Upload an Excel roster with <strong>Student ID</strong>, <strong>Name</strong>, <strong>Name in Khmer</strong>, and <strong>Sex/Gender</strong>.
               </p>
               <label className="flex items-center justify-center w-full p-6 border-2 border-dashed border-indigo-200 rounded-2xl cursor-pointer hover:bg-indigo-50/50 hover:border-indigo-400 transition-all group">
                 <div className="flex flex-col items-center">
@@ -221,6 +228,7 @@ const ManageStudents = () => {
                       </th>
                       <th className="p-3 text-sm font-semibold text-gray-600 w-16 text-center">No.</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Name</th>
+                      <th className="p-3 text-sm font-semibold text-gray-600">Name in Khmer</th>
                       <th className="p-3 text-sm font-semibold text-gray-600 w-24 text-center">Sex</th>
                       <th className="p-3 text-sm font-semibold text-gray-600">Student ID</th>
                       <th className="p-3 text-sm font-semibold text-gray-600 text-right">Actions</th>
@@ -235,7 +243,7 @@ const ManageStudents = () => {
                         }`}
                       >
                         {editingStudent?.id === s.id ? (
-                          <td colSpan={6} className="p-3 bg-amber-50/50">
+                          <td colSpan={7} className="p-3 bg-amber-50/50">
                             <form onSubmit={handleUpdateStudent} className="flex flex-wrap gap-2 items-center">
                               <input 
                                 type="number" 
@@ -250,7 +258,14 @@ const ManageStudents = () => {
                                 value={editingStudent.name} 
                                 onChange={e=>setEditingStudent({...editingStudent, name: e.target.value})} 
                                 className="border rounded px-2 flex-1 min-w-[140px] text-sm py-1.5 bg-white font-medium" 
-                                placeholder="Name"
+                                placeholder="Name (English)"
+                              />
+                              <input 
+                                type="text" 
+                                value={editingStudent.nameKhmer || ''} 
+                                onChange={e=>setEditingStudent({...editingStudent, nameKhmer: e.target.value})} 
+                                className="border rounded px-2 flex-1 min-w-[140px] text-sm py-1.5 bg-white" 
+                                placeholder="Name in Khmer"
                               />
                               <select
                                 value={editingStudent.sex || ''}
@@ -288,6 +303,7 @@ const ManageStudents = () => {
                             </td>
                             <td className="p-3 text-center text-gray-500 font-medium">{s.displayNum}</td>
                             <td className="p-3 font-medium text-gray-800">{s.name}</td>
+                            <td className="p-3 text-gray-700 text-sm">{s.nameKhmer || <span className="text-gray-400 italic text-xs">-</span>}</td>
                             <td className="p-3 text-center">
                               {s.sex === 'Male' ? (
                                 <span className="inline-block bg-blue-100 text-blue-800 border border-blue-200 px-2 py-0.5 rounded-full text-xs font-bold">
@@ -336,7 +352,7 @@ const ManageStudents = () => {
                     ))}
                     {classStudents.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="p-6 text-center text-gray-500">
+                        <td colSpan={7} className="p-6 text-center text-gray-500">
                           No students found for this class. Upload an Excel roster or add students manually.
                         </td>
                       </tr>

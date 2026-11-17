@@ -175,7 +175,10 @@ const ScoreList = () => {
 
   let displayStudents = classStudents;
   if (searchTerm) {
-    displayStudents = displayStudents.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const term = searchTerm.toLowerCase();
+    displayStudents = displayStudents.filter(
+      s => s.name.toLowerCase().includes(term) || (s.nameKhmer || '').toLowerCase().includes(term)
+    );
   }
   if (filterSex !== 'All') {
     displayStudents = displayStudents.filter(s => s.sex === filterSex);
@@ -271,6 +274,12 @@ const ScoreList = () => {
   const handleStudentIdChange = (student: Student, studentId: string) => {
     setSaveStatus('saving');
     dispatch({ type: 'UPDATE_STUDENT', payload: { ...student, studentId } });
+    setTimeout(() => setSaveStatus('saved'), 500);
+  };
+
+  const handleNameKhmerChange = (student: Student, nameKhmer: string) => {
+    setSaveStatus('saving');
+    dispatch({ type: 'UPDATE_STUDENT', payload: { ...student, nameKhmer } });
     setTimeout(() => setSaveStatus('saved'), 500);
   };
 
@@ -397,6 +406,7 @@ const ScoreList = () => {
               <tr className="border-b border-gray-300">
                 <th className="p-2 border-r bg-gray-100 sticky left-0 z-30 min-w-[40px] text-center print:static">No.</th>
                 <th className="p-2 border-r bg-gray-100 sticky left-[40px] z-30 min-w-[180px] print:static">Name</th>
+                <th className="p-2 border-r bg-gray-100 min-w-[160px]">Name in Khmer</th>
                 <th className="p-2 border-r bg-gray-100 text-center min-w-[80px]">Sex</th>
                 <th className="p-2 border-r bg-gray-100 text-center min-w-[100px]">ID</th>
                 <th className="p-2 border-r text-center" title={`Max ${settings.maxScores.conduct}`}>Conduct<br/><span className="text-xs text-gray-500 font-normal">/{settings.maxScores.conduct}</span></th>
@@ -438,6 +448,18 @@ const ScoreList = () => {
                     </td>
                     <td className={`p-2 border-r ${index % 2 === 0 ? 'bg-white' : 'bg-[#f2f2f2]'} group-hover:bg-amber-100/60 sticky left-[40px] z-10 font-medium print:static`}>
                       {student.name}
+                    </td>
+
+                    {/* Name in Khmer */}
+                    <td className="p-1 border-r">
+                      <input
+                        type="text"
+                        className="w-40 p-1 text-left text-xs border-none bg-transparent hover:bg-gray-100 focus:bg-white focus:ring-1 focus:ring-blue-500 rounded text-gray-700"
+                        value={student.nameKhmer || ''}
+                        onChange={(e) => handleNameKhmerChange(student, e.target.value)}
+                        placeholder="-"
+                        title="Name in Khmer"
+                      />
                     </td>
                     
                     {/* Sex */}

@@ -31,6 +31,7 @@ export interface ExtractedStudentRow {
   rowIndex: number;
   rawId: string;
   rawName: string;
+  rawNameKhmer: string;
   rawGender: string;
   normalizedGender: 'Male' | 'Female' | '';
   isGenderValid: boolean;
@@ -45,6 +46,7 @@ export interface ExtractedStudentRow {
 interface ColumnMapping {
   idCol: number;
   nameCol: number;
+  nameKhmerCol: number;
   genderCol: number;
   headerRowIndex: number;
 }
@@ -161,11 +163,33 @@ const isNameHeader = (rawHeader: string): boolean => {
   if (/(គ្រូ|សាលា|មុខវិជ្ជា|សាខា)/i.test(h)) {
     return false;
   }
-  if (/(ឈ្មោះ|គោត្តនាម)/i.test(h)) return true;
-  if (/\b(student\s*name|students\s*name|full\s*name|english\s*name|latin\s*name|khmer\s*name|name)\b/i.test(h)) {
+  if (/\b(name\s*in\s*khmer|khmer\s*name|name\s*khmer|khmer\s*full\s*name)\b/i.test(h)) {
+    return false;
+  }
+  if (/(ឈ្មោះខ្មែរ|ឈ្មោះជាភាសាខ្មែរ|គោត្តនាម)/i.test(h) && !/\b(english|latin)\b/i.test(h)) {
+    return false;
+  }
+  if (/ឈ្មោះ/.test(h)) return true;
+  if (/\b(student\s*name|students\s*name|full\s*name|english\s*name|latin\s*name|name\s*in\s*english|name\s*in\s*latin|name)\b/i.test(h)) {
     return true;
   }
   if (/^(student|pupil|studentname|fullname)$/i.test(h)) return true;
+  return false;
+};
+
+const isKhmerNameHeader = (rawHeader: string): boolean => {
+  const h = normalizeText(rawHeader);
+  if (!h || isScoreOrOtherHeader(h) || isMetadataLabel(rawHeader)) return false;
+  if (/\b(teacher(?:\s*s)?|school|campus|class|subject|file|course|parent|guardian|director|principal|english|latin|essays?|dictations?)\b/i.test(h)) {
+    return false;
+  }
+  if (/(គ្រូ|សាលា|មុខវិជ្ជា|សាខា)/i.test(h)) {
+    return false;
+  }
+  if (/\b(name\s*in\s*khmer|khmer\s*name|name\s*khmer|khmer\s*full\s*name)\b/i.test(h)) return true;
+  if (/(ឈ្មោះខ្មែរ|ឈ្មោះជាភាសាខ្មែរ|គោត្តនាម\s*និង\s*នាម|គោត្តនាម|ឈ្មោះពេញ|ឈ្មោះសិស្ស|ឈ្មោះ)/i.test(h)) {
+    return true;
+  }
   return false;
 };
 
@@ -397,7 +421,7 @@ const analyzeWorksheet = (
   const { grid, numRows, numCols } = extracted;
   if (numRows === 0 || numCols === 0) {
     return {
-      mapping: { idCol: -1, nameCol: -1, genderCol: -1, headerRowIndex: 0 },
+      mapping: { idCol: -1, nameCol: -1, nameKhmerCol: -1, genderCol: -1, headerRowIndex: 0 },
       colOptions: [],
       autoDetected: false,
       rosterMatchCount: 0,
@@ -416,7 +440,15 @@ const analyzeWorksheet = (
       let firstRowInCol = -1;
       for (let r = 0; r < Math.min(numRows, 100); r++) {
         const val = grid[r][c];
-        if (!val || val.length < 3 || isMetadataLabel(val) || isNameHeader(val) || isIdHeader(val) || isGenderHeader(val)) {
+        if (
+          !val ||
+          val.length < 3 ||
+          isMetadataLabel(val) ||
+          isNameHeader(val) ||
+          isKhmerNameHeader(val) ||
+          isIdHeader(val) ||
+          isGenderHeader(val)
+        ) {
           continue;
         }
         const m = matchStudentInRoster(val, '', roster);
@@ -437,6 +469,7 @@ const analyzeWorksheet = (
 
   let bestHeaderRow = 0;
   let detectedNameCol = -1;
+  let detectedNameKhmerCol = -1;
   let detectedIdCol = -1;
   let detectedGenderCol = -1;
   let maxHeaderScore = 0;
@@ -444,6 +477,7 @@ const analyzeWorksheet = (
   if (customMapping && customMapping.headerRowIndex !== undefined) {
     bestHeaderRow = customMapping.headerRowIndex;
     detectedNameCol = customMapping.nameCol ?? -1;
+    detectedNameKhmerCol = customMapping.nameKhmerCol ?? -1;
     detectedIdCol = customMapping.idCol ?? -1;
     detectedGenderCol = customMapping.genderCol ?? -1;
   } else {
@@ -451,6 +485,7 @@ const analyzeWorksheet = (
     for (let r = 0; r < headerSearchLimit; r++) {
       let score = 0;
       let nameIdx = -1;
+      let khmerNameIdx = -1;
       let idIdx = -1;
       let genderIdx = -1;
 
@@ -462,7 +497,10 @@ const analyzeWorksheet = (
             ? `${grid[r - 1][c]} ${cell}`
             : cell;
 
-        if (isNameHeader(cell) && nameIdx === -1) {
+        if (isKhmerNameHeader(cell) && khmerNameIdx === -1 && c !== bestRosterMatchCol) {
+          khmerNameIdx = c;
+          score += 4;
+        } else if (isNameHeader(cell) && nameIdx === -1) {
           nameIdx = c;
           score += c === bestRosterMatchCol ? 10 : 5;
         } else if (isIdHeader(cell) && idIdx === -1) {
@@ -472,7 +510,10 @@ const analyzeWorksheet = (
           genderIdx = c;
           score += 4;
         } else if (combined !== cell) {
-          if (isNameHeader(combined) && nameIdx === -1) {
+          if (isKhmerNameHeader(combined) && khmerNameIdx === -1 && c !== bestRosterMatchCol) {
+            khmerNameIdx = c;
+            score += 3;
+          } else if (isNameHeader(combined) && nameIdx === -1) {
             nameIdx = c;
             score += c === bestRosterMatchCol ? 8 : 4;
           } else if (isIdHeader(combined) && idIdx === -1) {
@@ -485,14 +526,18 @@ const analyzeWorksheet = (
         }
       }
 
-      // Extra bonus if row has multiple distinct table columns (Name + ID or Name + Sex or ID + Sex)
-      const hitKinds = (nameIdx !== -1 ? 1 : 0) + (idIdx !== -1 ? 1 : 0) + (genderIdx !== -1 ? 1 : 0);
+      const hitKinds =
+        (nameIdx !== -1 ? 1 : 0) +
+        (khmerNameIdx !== -1 ? 1 : 0) +
+        (idIdx !== -1 ? 1 : 0) +
+        (genderIdx !== -1 ? 1 : 0);
       if (hitKinds >= 2) score += 6;
 
       if (score >= maxHeaderScore && score > 0) {
         maxHeaderScore = score;
         bestHeaderRow = r;
         detectedNameCol = nameIdx;
+        detectedNameKhmerCol = khmerNameIdx;
         detectedIdCol = idIdx;
         detectedGenderCol = genderIdx;
       }
@@ -504,13 +549,19 @@ const analyzeWorksheet = (
       let subHits = 0;
       for (let c = 0; c < numCols; c++) {
         const cell = nextRow[c];
-        if (cell && (isNameHeader(cell) || isIdHeader(cell) || isGenderHeader(cell) || isNoHeader(cell))) {
+        if (
+          cell &&
+          (isNameHeader(cell) || isKhmerNameHeader(cell) || isIdHeader(cell) || isGenderHeader(cell) || isNoHeader(cell))
+        ) {
           subHits++;
         }
       }
       if (subHits >= 2) {
         for (let c = 0; c < numCols; c++) {
           const cell = nextRow[c];
+          if (detectedNameKhmerCol === -1 && isKhmerNameHeader(cell) && c !== bestRosterMatchCol) {
+            detectedNameKhmerCol = c;
+          }
           if (detectedNameCol === -1 && isNameHeader(cell)) detectedNameCol = c;
           if (detectedIdCol === -1 && isIdHeader(cell)) detectedIdCol = c;
           if (detectedGenderCol === -1 && isGenderHeader(cell)) detectedGenderCol = c;
@@ -522,6 +573,9 @@ const analyzeWorksheet = (
     // Always prefer the column that actually matched real roster students!
     if (bestRosterMatchCol !== -1 && bestRosterMatchCount >= 1) {
       detectedNameCol = bestRosterMatchCol;
+      if (detectedNameKhmerCol === bestRosterMatchCol) {
+        detectedNameKhmerCol = -1;
+      }
     }
 
     const dataStart = firstRosterRow > bestHeaderRow ? firstRosterRow : maxHeaderScore > 0 ? bestHeaderRow + 1 : 0;
@@ -530,7 +584,7 @@ const analyzeWorksheet = (
     // Infer Gender column from cell values across ALL columns if header missed it
     if (detectedGenderCol === -1) {
       for (let c = 0; c < numCols; c++) {
-        if (c === detectedNameCol || c === detectedIdCol) continue;
+        if (c === detectedNameCol || c === detectedNameKhmerCol || c === detectedIdCol) continue;
         let nonEmpty = 0;
         let genderHits = 0;
         for (let r = dataStart; r < scanEnd; r++) {
@@ -549,7 +603,7 @@ const analyzeWorksheet = (
     // Infer Student ID column across ALL columns if header missed it
     if (detectedIdCol === -1) {
       for (let c = 0; c < numCols; c++) {
-        if (c === detectedNameCol || c === detectedGenderCol) continue;
+        if (c === detectedNameCol || c === detectedNameKhmerCol || c === detectedGenderCol) continue;
         const hdr = grid[bestHeaderRow]?.[c] || '';
         if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr) || isMetadataLabel(hdr)) continue;
 
@@ -573,12 +627,41 @@ const analyzeWorksheet = (
       }
     }
 
+    // Infer Name in Khmer column from Khmer script values if header missed it
+    if (detectedNameKhmerCol === -1) {
+      for (let c = 0; c < numCols; c++) {
+        if (c === detectedNameCol || c === detectedIdCol || c === detectedGenderCol) continue;
+        const hdr = grid[bestHeaderRow]?.[c] || '';
+        if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr) || isMetadataLabel(hdr)) continue;
+
+        let nonEmpty = 0;
+        let khmerNameHits = 0;
+        let metadataHits = 0;
+        for (let r = dataStart; r < scanEnd; r++) {
+          const val = grid[r][c];
+          if (!val) continue;
+          if (isMetadataLabel(val)) {
+            metadataHits++;
+            continue;
+          }
+          nonEmpty++;
+          if (/[\u1780-\u17FF]{2,}/.test(val) && normalizeGender(val).gender === '') {
+            khmerNameHits++;
+          }
+        }
+        if (khmerNameHits >= 2 && metadataHits === 0 && nonEmpty > 0 && khmerNameHits / nonEmpty >= 0.55) {
+          detectedNameKhmerCol = c;
+          break;
+        }
+      }
+    }
+
     // Infer Name column ONLY if still -1 (for brand-new classes with 0 existing students)
     if (detectedNameCol === -1) {
       let bestTextCol = -1;
       let bestTextScore = 0;
       for (let c = 0; c < numCols; c++) {
-        if (c === detectedGenderCol || c === detectedIdCol) continue;
+        if (c === detectedGenderCol || c === detectedIdCol || c === detectedNameKhmerCol) continue;
         const hdr = grid[bestHeaderRow]?.[c] || '';
         if (isNoHeader(hdr) || isScoreOrOtherHeader(hdr) || isMetadataLabel(hdr)) continue;
 
@@ -595,7 +678,6 @@ const analyzeWorksheet = (
             textRows++;
           }
         }
-        // Strongly penalize columns containing form/settings labels
         const colScore = textRows - metadataHits * 5;
         if (colScore > bestTextScore && textRows >= 2) {
           bestTextScore = colScore;
@@ -609,6 +691,7 @@ const analyzeWorksheet = (
   }
 
   const effectiveNameCol = customMapping?.nameCol ?? detectedNameCol;
+  const effectiveNameKhmerCol = customMapping?.nameKhmerCol ?? detectedNameKhmerCol;
   const effectiveIdCol = customMapping?.idCol ?? detectedIdCol;
   const effectiveGenderCol = customMapping?.genderCol ?? detectedGenderCol;
   const effectiveHeaderRow = customMapping?.headerRowIndex ?? bestHeaderRow;
@@ -635,6 +718,7 @@ const analyzeWorksheet = (
     bestRosterMatchCount * 20 +
     maxHeaderScore +
     (effectiveNameCol !== -1 ? 5 : 0) +
+    (effectiveNameKhmerCol !== -1 ? 4 : 0) +
     (effectiveIdCol !== -1 ? 6 : 0) +
     (effectiveGenderCol !== -1 ? 6 : 0);
 
@@ -642,11 +726,12 @@ const analyzeWorksheet = (
     mapping: {
       idCol: effectiveIdCol,
       nameCol: effectiveNameCol,
+      nameKhmerCol: effectiveNameKhmerCol,
       genderCol: effectiveGenderCol,
       headerRowIndex: effectiveHeaderRow
     },
     colOptions,
-    autoDetected: effectiveNameCol !== -1 && (effectiveIdCol !== -1 || effectiveGenderCol !== -1),
+    autoDetected: effectiveNameCol !== -1 && (effectiveIdCol !== -1 || effectiveGenderCol !== -1 || effectiveNameKhmerCol !== -1),
     rosterMatchCount: bestRosterMatchCount,
     sheetScore
   };
@@ -673,6 +758,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
   const [mapping, setMapping] = useState<ColumnMapping>({
     idCol: -1,
     nameCol: -1,
+    nameKhmerCol: -1,
     genderCol: -1,
     headerRowIndex: 0
   });
@@ -760,13 +846,13 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     }
 
     const analysis = analyzeWorksheet(extracted, classStudents, customMapping);
-    const { idCol, nameCol, genderCol, headerRowIndex } = analysis.mapping;
+    const { idCol, nameCol, nameKhmerCol, genderCol, headerRowIndex } = analysis.mapping;
 
     setMapping(analysis.mapping);
     setAutoDetected(analysis.autoDetected);
     setAvailableCols(analysis.colOptions);
 
-    // Auto-open column mapper if any of the 3 fields wasn't detected
+    // Auto-open column mapper if any key field wasn't detected
     if (!customMapping && (idCol === -1 || nameCol === -1 || genderCol === -1)) {
       setShowMappingConfig(true);
     }
@@ -779,10 +865,11 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
     for (let r = headerRowIndex + 1; r < numRows; r++) {
       const rawId = idCol >= 0 ? (grid[r][idCol] || '').trim() : '';
       const rawName = nameCol >= 0 ? (grid[r][nameCol] || '').trim() : '';
+      const rawNameKhmer = nameKhmerCol >= 0 ? (grid[r][nameKhmerCol] || '').trim() : '';
       const rawGender = genderCol >= 0 ? (grid[r][genderCol] || '').trim() : '';
 
       // Skip completely empty rows
-      if (!rawId && !rawName && !rawGender) continue;
+      if (!rawId && !rawName && !rawNameKhmer && !rawGender) continue;
 
       // Skip metadata/form rows and header-repeat rows
       if (rawName && (isMetadataLabel(rawName) || isNameHeader(rawName))) {
@@ -831,6 +918,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
         rowIndex: r + 1,
         rawId,
         rawName,
+        rawNameKhmer,
         rawGender,
         normalizedGender,
         isGenderValid: genderValid,
@@ -928,8 +1016,9 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const matchesName = r.rawName.toLowerCase().includes(term);
+        const matchesKhmer = r.rawNameKhmer.toLowerCase().includes(term);
         const matchesId = r.rawId.toLowerCase().includes(term);
-        if (!matchesName && !matchesId) return false;
+        if (!matchesName && !matchesKhmer && !matchesId) return false;
       }
       return true;
     });
@@ -966,6 +1055,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
         preparedStudents.push({
           ...r.matchedStudent,
           name: r.matchedStudent.name,
+          nameKhmer: r.rawNameKhmer ? r.rawNameKhmer.trim() : r.matchedStudent.nameKhmer,
           studentId: r.rawId ? r.rawId.trim() : r.matchedStudent.studentId,
           sex: r.normalizedGender ? r.normalizedGender : r.matchedStudent.sex
         });
@@ -974,6 +1064,7 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
           id: uuidv4(),
           classId: currentClassId,
           name: r.rawName.trim(),
+          nameKhmer: r.rawNameKhmer ? r.rawNameKhmer.trim() : '',
           studentId: r.rawId ? r.rawId.trim() : '',
           sex: r.normalizedGender ? r.normalizedGender : '',
           rosterNumber: nextRoster++
@@ -1181,10 +1272,10 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">
-                    Student Name <span className="text-rose-500">*</span>
+                    Student Name (English) <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={mapping.nameCol}
@@ -1194,6 +1285,24 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                     }`}
                   >
                     <option value={-1}>-- Select Column (Required) --</option>
+                    {availableCols.map(c => (
+                      <option key={c.index} value={c.index}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">
+                    Name in Khmer <span className="text-gray-400 font-normal">(ឈ្មោះខ្មែរ)</span>
+                  </label>
+                  <select
+                    value={mapping.nameKhmerCol}
+                    onChange={e => handleCustomMappingChange('nameKhmerCol', parseInt(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg p-2 text-xs bg-white font-medium text-gray-800"
+                  >
+                    <option value={-1}>-- None / Not in File --</option>
                     {availableCols.map(c => (
                       <option key={c.index} value={c.index}>
                         {c.label}
@@ -1332,9 +1441,10 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                         />
                       </th>
                       <th className="p-2.5 w-12 text-center text-gray-500">Row</th>
-                      <th className="p-2.5 min-w-[130px] font-bold text-gray-700">Student ID</th>
-                      <th className="p-2.5 min-w-[180px] font-bold text-gray-700">Student Name</th>
-                      <th className="p-2.5 min-w-[110px] font-bold text-gray-700 text-center">Gender</th>
+                      <th className="p-2.5 min-w-[120px] font-bold text-gray-700">Student ID</th>
+                      <th className="p-2.5 min-w-[170px] font-bold text-gray-700">Student Name</th>
+                      <th className="p-2.5 min-w-[150px] font-bold text-gray-700">Name in Khmer</th>
+                      <th className="p-2.5 min-w-[100px] font-bold text-gray-700 text-center">Gender</th>
                       <th className="p-2.5 min-w-[190px] font-bold text-gray-700">Action / Status</th>
                     </tr>
                   </thead>
@@ -1379,6 +1489,12 @@ export const ExcelStudentImportModal: React.FC<ExcelStudentImportModalProps> = (
                         <td className="p-2.5 font-medium text-gray-900">
                           {row.rawName || (
                             <span className="text-rose-600 font-semibold italic">Missing Name</span>
+                          )}
+                        </td>
+
+                        <td className="p-2.5 text-gray-700">
+                          {row.rawNameKhmer || (
+                            <span className="text-gray-400 italic text-[11px]">-</span>
                           )}
                         </td>
 

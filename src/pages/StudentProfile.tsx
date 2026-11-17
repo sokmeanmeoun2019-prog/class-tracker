@@ -114,6 +114,9 @@ const StudentProfile = () => {
         <div>
           <div className="flex flex-wrap items-center gap-2.5">
             <h2 className="text-3xl font-bold text-gray-800">{student.name}</h2>
+            {student.nameKhmer && (
+              <span className="text-xl font-semibold text-indigo-800">({student.nameKhmer})</span>
+            )}
             {student.sex && (
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
                 student.sex === 'Male'
