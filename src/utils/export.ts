@@ -1041,6 +1041,142 @@ const QUARTER_SHEET_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalon
   </cellXfs>
 </styleSheet>`;
 
+const WIS_LOGO_SVG_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" width="260" height="234">
+  <defs>
+    <clipPath id="wis-flag-w">
+      <path d="M54 76 L72 76 L82 117 L93 76 L108 76 L119 117 L129 76 L147 76 L130 140 L110 140 L100 104 L90 140 L70 140 Z"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#wis-flag-w)">
+    <rect x="50" y="74" width="102" height="68" fill="#FFFFFF"/>
+    <rect x="50" y="76" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="86" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="96" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="106" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="116" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="126" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="135" width="102" height="5" fill="#D92027"/>
+    <rect x="50" y="74" width="49" height="40" fill="#172A58"/>
+    <g fill="#FFFFFF">
+      <circle cx="60" cy="83" r="1.5"/><circle cx="70" cy="83" r="1.5"/><circle cx="80" cy="83" r="1.5"/><circle cx="90" cy="83" r="1.5"/>
+      <circle cx="65" cy="90" r="1.5"/><circle cx="75" cy="90" r="1.5"/><circle cx="85" cy="90" r="1.5"/>
+      <circle cx="60" cy="97" r="1.5"/><circle cx="70" cy="97" r="1.5"/><circle cx="80" cy="97" r="1.5"/><circle cx="90" cy="97" r="1.5"/>
+      <circle cx="65" cy="104" r="1.5"/><circle cx="75" cy="104" r="1.5"/><circle cx="85" cy="104" r="1.5"/>
+      <circle cx="70" cy="110" r="1.5"/><circle cx="80" cy="110" r="1.5"/><circle cx="90" cy="110" r="1.5"/>
+    </g>
+  </g>
+  <path d="M49 52 L48 73 C48 77 72 86 100 86 C128 86 152 77 152 73 L151 52 Z" fill="#0F1115"/>
+  <path d="M100 13 L172 39 C177 41 177 44 172 46 L100 72 L28 46 C23 44 23 41 28 39 Z" fill="#0F1115"/>
+  <polygon points="100,19 161,41.5 100,65 39,41.5" fill="#475055"/>
+  <circle cx="102" cy="40" r="3.2" fill="#181A1E"/>
+  <path d="M102 40 L155 47 C162 48 165 53 165 62" stroke="#D92027" stroke-width="4" stroke-linecap="round" fill="none"/>
+  <rect x="160" y="61" width="10" height="3.2" rx="1.4" fill="#F2D024"/>
+  <path d="M161 64 L156 95 L159.5 95 L163 67 L163 95 L166.5 95 L166 67 L169.5 95 L173 95 L168 64 Z" fill="#D92027"/>
+  <path d="M48 140 L152 140 C152 145 155 147 160 147 L160 158 L40 158 L40 147 C45 147 48 145 48 140 Z" fill="#172A58"/>
+  <text x="100" y="153.5" text-anchor="middle" fill="#FFFFFF" font-family="Georgia, 'Times New Roman', serif" font-size="14.5" font-weight="700" letter-spacing="1">WESTERN</text>
+  <text x="100" y="171" text-anchor="middle" fill="#172A58" font-family="Arial, Helvetica, sans-serif" font-size="9.6" font-weight="800" letter-spacing="0.4">INTERNATIONAL SCHOOL</text>
+</svg>`;
+
+async function renderWisLogoPngBytes(): Promise<Uint8Array | null> {
+  if (typeof document === 'undefined') return null;
+  try {
+    const svgBlob = new Blob([WIS_LOGO_SVG_MARKUP], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const pngBytes = await new Promise<Uint8Array | null>(resolve => {
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      }, 1500);
+
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 260;
+          canvas.height = 234;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(url);
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(async blob => {
+            clearTimeout(timeout);
+            URL.revokeObjectURL(url);
+            if (!blob) {
+              resolve(null);
+              return;
+            }
+            const buf = await blob.arrayBuffer();
+            resolve(new Uint8Array(buf));
+          }, 'image/png');
+        } catch {
+          clearTimeout(timeout);
+          URL.revokeObjectURL(url);
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(url);
+        resolve(null);
+      };
+      img.src = url;
+    });
+
+    return pngBytes;
+  } catch {
+    return null;
+  }
+}
+
+const WIS_DRAWING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing"
+          xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+          xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <xdr:oneCellAnchor>
+    <xdr:from>
+      <xdr:col>1</xdr:col>
+      <xdr:colOff>304800</xdr:colOff>
+      <xdr:row>0</xdr:row>
+      <xdr:rowOff>19050</xdr:rowOff>
+    </xdr:from>
+    <xdr:ext cx="838200" cy="754380"/>
+    <xdr:pic>
+      <xdr:nvPicPr>
+        <xdr:cNvPr id="1" name="Western_International_School_Logo"/>
+        <xdr:cNvPicPr>
+          <a:picLocks noChangeAspect="1"/>
+        </xdr:cNvPicPr>
+      </xdr:nvPicPr>
+      <xdr:blipFill>
+        <a:blip r:embed="rId1"/>
+        <a:stretch>
+          <a:fillRect/>
+        </a:stretch>
+      </xdr:blipFill>
+      <xdr:spPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="838200" cy="754380"/>
+        </a:xfrm>
+        <a:prstGeom prst="rect">
+          <a:avLst/>
+        </a:prstGeom>
+      </xdr:spPr>
+    </xdr:pic>
+    <xdr:clientData/>
+  </xdr:oneCellAnchor>
+</xdr:wsDr>`;
+
+const WIS_DRAWING_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/>
+</Relationships>`;
+
 function buildQuarterScoreWorksheetXml(params: {
   students: (Student & { displayNum: number })[];
   scores: ScoreRecord[];
@@ -1050,8 +1186,9 @@ function buildQuarterScoreWorksheetXml(params: {
   settings: GradingSettings;
   teacherName?: string;
   subject?: string;
+  hasLogo?: boolean;
 }): string {
-  const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '' } = params;
+  const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '', hasLogo = false } = params;
   const classScores = scores.filter(
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
@@ -1067,13 +1204,14 @@ function buildQuarterScoreWorksheetXml(params: {
     const cappedCp = Math.min(rawCp, settings.maxScores?.cp || 10);
     const cpDisplay = score?.cpScore !== undefined ? score.cpScore : (rawCp > 0 ? cappedCp : '');
     const sexShort = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
+    const groupValue = student.group && student.group.trim() !== '' ? student.group : 'III';
 
     return [
       student.displayNum,
       student.name,
       student.nameKhmer || '',
       sexShort,
-      student.group || '',
+      groupValue,
       score?.conduct ?? '',
       cpDisplay,
       score?.hw1 ?? '',
@@ -1116,44 +1254,50 @@ function buildQuarterScoreWorksheetXml(params: {
 
   let sheetDataXml = '<sheetData>';
 
-  // Row 1: School English branding + Black Title Banner (H1:V1)
-  sheetDataXml += '<row r="1" ht="24" customHeight="1">';
-  sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
-  sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
+  // Row 1: Dedicated left space for School Logo (A1:C3) + Black Title Banner (H1:V1)
+  sheetDataXml += '<row r="1" ht="26" customHeight="1">';
+  if (!hasLogo) {
+    sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
+    sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
+  }
   sheetDataXml += `<c r="H1" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ / Score List')}</t></is></c>`;
   for (let c = 8; c < totalCols; c++) {
     sheetDataXml += `<c r="${colName(c)}1" s="1"/>`;
   }
   sheetDataXml += '</row>';
 
-  // Row 2: School Khmer title + Teacher Name
+  // Row 2: Teacher Name
   sheetDataXml += '<row r="2" ht="20" customHeight="1">';
-  sheetDataXml += `<c r="A2" s="2" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ')}</t></is></c>`;
-  sheetDataXml += '<c r="B2" s="0"/><c r="C2" s="0"/>';
   sheetDataXml += `<c r="H2" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Teacher Name:')}</t></is></c>`;
   sheetDataXml += `<c r="L2" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(teacherName)}</t></is></c>`;
   sheetDataXml += '</row>';
 
-  // Row 3: Registrar's Office + Subject
-  sheetDataXml += '<row r="3" ht="19" customHeight="1">';
-  sheetDataXml += `<c r="A3" s="4" t="inlineStr"><is><t xml:space="preserve">${escapeXml("Registrar's Office • STD")}</t></is></c>`;
-  sheetDataXml += '<c r="B3" s="0"/><c r="C3" s="0"/>';
+  // Row 3: Subject
+  sheetDataXml += '<row r="3" ht="20" customHeight="1">';
   sheetDataXml += `<c r="H3" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Subject:')}</t></is></c>`;
   sheetDataXml += `<c r="L3" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(subject)}</t></is></c>`;
   sheetDataXml += '</row>';
 
-  // Row 4: Grade + For: Quarter X
+  // Row 4: School Khmer title (below logo) + Grade + For: Quarter X
   sheetDataXml += '<row r="4" ht="19" customHeight="1">';
+  sheetDataXml += `<c r="A4" s="2" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ')}</t></is></c>`;
+  sheetDataXml += '<c r="B4" s="0"/><c r="C4" s="0"/>';
   sheetDataXml += `<c r="H4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Grade:')}</t></is></c>`;
   sheetDataXml += `<c r="L4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml(classObj.name)}</t></is></c>`;
   sheetDataXml += `<c r="O4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('For :')}</t></is></c>`;
   sheetDataXml += `<c r="R4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Quarter ${quarter}`)}</t></is></c>`;
   sheetDataXml += '</row>';
 
-  // Row 5: Blank spacer
-  sheetDataXml += '<row r="5" ht="8" customHeight="1"/>';
+  // Row 5: Registrar's Office • STD (below Khmer title)
+  sheetDataXml += '<row r="5" ht="18" customHeight="1">';
+  sheetDataXml += `<c r="A5" s="4" t="inlineStr"><is><t xml:space="preserve">${escapeXml("Registrar's Office • STD")}</t></is></c>`;
+  sheetDataXml += '<c r="B5" s="0"/><c r="C5" s="0"/>';
+  sheetDataXml += '</row>';
 
-  // Row 6: Table Header Row 1
+  // Row 6: Thin blank spacer before table
+  sheetDataXml += '<row r="6" ht="8" customHeight="1"/>';
+
+  // Row 7: Table Header Row 1
   const leftHeaders = [
     { label: 'N°', style: 7 },
     { label: 'Name', style: 7 },
@@ -1163,31 +1307,31 @@ function buildQuarterScoreWorksheetXml(params: {
     { label: 'Conduct', style: 8 },
     { label: 'C.P.', style: 8 }
   ];
-  sheetDataXml += '<row r="6" ht="28" customHeight="1">';
+  sheetDataXml += '<row r="7" ht="28" customHeight="1">';
   leftHeaders.forEach((h, idx) => {
-    sheetDataXml += `<c r="${colName(idx)}6" s="${h.style}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(h.label)}</t></is></c>`;
+    sheetDataXml += `<c r="${colName(idx)}7" s="${h.style}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(h.label)}</t></is></c>`;
   });
-  sheetDataXml += `<c r="H6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('កិច្ចការផ្ទះ / Homework')}</t></is></c>`;
-  for (let i = 8; i <= 12; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
-  sheetDataXml += `<c r="N6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តេស្តខ្លី / Quizzes')}</t></is></c>`;
-  for (let i = 14; i <= 18; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
-  sheetDataXml += `<c r="T6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Monthly Test\nតេស្តប្រចាំខែ')}</t></is></c>`;
-  for (let i = 20; i <= 21; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
+  sheetDataXml += `<c r="H7" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('កិច្ចការផ្ទះ / Homework')}</t></is></c>`;
+  for (let i = 8; i <= 12; i++) sheetDataXml += `<c r="${colName(i)}7" s="7"/>`;
+  sheetDataXml += `<c r="N7" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តេស្តខ្លី / Quizzes')}</t></is></c>`;
+  for (let i = 14; i <= 18; i++) sheetDataXml += `<c r="${colName(i)}7" s="7"/>`;
+  sheetDataXml += `<c r="T7" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Monthly Test\nតេស្តប្រចាំខែ')}</t></is></c>`;
+  for (let i = 20; i <= 21; i++) sheetDataXml += `<c r="${colName(i)}7" s="7"/>`;
   sheetDataXml += '</row>';
 
-  // Row 7: Table Header Row 2 (Sub-numbers)
-  sheetDataXml += '<row r="7" ht="20" customHeight="1">';
+  // Row 8: Table Header Row 2 (Sub-numbers)
+  sheetDataXml += '<row r="8" ht="20" customHeight="1">';
   leftHeaders.forEach((h, idx) => {
-    sheetDataXml += `<c r="${colName(idx)}7" s="${h.style}"/>`;
+    sheetDataXml += `<c r="${colName(idx)}8" s="${h.style}"/>`;
   });
-  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(6 + i)}7" s="7" t="n"><v>${i}</v></c>`;
-  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(12 + i)}7" s="7" t="n"><v>${i}</v></c>`;
-  for (let i = 1; i <= 3; i++) sheetDataXml += `<c r="${colName(18 + i)}7" s="7" t="n"><v>${i}</v></c>`;
+  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(6 + i)}8" s="7" t="n"><v>${i}</v></c>`;
+  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(12 + i)}8" s="7" t="n"><v>${i}</v></c>`;
+  for (let i = 1; i <= 3; i++) sheetDataXml += `<c r="${colName(18 + i)}8" s="7" t="n"><v>${i}</v></c>`;
   sheetDataXml += '</row>';
 
-  // Data Rows starting Row 8 (White on Row 8, Light Gray on Row 9, alternating)
+  // Data Rows starting Row 9 (White on Row 9, Light Gray on Row 10, alternating)
   studentRows.forEach((vals, rIdx) => {
-    const rowNum = rIdx + 8;
+    const rowNum = rIdx + 9;
     const isWhite = rIdx % 2 === 0;
     sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
     vals.forEach((val, colIdx) => {
@@ -1202,28 +1346,28 @@ function buildQuarterScoreWorksheetXml(params: {
   sheetDataXml += '</sheetData>';
 
   const merges: string[] = [
-    'A1:C1',
+    ...(!hasLogo ? ['A1:C1'] : []),
     'H1:V1',
-    'A2:C2',
     'H2:K2',
     'L2:V2',
-    'A3:C3',
     'H3:K3',
     'L3:V3',
+    'A4:C4',
     'H4:K4',
     'L4:N4',
     'O4:Q4',
     'R4:V4',
-    'A6:A7',
-    'B6:B7',
-    'C6:C7',
-    'D6:D7',
-    'E6:E7',
-    'F6:F7',
-    'G6:G7',
-    'H6:M6',
-    'N6:S6',
-    'T6:V6'
+    'A5:C5',
+    'A7:A8',
+    'B7:B8',
+    'C7:C8',
+    'D7:D8',
+    'E7:E8',
+    'F7:F8',
+    'G7:G8',
+    'H7:M7',
+    'N7:S7',
+    'T7:V7'
   ];
 
   const mergeXml = `<mergeCells count="${merges.length}">${merges
@@ -1231,14 +1375,14 @@ function buildQuarterScoreWorksheetXml(params: {
     .join('')}</mergeCells>`;
 
   const lastColLetter = colName(totalCols - 1);
-  const totalSheetRows = Math.max(studentRows.length + 7, 7);
+  const totalSheetRows = Math.max(studentRows.length + 8, 8);
 
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <dimension ref="A1:${lastColLetter}${totalSheetRows}"/>
   <sheetViews>
     <sheetView showGridLines="1" tabSelected="1" workbookViewId="0">
-      <pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>
+      <pane ySplit="8" topLeftCell="A9" activePane="bottomLeft" state="frozen"/>
     </sheetView>
   </sheetViews>
   <sheetFormatPr defaultRowHeight="20"/>
@@ -1247,11 +1391,17 @@ function buildQuarterScoreWorksheetXml(params: {
   ${mergeXml}
   <pageMargins left="0.35" right="0.35" top="0.45" bottom="0.45" header="0.25" footer="0.25"/>
   <pageSetup orientation="landscape" paperSize="9" fitToWidth="1" fitToHeight="0"/>
+  ${hasLogo ? '<drawing r:id="rId1"/>' : ''}
 </worksheet>`;
 }
 
-function buildMultiSheetExcelArchive(sheets: { name: string; xml: string }[], stylesXml: string): Uint8Array {
+function buildMultiSheetExcelArchive(
+  sheets: { name: string; xml: string }[],
+  stylesXml: string,
+  logoPng?: Uint8Array | null
+): Uint8Array {
   const encoder = new TextEncoder();
+  const hasLogo = Boolean(logoPng && logoPng.length > 0);
 
   const sheetOverrides = sheets
     .map(
@@ -1260,12 +1410,23 @@ function buildMultiSheetExcelArchive(sheets: { name: string; xml: string }[], st
     )
     .join('\n');
 
+  const drawingOverrides = hasLogo
+    ? sheets
+        .map(
+          (_, i) =>
+            `  <Override PartName="/xl/drawings/drawing${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`
+        )
+        .join('\n')
+    : '';
+
   const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
+${hasLogo ? '  <Default Extension="png" ContentType="image/png"/>' : ''}
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
 ${sheetOverrides}
+${drawingOverrides}
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>`;
 
@@ -1312,12 +1473,31 @@ ${sheetRels}
     }))
   ];
 
+  if (hasLogo && logoPng) {
+    zipFiles.push({ name: 'xl/media/image1.png', data: logoPng });
+    sheets.forEach((_, i) => {
+      const sheetDrawingRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${i + 1}.xml"/>
+</Relationships>`;
+      zipFiles.push({ name: `xl/drawings/drawing${i + 1}.xml`, data: encoder.encode(WIS_DRAWING_XML) });
+      zipFiles.push({
+        name: `xl/drawings/_rels/drawing${i + 1}.xml.rels`,
+        data: encoder.encode(WIS_DRAWING_RELS_XML)
+      });
+      zipFiles.push({
+        name: `xl/worksheets/_rels/sheet${i + 1}.xml.rels`,
+        data: encoder.encode(sheetDrawingRels)
+      });
+    });
+  }
+
   return buildZipArchive(zipFiles);
 }
 
 /**
  * Exports the official WIS-style Quarter Score List (1..6 HW, 1..6 Quizzes, 1..3 Monthly Tests)
- * with exact matching visual styling, black table borders, zebra rows, Khmer font, and landscape print setup.
+ * with embedded school logo, black table borders, zebra rows, Khmer font, Group III, and landscape setup.
  */
 export const exportQuarterScoreSheet = async (params: {
   students: (Student & { displayNum: number })[];
@@ -1334,6 +1514,7 @@ export const exportQuarterScoreSheet = async (params: {
   const filename = `Class_${cleanClassName}_Q${quarter}_ScoreSheet.xlsx`;
 
   try {
+    const logoPng = await renderWisLogoPngBytes();
     const worksheetXml = buildQuarterScoreWorksheetXml({
       students,
       scores,
@@ -1342,11 +1523,13 @@ export const exportQuarterScoreSheet = async (params: {
       quarter,
       settings,
       teacherName,
-      subject
+      subject,
+      hasLogo: Boolean(logoPng)
     });
     const zipBuffer = buildMultiSheetExcelArchive(
       [{ name: `Quarter ${quarter}`, xml: worksheetXml }],
-      QUARTER_SHEET_STYLES_XML
+      QUARTER_SHEET_STYLES_XML,
+      logoPng
     );
     downloadExcelBlob(zipBuffer, filename);
   } catch (error) {
@@ -1360,12 +1543,13 @@ export const exportQuarterScoreSheet = async (params: {
       const cappedCp = Math.min(rawCp, settings.maxScores?.cp || 10);
       const cpDisplay = score?.cpScore !== undefined ? score.cpScore : (rawCp > 0 ? cappedCp : '');
       const sexShort = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
+      const groupValue = student.group && student.group.trim() !== '' ? student.group : 'III';
       return {
         'No.': student.displayNum,
         'Name': student.name,
         'Name in Khmer': student.nameKhmer || '',
         'Sex': sexShort,
-        'Group': student.group || '',
+        'Group': groupValue,
         'Conduct': score?.conduct ?? '',
         'C.P.': cpDisplay,
         'HW1': score?.hw1 ?? '',
@@ -1393,7 +1577,7 @@ export const exportQuarterScoreSheet = async (params: {
 };
 
 /**
- * Exports all 4 Quarters (Q1–Q4) into a single styled multi-sheet Excel workbook.
+ * Exports all 4 Quarters (Q1–Q4) into a single styled multi-sheet Excel workbook with school logo.
  */
 export const exportAllQuartersScoreSheet = async (params: {
   students: (Student & { displayNum: number })[];
@@ -1411,6 +1595,7 @@ export const exportAllQuartersScoreSheet = async (params: {
     i => i.classId === classObj.id && (i.teacherName || i.subject)
   );
 
+  const logoPng = await renderWisLogoPngBytes();
   const quarters: Quarter[] = [1, 2, 3, 4];
   const sheets = quarters.map(q => {
     const info = quarterSheetInfos.find(i => i.id === `${classObj.id}-${q}`);
@@ -1424,12 +1609,13 @@ export const exportAllQuartersScoreSheet = async (params: {
         quarter: q,
         settings,
         teacherName: info?.teacherName || fallbackMeta?.teacherName || '',
-        subject: info?.subject || fallbackMeta?.subject || ''
+        subject: info?.subject || fallbackMeta?.subject || '',
+        hasLogo: Boolean(logoPng)
       })
     };
   });
 
-  const zipBuffer = buildMultiSheetExcelArchive(sheets, QUARTER_SHEET_STYLES_XML);
+  const zipBuffer = buildMultiSheetExcelArchive(sheets, QUARTER_SHEET_STYLES_XML, logoPng);
   downloadExcelBlob(zipBuffer, filename);
 };
 

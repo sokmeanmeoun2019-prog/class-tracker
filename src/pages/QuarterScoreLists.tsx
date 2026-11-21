@@ -608,10 +608,10 @@ const QuarterScoreLists = () => {
                     <td className="border border-black px-0.5 py-0.5 text-center">
                       <input
                         type="text"
-                        value={student.group || ''}
+                        value={student.group && student.group.trim() !== '' ? student.group : 'III'}
                         onChange={e => handleStudentFieldChange(student, 'group', e.target.value)}
-                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 text-center py-0.5 print:p-0"
-                        placeholder=""
+                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                        placeholder="III"
                         aria-label={`Group for ${student.name}`}
                       />
                     </td>
