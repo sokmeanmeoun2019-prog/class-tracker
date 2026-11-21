@@ -3,6 +3,7 @@ import { useData } from '../store/DataContext';
 import { Quarter, QuarterSheetInfo, ScoreRecord, Student } from '../types';
 import { getClassRoster, getStudentQuarterTotal } from '../utils/calculations';
 import { exportAllQuartersScoreSheet, exportQuarterScoreSheet } from '../utils/export';
+import { exportQuarterScoreSheetPdf } from '../utils/pdfExport';
 import { Download, Printer, RefreshCw, Save, Search } from 'lucide-react';
 
 type NumericScoreField =
@@ -33,6 +34,7 @@ const QuarterScoreLists = () => {
   const [selectedQuarter, setSelectedQuarter] = useState<Quarter>(state.currentQuarter || 1);
   const [searchTerm, setSearchTerm] = useState('');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   // Keep active tab aligned when the user switches Quarter from the top Header
   useEffect(() => {
@@ -201,7 +203,26 @@ const QuarterScoreLists = () => {
     });
   };
 
-  const handlePrintOrPdf = () => {
+  const handleExportPdf = async () => {
+    if (!currentClass || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      await exportQuarterScoreSheetPdf({
+        students: classStudents,
+        scores: state.scores,
+        records: state.records,
+        classObj: currentClass,
+        quarter: selectedQuarter,
+        settings,
+        teacherName: sheetInfo.teacherName || '',
+        subject: sheetInfo.subject || ''
+      });
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handlePrint = () => {
     window.print();
   };
 
@@ -269,14 +290,16 @@ const QuarterScoreLists = () => {
             </button>
             <button
               type="button"
-              onClick={handlePrintOrPdf}
-              className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+              title={`Download Quarter ${selectedQuarter} score sheet as PDF`}
             >
-              <Download size={16} /> Export PDF
+              <Download size={16} /> {isExportingPdf ? 'Generating PDF...' : 'Export PDF'}
             </button>
             <button
               type="button"
-              onClick={handlePrintOrPdf}
+              onClick={handlePrint}
               className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
             >
               <Printer size={16} /> Print

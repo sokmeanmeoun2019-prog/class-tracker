@@ -1077,57 +1077,71 @@ const WIS_LOGO_SVG_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
   <text x="100" y="171" text-anchor="middle" fill="#172A58" font-family="Arial, Helvetica, sans-serif" font-size="9.6" font-weight="800" letter-spacing="0.4">INTERNATIONAL SCHOOL</text>
 </svg>`;
 
-async function renderWisLogoPngBytes(): Promise<Uint8Array | null> {
-  if (typeof document === 'undefined') return null;
+export async function drawWisLogoOnCanvas(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): Promise<boolean> {
+  if (typeof document === 'undefined') return false;
   try {
     const svgBlob = new Blob([WIS_LOGO_SVG_MARKUP], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
 
-    const pngBytes = await new Promise<Uint8Array | null>(resolve => {
+    return await new Promise<boolean>(resolve => {
       const timeout = setTimeout(() => {
         URL.revokeObjectURL(url);
-        resolve(null);
+        resolve(false);
       }, 1500);
 
       const img = new Image();
       img.onload = () => {
         try {
-          const canvas = document.createElement('canvas');
-          canvas.width = 260;
-          canvas.height = 234;
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            clearTimeout(timeout);
-            URL.revokeObjectURL(url);
-            resolve(null);
-            return;
-          }
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(async blob => {
-            clearTimeout(timeout);
-            URL.revokeObjectURL(url);
-            if (!blob) {
-              resolve(null);
-              return;
-            }
-            const buf = await blob.arrayBuffer();
-            resolve(new Uint8Array(buf));
-          }, 'image/png');
+          ctx.drawImage(img, x, y, width, height);
+          clearTimeout(timeout);
+          URL.revokeObjectURL(url);
+          resolve(true);
         } catch {
           clearTimeout(timeout);
           URL.revokeObjectURL(url);
-          resolve(null);
+          resolve(false);
         }
       };
       img.onerror = () => {
         clearTimeout(timeout);
         URL.revokeObjectURL(url);
-        resolve(null);
+        resolve(false);
       };
       img.src = url;
     });
+  } catch {
+    return false;
+  }
+}
 
-    return pngBytes;
+async function renderWisLogoPngBytes(): Promise<Uint8Array | null> {
+  if (typeof document === 'undefined') return null;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 260;
+    canvas.height = 234;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const drawn = await drawWisLogoOnCanvas(ctx, 0, 0, canvas.width, canvas.height);
+    if (!drawn) return null;
+
+    return await new Promise<Uint8Array | null>(resolve => {
+      canvas.toBlob(async blob => {
+        if (!blob) {
+          resolve(null);
+          return;
+        }
+        const buf = await blob.arrayBuffer();
+        resolve(new Uint8Array(buf));
+      }, 'image/png');
+    });
   } catch {
     return null;
   }
