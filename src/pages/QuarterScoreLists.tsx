@@ -463,7 +463,12 @@ const QuarterScoreLists = () => {
                   INTERNATIONAL SCHOOL
                 </text>
               </svg>
-              <div className="text-[12pt] font-bold tracking-tight">សាលាវ៉េស្ទើនអន្តរជាតិ</div>
+              <div
+                className="text-[12pt] font-normal tracking-tight"
+                style={{ fontFamily: "'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Leelawadee UI', sans-serif" }}
+              >
+                សាលាវ៉េស្ទើនអន្តរជាតិ
+              </div>
               <div className="text-[12pt] font-bold mt-0.5">Registrar&apos;s Office</div>
               <div className="text-[12pt] font-bold">STD</div>
             </div>
@@ -471,7 +476,13 @@ const QuarterScoreLists = () => {
             {/* Right: Solid Black Title Banner + Teacher / Subject / Grade / Quarter */}
             <div className="w-[460px] sm:w-[520px] shrink-0 pt-2">
               <div className="bg-black text-white font-bold text-center py-1 px-4 text-[12pt] tracking-wide">
-                តារាងសម្រង់ពិន្ទុ / Score List
+                <span
+                  className="font-normal"
+                  style={{ fontFamily: "'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Leelawadee UI', sans-serif" }}
+                >
+                  តារាងសម្រង់ពិន្ទុ
+                </span>
+                <span> / Score List</span>
               </div>
               <div className="mt-2 space-y-1 text-[12pt]">
                 <div className="flex items-center gap-2">

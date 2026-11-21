@@ -931,10 +931,9 @@ const QUARTER_SHEET_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalon
       <family val="2"/>
     </font>
     <font>
-      <b/>
       <sz val="12"/>
       <color rgb="FF000000"/>
-      <name val="Leelawadee UI"/>
+      <name val="Khmer OS Muol Light"/>
       <family val="2"/>
     </font>
     <font>
@@ -1274,7 +1273,7 @@ function buildQuarterScoreWorksheetXml(params: {
     sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
     sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
   }
-  sheetDataXml += `<c r="H1" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ / Score List')}</t></is></c>`;
+  sheetDataXml += `<c r="H1" s="1" t="inlineStr"><is><r><rPr><rFont val="Khmer OS Muol Light"/><family val="2"/><color rgb="FFFFFFFF"/><sz val="12"/></rPr><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ')}</t></r><r><rPr><rFont val="Calibri"/><family val="2"/><b/><color rgb="FFFFFFFF"/><sz val="12"/></rPr><t xml:space="preserve">${escapeXml(' / Score List')}</t></r></is></c>`;
   for (let c = 8; c < totalCols; c++) {
     sheetDataXml += `<c r="${colName(c)}1" s="1"/>`;
   }

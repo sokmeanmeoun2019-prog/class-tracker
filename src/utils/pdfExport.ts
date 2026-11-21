@@ -8,6 +8,8 @@ interface PdfPageImage {
   height: number;
 }
 
+const KHMER_MUOL_FONT_STACK =
+  "'Khmer OS Muol Light', 'Khmer OS Muol', 'Moul', 'Khmer OS Siemreap', 'Leelawadee UI', sans-serif";
 const KHMER_FONT_STACK =
   "'Khmer OS Battambang', 'Khmer OS Siemreap', 'Leelawadee UI', 'Noto Sans Khmer', Arial, sans-serif";
 const LATIN_FONT_STACK = "'Calibri', 'Segoe UI', Arial, sans-serif";
@@ -146,6 +148,14 @@ export async function exportQuarterScoreSheetPdf(params: {
   const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '' } =
     params;
 
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // Proceed cleanly even if font readiness check rejects
+    }
+  }
+
   const CANVAS_W = 2338; // 200 DPI A4 Landscape (297mm = 841.89pt)
   const CANVAS_H = 1654; // 200 DPI A4 Landscape (210mm = 595.28pt)
   const MARGIN_X = 77;
@@ -210,10 +220,10 @@ export async function exportQuarterScoreSheetPdf(params: {
       'សាលាវ៉េស្ទើនអន្តរជាតិ',
       MARGIN_X + 170,
       MARGIN_Y + 216,
-      360,
-      'bold',
+      380,
+      'normal',
       FONT_12PT,
-      KHMER_FONT_STACK,
+      KHMER_MUOL_FONT_STACK,
       'center'
     );
     drawFitText(
@@ -246,17 +256,22 @@ export async function exportQuarterScoreSheetPdf(params: {
     ctx.fillRect(bannerX, MARGIN_Y + 42, bannerW, 52);
 
     ctx.fillStyle = '#FFFFFF';
-    drawFitText(
-      ctx,
-      'តារាងសម្រង់ពិន្ទុ / Score List',
-      bannerX + bannerW / 2,
-      MARGIN_Y + 68,
-      bannerW - 24,
-      'bold',
-      FONT_12PT,
-      KHMER_FONT_STACK,
-      'center'
-    );
+    const khmerBannerPart = 'តារាងសម្រង់ពិន្ទុ';
+    const englishBannerPart = ' / Score List';
+    ctx.font = `normal ${FONT_12PT}px ${KHMER_MUOL_FONT_STACK}`;
+    const khmerBannerW = ctx.measureText(khmerBannerPart).width;
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
+    const englishBannerW = ctx.measureText(englishBannerPart).width;
+    const totalBannerTextW = khmerBannerW + englishBannerW;
+    const bannerStartX = bannerX + (bannerW - totalBannerTextW) / 2;
+    const bannerMidY = MARGIN_Y + 68;
+
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.font = `normal ${FONT_12PT}px ${KHMER_MUOL_FONT_STACK}`;
+    ctx.fillText(khmerBannerPart, bannerStartX, bannerMidY);
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
+    ctx.fillText(englishBannerPart, bannerStartX + khmerBannerW, bannerMidY);
 
     ctx.fillStyle = '#111827';
     const metaLabelX = bannerX;
