@@ -32,7 +32,6 @@ const QuarterScoreLists = () => {
   const { state, dispatch } = useData();
   const [selectedQuarter, setSelectedQuarter] = useState<Quarter>(state.currentQuarter || 1);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showIdCol, setShowIdCol] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
 
   // Keep active tab aligned when the user switches Quarter from the top Header
@@ -57,7 +56,6 @@ const QuarterScoreLists = () => {
       s =>
         s.name.toLowerCase().includes(term) ||
         (s.nameKhmer || '').toLowerCase().includes(term) ||
-        (s.studentId || '').toLowerCase().includes(term) ||
         (s.group || '').toLowerCase().includes(term)
     );
   }, [classStudents, searchTerm]);
@@ -116,7 +114,7 @@ const QuarterScoreLists = () => {
 
   const handleStudentFieldChange = (
     student: Student,
-    field: 'nameKhmer' | 'sex' | 'group' | 'studentId',
+    field: 'nameKhmer' | 'sex' | 'group',
     value: string
   ) => {
     triggerSaveIndicator();
@@ -187,8 +185,7 @@ const QuarterScoreLists = () => {
       quarter: selectedQuarter,
       settings,
       teacherName: sheetInfo.teacherName || '',
-      subject: sheetInfo.subject || '',
-      includeStudentId: showIdCol
+      subject: sheetInfo.subject || ''
     });
   };
 
@@ -286,21 +283,11 @@ const QuarterScoreLists = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <label className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-700 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showIdCol}
-                onChange={e => setShowIdCol(e.target.checked)}
-                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              Show Student ID Column
-            </label>
-
             <div className="relative">
               <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search student / ID / group..."
+                placeholder="Search student / group..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg text-xs w-52 focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -327,40 +314,109 @@ const QuarterScoreLists = () => {
         <div className="min-w-[960px] print:min-w-0 w-full text-black">
           {/* Sheet Top Header matching WIS Reference */}
           <div className="flex justify-between items-start gap-6 mb-3">
-            {/* Left: School Crest & Registrar Branding */}
+            {/* Left: Official Western International School Crest & Registrar Branding */}
             <div className="flex flex-col items-center text-center leading-tight pl-2">
               <svg
-                viewBox="0 0 120 72"
-                className="w-20 h-12 text-black mb-0.5"
-                fill="none"
+                viewBox="0 0 200 180"
+                className="w-24 h-[86px] mb-0.5"
                 xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
+                aria-label="Western International School Logo"
               >
+                <defs>
+                  <clipPath id="wis-flag-w">
+                    <path d="M54 76 L72 76 L82 117 L93 76 L108 76 L119 117 L129 76 L147 76 L130 140 L110 140 L100 104 L90 140 L70 140 Z" />
+                  </clipPath>
+                </defs>
+
+                {/* Stylized Flag W */}
+                <g clipPath="url(#wis-flag-w)">
+                  <rect x="50" y="74" width="102" height="68" fill="#FFFFFF" />
+                  <rect x="50" y="76" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="86" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="96" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="106" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="116" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="126" width="102" height="5" fill="#D92027" />
+                  <rect x="50" y="135" width="102" height="5" fill="#D92027" />
+                  {/* Blue Canton */}
+                  <rect x="50" y="74" width="49" height="40" fill="#172A58" />
+                  {/* White Stars in Canton */}
+                  <g fill="#FFFFFF">
+                    <circle cx="60" cy="83" r="1.5" />
+                    <circle cx="70" cy="83" r="1.5" />
+                    <circle cx="80" cy="83" r="1.5" />
+                    <circle cx="90" cy="83" r="1.5" />
+                    <circle cx="65" cy="90" r="1.5" />
+                    <circle cx="75" cy="90" r="1.5" />
+                    <circle cx="85" cy="90" r="1.5" />
+                    <circle cx="60" cy="97" r="1.5" />
+                    <circle cx="70" cy="97" r="1.5" />
+                    <circle cx="80" cy="97" r="1.5" />
+                    <circle cx="90" cy="97" r="1.5" />
+                    <circle cx="65" cy="104" r="1.5" />
+                    <circle cx="75" cy="104" r="1.5" />
+                    <circle cx="85" cy="104" r="1.5" />
+                    <circle cx="70" cy="110" r="1.5" />
+                    <circle cx="80" cy="110" r="1.5" />
+                    <circle cx="90" cy="110" r="1.5" />
+                  </g>
+                </g>
+
                 {/* Graduation Cap */}
-                <polygon points="60,6 92,16 60,26 28,16" fill="currentColor" />
-                <path d="M40 20V29C40 33 49 36 60 36C71 36 80 33 80 29V20" stroke="currentColor" strokeWidth="2.5" fill="currentColor" fillOpacity="0.85" />
-                <line x1="28" y1="16" x2="22" y2="30" stroke="currentColor" strokeWidth="2" />
-                <circle cx="22" cy="31" r="2" fill="currentColor" />
-                {/* Stylized Wings / Open Book */}
-                <path d="M18 24L52 44H68L102 24" stroke="currentColor" strokeWidth="2.5" />
-                <path d="M26 36C36 42 46 47 60 47C74 47 84 42 94 36" stroke="currentColor" strokeWidth="2.2" />
-                <path d="M36 46L60 55L84 46" stroke="currentColor" strokeWidth="2" />
+                <path
+                  d="M49 52 L48 73 C48 77 72 86 100 86 C128 86 152 77 152 73 L151 52 Z"
+                  fill="#0F1115"
+                />
+                <path
+                  d="M100 13 L172 39 C177 41 177 44 172 46 L100 72 L28 46 C23 44 23 41 28 39 Z"
+                  fill="#0F1115"
+                />
+                <polygon points="100,19 161,41.5 100,65 39,41.5" fill="#475055" />
+                <circle cx="102" cy="40" r="3.2" fill="#181A1E" />
+                <path
+                  d="M102 40 L155 47 C162 48 165 53 165 62"
+                  stroke="#D92027"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <rect x="160" y="61" width="10" height="3.2" rx="1.4" fill="#F2D024" />
+                <path
+                  d="M161 64 L156 95 L159.5 95 L163 67 L163 95 L166.5 95 L166 67 L169.5 95 L173 95 L168 64 Z"
+                  fill="#D92027"
+                />
+
+                {/* Navy Scalloped Banner */}
+                <path
+                  d="M48 140 L152 140 C152 145 155 147 160 147 L160 158 L40 158 L40 147 C45 147 48 145 48 140 Z"
+                  fill="#172A58"
+                />
                 <text
-                  x="60"
-                  y="68"
+                  x="100"
+                  y="153.5"
                   textAnchor="middle"
-                  fill="currentColor"
-                  fontSize="12"
-                  fontWeight="800"
+                  fill="#FFFFFF"
+                  fontFamily="Georgia, 'Times New Roman', serif"
+                  fontSize="14.5"
+                  fontWeight="700"
                   letterSpacing="1"
                 >
                   WESTERN
                 </text>
+                <text
+                  x="100"
+                  y="171"
+                  textAnchor="middle"
+                  fill="#172A58"
+                  fontFamily="Arial, Helvetica, sans-serif"
+                  fontSize="9.6"
+                  fontWeight="800"
+                  letterSpacing="0.4"
+                >
+                  INTERNATIONAL SCHOOL
+                </text>
               </svg>
               <div className="text-xs font-bold tracking-tight">សាលាវ៉េស្ទើនអន្តរជាតិ</div>
-              <div className="text-[9px] font-bold tracking-wider uppercase">
-                WESTERN INTERNATIONAL SCHOOL
-              </div>
               <div className="text-[11px] font-bold mt-0.5">Registrar&apos;s Office</div>
               <div className="text-[10px] font-bold">STD</div>
             </div>
@@ -414,11 +470,6 @@ const QuarterScoreLists = () => {
                 <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold min-w-[120px]">
                   ឈ្មោះ
                 </th>
-                {showIdCol && (
-                  <th rowSpan={2} className="border border-black px-1.5 py-1 text-center font-bold w-20">
-                    ID
-                  </th>
-                )}
                 <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8 align-bottom">
                   <div className="flex flex-col items-center justify-end gap-1">
                     <span style={{ writingMode: 'vertical-rl' }} className="leading-none text-[10px]">
@@ -491,9 +542,11 @@ const QuarterScoreLists = () => {
                 return (
                   <tr
                     key={student.id}
-                    className={`hover:bg-amber-50/50 print:hover:bg-transparent ${
-                      idx % 2 === 1 ? 'bg-gray-50/40 print:bg-transparent' : 'bg-white'
-                    }`}
+                    className={`transition-colors ${
+                      idx % 2 === 0
+                        ? 'bg-white hover:bg-gray-100/70 print:bg-white'
+                        : 'bg-[#f2f2f2] hover:bg-gray-200/60 print:bg-[#f2f2f2]'
+                    } print:hover:bg-inherit`}
                   >
                     <td className="border border-black px-1 py-0.5 text-center font-medium">
                       {student.displayNum}
@@ -501,11 +554,6 @@ const QuarterScoreLists = () => {
 
                     <td className="border border-black px-2 py-0.5 font-medium text-left">
                       <div className="leading-tight">{student.name}</div>
-                      {!showIdCol && student.studentId && (
-                        <div className="text-[9px] text-gray-400 font-mono print:hidden">
-                          ID: {student.studentId}
-                        </div>
-                      )}
                     </td>
 
                     <td className="border border-black px-1 py-0.5">
@@ -517,18 +565,6 @@ const QuarterScoreLists = () => {
                         placeholder="-"
                       />
                     </td>
-
-                    {showIdCol && (
-                      <td className="border border-black px-1 py-0.5 text-center font-mono">
-                        <input
-                          type="text"
-                          value={student.studentId || ''}
-                          onChange={e => handleStudentFieldChange(student, 'studentId', e.target.value)}
-                          className="w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[10px] py-0.5 print:p-0"
-                          placeholder="-"
-                        />
-                      </td>
-                    )}
 
                     <td className="border border-black px-0.5 py-0.5 text-center">
                       <select
@@ -672,7 +708,7 @@ const QuarterScoreLists = () => {
               {filteredStudents.length === 0 && (
                 <tr>
                   <td
-                    colSpan={showIdCol ? 23 : 22}
+                    colSpan={22}
                     className="border border-black p-6 text-center text-gray-500"
                   >
                     No students found in {currentClass.name}.

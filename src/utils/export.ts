@@ -916,7 +916,6 @@ export const exportQuarterScoreSheet = async (params: {
   settings: GradingSettings;
   teacherName?: string;
   subject?: string;
-  includeStudentId?: boolean;
 }) => {
   const {
     students,
@@ -926,8 +925,7 @@ export const exportQuarterScoreSheet = async (params: {
     quarter,
     settings,
     teacherName = '',
-    subject = '',
-    includeStudentId = false
+    subject = ''
   } = params;
 
   const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
@@ -935,8 +933,6 @@ export const exportQuarterScoreSheet = async (params: {
   const classScores = scores.filter(
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
-
-  const showId = includeStudentId || students.some(s => Boolean(s.studentId && s.studentId.trim() !== ''));
 
   const studentRows = students.map(student => {
     const score = classScores.find(s => s.studentId === student.id);
@@ -949,7 +945,6 @@ export const exportQuarterScoreSheet = async (params: {
       student.displayNum,
       student.name,
       student.nameKhmer || '',
-      ...(showId ? [student.studentId || ''] : []),
       sexShort,
       student.group || '',
       score?.conduct ?? '',
@@ -974,26 +969,15 @@ export const exportQuarterScoreSheet = async (params: {
   });
 
   try {
-    const leftCols = showId
-      ? [
-          { title: 'N°', sub: '', width: 6, isLeft: false },
-          { title: 'Name', sub: '', width: 24, isLeft: true },
-          { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
-          { title: 'ID', sub: '', width: 13, isLeft: false },
-          { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
-          { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
-          { title: 'Conduct', sub: '', width: 9, isLeft: false },
-          { title: 'C.P.', sub: '', width: 8, isLeft: false }
-        ]
-      : [
-          { title: 'N°', sub: '', width: 6, isLeft: false },
-          { title: 'Name', sub: '', width: 24, isLeft: true },
-          { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
-          { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
-          { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
-          { title: 'Conduct', sub: '', width: 9, isLeft: false },
-          { title: 'C.P.', sub: '', width: 8, isLeft: false }
-        ];
+    const leftCols = [
+      { title: 'N°', sub: '', width: 6, isLeft: false },
+      { title: 'Name', sub: '', width: 24, isLeft: true },
+      { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
+      { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
+      { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
+      { title: 'Conduct', sub: '', width: 9, isLeft: false },
+      { title: 'C.P.', sub: '', width: 8, isLeft: false }
+    ];
 
     const colWidths = [
       ...leftCols.map(c => c.width),
@@ -1132,16 +1116,13 @@ export const exportQuarterScoreSheet = async (params: {
       const obj: Record<string, string | number | undefined> = {
         'No.': r[0],
         'Name': r[1],
-        'Name in Khmer': r[2]
+        'Name in Khmer': r[2],
+        'Sex': r[3],
+        'Group': r[4],
+        'Conduct': r[5],
+        'C.P.': r[6]
       };
-      let offset = 3;
-      if (showId) {
-        obj['Student ID'] = r[offset++];
-      }
-      obj['Sex'] = r[offset++];
-      obj['Group'] = r[offset++];
-      obj['Conduct'] = r[offset++];
-      obj['C.P.'] = r[offset++];
+      let offset = 7;
       for (let i = 1; i <= 6; i++) obj[`HW${i}`] = r[offset++];
       for (let i = 1; i <= 6; i++) obj[`Quiz${i}`] = r[offset++];
       for (let i = 1; i <= 3; i++) obj[`Monthly Test ${i}`] = r[offset++];
