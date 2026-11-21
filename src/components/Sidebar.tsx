@@ -7,7 +7,7 @@ const Sidebar = ({ onNavClick }: { onNavClick?: () => void }) => {
     { to: '/record-attendance', label: 'Record Attendance', icon: <ClipboardList size={20} /> },
     { to: '/attendance', label: 'Attendance List', icon: <Users size={20} /> },
     { to: '/record', label: 'Record Participation', icon: <CheckCircle size={20} /> },
-    { to: '/scores', label: 'Score List', icon: <ClipboardList size={20} /> },
+    { to: '/scores', label: 'Egrade Book', icon: <ClipboardList size={20} /> },
     { to: '/quarter-score-lists', label: 'Quarter Score Lists', icon: <FileSpreadsheet size={20} /> },
     { to: '/ptc', label: 'PTC', icon: <Users size={20} /> },
     { to: '/semester-exam', label: 'Semester Exam', icon: <BookOpen size={20} /> },

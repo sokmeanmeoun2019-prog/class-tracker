@@ -164,7 +164,7 @@ const ScoreList = () => {
   if (!state.currentClassId || !state.currentQuarter) {
     return (
       <div className="p-8 text-center text-gray-500">
-        Please select a Class and Quarter from the header to view the Score List.
+        Please select a Class and Quarter from the header to view the Egrade Book.
       </div>
     );
   }
@@ -313,7 +313,7 @@ const ScoreList = () => {
       <div className="flex justify-between items-center print:hidden mb-2">
         <div>
           <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-800 to-purple-600 drop-shadow-sm">
-            Score List - {currentClass?.name} <span className="text-indigo-400 font-bold">(Q{state.currentQuarter})</span>
+            Egrade Book - {currentClass?.name} <span className="text-indigo-400 font-bold">(Q{state.currentQuarter})</span>
           </h2>
           <div className="text-sm text-gray-500 flex items-center gap-2 mt-2">
             {saveStatus === 'saving' ? (
