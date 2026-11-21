@@ -16,6 +16,7 @@ import Settings from './pages/Settings';
 import StudentProfile from './pages/StudentProfile';
 import RecentlyDeleted from './pages/RecentlyDeleted';
 import ScoreList from './pages/ScoreList';
+import QuarterScoreLists from './pages/QuarterScoreLists';
 import PTCDashboard from './pages/PTCDashboard';
 import PTCStudentReport from './pages/PTCStudentReport';
 import SemesterExam from './pages/SemesterExam';
@@ -79,6 +80,7 @@ function App() {
                     <Route path="/attendance" element={<AttendanceList />} />
                     <Route path="/record" element={<RecordParticipation />} />
                     <Route path="/scores" element={<ScoreList />} />
+                    <Route path="/quarter-score-lists" element={<QuarterScoreLists />} />
                     <Route path="/ptc" element={<PTCDashboard />} />
                     <Route path="/ptc/:id" element={<PTCStudentReport />} />
                     <Route path="/semester-exam" element={<SemesterExam />} />

@@ -68,11 +68,18 @@ export interface ScoreRecord {
   hw1?: number;
   hw2?: number;
   hw3?: number;
+  hw4?: number;
+  hw5?: number;
+  hw6?: number;
   quiz1?: number;
   quiz2?: number;
   quiz3?: number;
+  quiz4?: number;
+  quiz5?: number;
+  quiz6?: number;
   test1?: number;
   test2?: number;
+  test3?: number;
   comment1?: string;
   comment2?: string;
   comment3?: string;
@@ -169,6 +176,14 @@ export interface SemesterExamInfo {
   roomNumber?: string;
 }
 
+export interface QuarterSheetInfo {
+  id: string; // `${classId}-${quarter}`
+  classId: string;
+  quarter: Quarter;
+  teacherName?: string;
+  subject?: string;
+}
+
 export interface AppState {
   academicYears: AcademicYear[];
   classes: Class[];
@@ -180,6 +195,7 @@ export interface AppState {
   ptcRecords: PTCRecord[];
   examRecords: SemesterExamRecord[];
   examInfos: SemesterExamInfo[];
+  quarterSheetInfos?: QuarterSheetInfo[];
   gradingSettings: GradingSettings;
   attendanceSettings: AttendanceSettings;
   trash: TrashItem[];

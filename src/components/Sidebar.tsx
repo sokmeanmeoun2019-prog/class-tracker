@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, CheckCircle, Users, BookOpen, BarChart3, Clock, Settings, GraduationCap, Trash2, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, CheckCircle, Users, BookOpen, BarChart3, Clock, Settings, GraduationCap, Trash2, ClipboardList, FileSpreadsheet } from 'lucide-react';
 
 const Sidebar = ({ onNavClick }: { onNavClick?: () => void }) => {
   const links = [
@@ -8,6 +8,7 @@ const Sidebar = ({ onNavClick }: { onNavClick?: () => void }) => {
     { to: '/attendance', label: 'Attendance List', icon: <Users size={20} /> },
     { to: '/record', label: 'Record Participation', icon: <CheckCircle size={20} /> },
     { to: '/scores', label: 'Score List', icon: <ClipboardList size={20} /> },
+    { to: '/quarter-score-lists', label: 'Quarter Score Lists', icon: <FileSpreadsheet size={20} /> },
     { to: '/ptc', label: 'PTC', icon: <Users size={20} /> },
     { to: '/semester-exam', label: 'Semester Exam', icon: <BookOpen size={20} /> },
     { to: '/classes', label: 'Classes & Years', icon: <BookOpen size={20} /> },

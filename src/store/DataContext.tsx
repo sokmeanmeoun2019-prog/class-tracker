@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer, ReactNode } from 'react';
-import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord, SemesterExamRecord, SemesterExamInfo } from '../types';
+import { AppState, AcademicYear, Class, Student, ActivitySession, ParticipationRecord, Quarter, TrashItem, ScoreRecord, GradingSettings, AttendanceRecord, AttendanceSettings, PTCRecord, SemesterExamRecord, SemesterExamInfo, QuarterSheetInfo } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import { doc, onSnapshot, setDoc, collection, writeBatch, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -37,7 +37,8 @@ type Action =
   | { type: 'UPDATE_ATTENDANCE_SETTINGS'; payload: AttendanceSettings }
   | { type: 'UPDATE_PTC_RECORD'; payload: PTCRecord }
   | { type: 'UPDATE_EXAM_RECORD'; payload: SemesterExamRecord }
-  | { type: 'UPDATE_EXAM_INFO'; payload: SemesterExamInfo };
+  | { type: 'UPDATE_EXAM_INFO'; payload: SemesterExamInfo }
+  | { type: 'UPDATE_QUARTER_SHEET_INFO'; payload: QuarterSheetInfo };
 
 const defaultGradingSettings: GradingSettings = {
   maxScores: { conduct: 10, hw: 100, quiz: 100, test: 100, cp: 10 },
@@ -62,6 +63,7 @@ const defaultState: AppState = {
   ptcRecords: [],
   examRecords: [],
   examInfos: [],
+  quarterSheetInfos: [],
   gradingSettings: defaultGradingSettings,
   attendanceSettings: defaultAttendanceSettings,
   trash: [],
@@ -476,6 +478,14 @@ const reducer = (state: AppState, action: Action): AppState => {
       }
       return { ...state, examInfos: [...(state.examInfos || []), action.payload] };
     }
+    case 'UPDATE_QUARTER_SHEET_INFO': {
+      const list = state.quarterSheetInfos || [];
+      const existing = list.find(p => p.id === action.payload.id);
+      if (existing) {
+        return { ...state, quarterSheetInfos: list.map(p => p.id === action.payload.id ? action.payload : p) };
+      }
+      return { ...state, quarterSheetInfos: [...list, action.payload] };
+    }
     case 'CLEAR_ALL_DATA':
       return defaultState;
     default:
@@ -555,6 +565,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
             if (!parsedState.ptcRecords) parsedState.ptcRecords = [];
             if (!parsedState.examRecords) parsedState.examRecords = [];
             if (!parsedState.examInfos) parsedState.examInfos = [];
+            if (!parsedState.quarterSheetInfos) parsedState.quarterSheetInfos = [];
             if (!parsedState.gradingSettings) parsedState.gradingSettings = defaultGradingSettings;
             if (!parsedState.attendanceSettings) parsedState.attendanceSettings = defaultAttendanceSettings;
             

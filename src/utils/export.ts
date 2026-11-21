@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Student, ParticipationRecord, Class, Quarter, GradingSettings } from '../types';
+import { Student, ParticipationRecord, Class, Quarter, GradingSettings, ScoreRecord } from '../types';
 import { 
   getStudentQuarterTotal, 
   getStudentSemesterTotal, 
@@ -901,6 +901,257 @@ export const exportQuarterSummary = async (
   
   const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
   await exportToExcel(data, `Class_${cleanClassName}_Q${quarter}_Summary`);
+};
+
+/**
+ * Exports the official WIS-style Quarter Score List (1..6 HW, 1..6 Quizzes, 1..3 Monthly Tests)
+ * with merged two-row headers and landscape print configuration.
+ */
+export const exportQuarterScoreSheet = async (params: {
+  students: (Student & { displayNum: number })[];
+  scores: ScoreRecord[];
+  records: ParticipationRecord[];
+  classObj: Class;
+  quarter: Quarter;
+  settings: GradingSettings;
+  teacherName?: string;
+  subject?: string;
+  includeStudentId?: boolean;
+}) => {
+  const {
+    students,
+    scores,
+    records,
+    classObj,
+    quarter,
+    settings,
+    teacherName = '',
+    subject = '',
+    includeStudentId = false
+  } = params;
+
+  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
+  const filename = `Class_${cleanClassName}_Q${quarter}_ScoreSheet.xlsx`;
+  const classScores = scores.filter(
+    s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
+  );
+
+  const showId = includeStudentId || students.some(s => Boolean(s.studentId && s.studentId.trim() !== ''));
+
+  const studentRows = students.map(student => {
+    const score = classScores.find(s => s.studentId === student.id);
+    const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+    const cappedCp = Math.min(rawCp, settings.maxScores?.cp || 10);
+    const cpDisplay = score?.cpScore !== undefined ? score.cpScore : (rawCp > 0 ? cappedCp : '');
+    const sexShort = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
+
+    const base: (string | number | undefined)[] = [
+      student.displayNum,
+      student.name,
+      student.nameKhmer || '',
+      ...(showId ? [student.studentId || ''] : []),
+      sexShort,
+      student.group || '',
+      score?.conduct ?? '',
+      cpDisplay,
+      score?.hw1 ?? '',
+      score?.hw2 ?? '',
+      score?.hw3 ?? '',
+      score?.hw4 ?? '',
+      score?.hw5 ?? '',
+      score?.hw6 ?? '',
+      score?.quiz1 ?? '',
+      score?.quiz2 ?? '',
+      score?.quiz3 ?? '',
+      score?.quiz4 ?? '',
+      score?.quiz5 ?? '',
+      score?.quiz6 ?? '',
+      score?.test1 ?? '',
+      score?.test2 ?? '',
+      score?.test3 ?? ''
+    ];
+    return base;
+  });
+
+  try {
+    const leftCols = showId
+      ? [
+          { title: 'N°', sub: '', width: 6, isLeft: false },
+          { title: 'Name', sub: '', width: 24, isLeft: true },
+          { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
+          { title: 'ID', sub: '', width: 13, isLeft: false },
+          { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
+          { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
+          { title: 'Conduct', sub: '', width: 9, isLeft: false },
+          { title: 'C.P.', sub: '', width: 8, isLeft: false }
+        ]
+      : [
+          { title: 'N°', sub: '', width: 6, isLeft: false },
+          { title: 'Name', sub: '', width: 24, isLeft: true },
+          { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
+          { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
+          { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
+          { title: 'Conduct', sub: '', width: 9, isLeft: false },
+          { title: 'C.P.', sub: '', width: 8, isLeft: false }
+        ];
+
+    const colWidths = [
+      ...leftCols.map(c => c.width),
+      6, 6, 6, 6, 6, 6, // HW 1-6
+      6, 6, 6, 6, 6, 6, // Quiz 1-6
+      7, 7, 7           // Test 1-3
+    ];
+
+    const totalCols = colWidths.length;
+    const hwStartCol = leftCols.length;
+    const quizStartCol = hwStartCol + 6;
+    const testStartCol = quizStartCol + 6;
+
+    let colsXml = '<cols>';
+    colWidths.forEach((w, idx) => {
+      colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`;
+    });
+    colsXml += '</cols>';
+
+    let sheetDataXml = '<sheetData>';
+
+    // Row 1: School + Score List title
+    sheetDataXml += '<row r="1" ht="24" customHeight="1">';
+    sheetDataXml += `<c r="A1" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ / WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
+    const titleCol = colName(Math.max(hwStartCol, 7));
+    sheetDataXml += `<c r="${titleCol}1" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ / Score List')}</t></is></c>`;
+    sheetDataXml += '</row>';
+
+    // Row 2: Teacher Name + Grade + Quarter
+    sheetDataXml += '<row r="2" ht="20" customHeight="1">';
+    sheetDataXml += `<c r="B2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Teacher Name: ${teacherName}`)}</t></is></c>`;
+    sheetDataXml += `<c r="D2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Subject: ${subject}`)}</t></is></c>`;
+    sheetDataXml += `<c r="${colName(hwStartCol)}2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Grade: ${classObj.name}`)}</t></is></c>`;
+    sheetDataXml += `<c r="${colName(quizStartCol)}2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`For: Quarter ${quarter}`)}</t></is></c>`;
+    sheetDataXml += '</row>';
+
+    // Row 3: Blank spacer
+    sheetDataXml += '<row r="3" ht="8" customHeight="1"/>';
+
+    // Row 4: Top group headers
+    sheetDataXml += '<row r="4" ht="24" customHeight="1">';
+    leftCols.forEach((c, idx) => {
+      sheetDataXml += `<c r="${colName(idx)}4" s="${c.isLeft ? 2 : 1}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(c.title)}</t></is></c>`;
+    });
+    sheetDataXml += `<c r="${colName(hwStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('កិច្ចការផ្ទះ / Homework')}</t></is></c>`;
+    for (let i = 1; i < 6; i++) sheetDataXml += `<c r="${colName(hwStartCol + i)}4" s="1"/>`;
+    sheetDataXml += `<c r="${colName(quizStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តេស្តខ្លី / Quizzes')}</t></is></c>`;
+    for (let i = 1; i < 6; i++) sheetDataXml += `<c r="${colName(quizStartCol + i)}4" s="1"/>`;
+    sheetDataXml += `<c r="${colName(testStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Monthly Test / តេស្តប្រចាំខែ')}</t></is></c>`;
+    for (let i = 1; i < 3; i++) sheetDataXml += `<c r="${colName(testStartCol + i)}4" s="1"/>`;
+    sheetDataXml += '</row>';
+
+    // Row 5: Sub-column numbers (1-6, 1-6, 1-3)
+    sheetDataXml += '<row r="5" ht="20" customHeight="1">';
+    leftCols.forEach((c, idx) => {
+      sheetDataXml += `<c r="${colName(idx)}5" s="${c.isLeft ? 2 : 1}"/>`;
+    });
+    for (let i = 1; i <= 6; i++) {
+      sheetDataXml += `<c r="${colName(hwStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
+    }
+    for (let i = 1; i <= 6; i++) {
+      sheetDataXml += `<c r="${colName(quizStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
+    }
+    for (let i = 1; i <= 3; i++) {
+      sheetDataXml += `<c r="${colName(testStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
+    }
+    sheetDataXml += '</row>';
+
+    // Data rows starting at row 6
+    studentRows.forEach((vals, rIdx) => {
+      const rowNum = rIdx + 6;
+      const isWhiteRow = rIdx % 2 === 0;
+      const sCenter = isWhiteRow ? 6 : 10;
+      const sLeft = isWhiteRow ? 7 : 11;
+
+      sheetDataXml += `<row r="${rowNum}" ht="21" customHeight="1">`;
+      vals.forEach((val, colIdx) => {
+        const isLeftCol = colIdx < leftCols.length && leftCols[colIdx].isLeft;
+        sheetDataXml += renderCell(`${colName(colIdx)}${rowNum}`, val, isLeftCol ? sLeft : sCenter);
+      });
+      sheetDataXml += '</row>';
+    });
+
+    sheetDataXml += '</sheetData>';
+
+    // Merged cells for header groups
+    const merges: string[] = [
+      `A1:${colName(hwStartCol - 1)}1`,
+      `${titleCol}1:${colName(totalCols - 1)}1`
+    ];
+    leftCols.forEach((_, idx) => {
+      const c = colName(idx);
+      merges.push(`${c}4:${c}5`);
+    });
+    merges.push(`${colName(hwStartCol)}4:${colName(hwStartCol + 5)}4`);
+    merges.push(`${colName(quizStartCol)}4:${colName(quizStartCol + 5)}4`);
+    merges.push(`${colName(testStartCol)}4:${colName(testStartCol + 2)}4`);
+
+    const mergeXml = `<mergeCells count="${merges.length}">${merges
+      .map(ref => `<mergeCell ref="${ref}"/>`)
+      .join('')}</mergeCells>`;
+
+    const lastColLetter = colName(totalCols - 1);
+    const totalSheetRows = studentRows.length + 5;
+    const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <dimension ref="A1:${lastColLetter}${totalSheetRows}"/>
+  <sheetViews>
+    <sheetView tabSelected="1" workbookViewId="0">
+      <pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/>
+    </sheetView>
+  </sheetViews>
+  <sheetFormatPr defaultRowHeight="20"/>
+  ${colsXml}
+  ${sheetDataXml}
+  ${mergeXml}
+  <pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>
+  <pageSetup orientation="landscape" paperSize="9" fitToWidth="1" fitToHeight="0"/>
+</worksheet>`;
+
+    const encoder = new TextEncoder();
+    const zipFiles: ZipFileItem[] = [
+      { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
+      { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
+      { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml(`Q${quarter} Score List`)) },
+      { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
+      { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
+      { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) }
+    ];
+
+    const zipBuffer = buildZipArchive(zipFiles);
+    downloadExcelBlob(zipBuffer, filename);
+  } catch (error) {
+    console.error('Styled Quarter Score Sheet export error, falling back:', error);
+    const fallbackRows = studentRows.map(r => {
+      const obj: Record<string, string | number | undefined> = {
+        'No.': r[0],
+        'Name': r[1],
+        'Name in Khmer': r[2]
+      };
+      let offset = 3;
+      if (showId) {
+        obj['Student ID'] = r[offset++];
+      }
+      obj['Sex'] = r[offset++];
+      obj['Group'] = r[offset++];
+      obj['Conduct'] = r[offset++];
+      obj['C.P.'] = r[offset++];
+      for (let i = 1; i <= 6; i++) obj[`HW${i}`] = r[offset++];
+      for (let i = 1; i <= 6; i++) obj[`Quiz${i}`] = r[offset++];
+      for (let i = 1; i <= 3; i++) obj[`Monthly Test ${i}`] = r[offset++];
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(fallbackRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Q${quarter} Score List`);
+    XLSX.writeFile(wb, filename);
+  }
 };
 
 /**
