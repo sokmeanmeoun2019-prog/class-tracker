@@ -362,10 +362,10 @@ const QuarterScoreLists = () => {
           {/* Sheet Top Header matching WIS Reference */}
           <div className="flex justify-between items-start gap-6 mb-3">
             {/* Left: Official Western International School Crest & Registrar Branding */}
-            <div className="flex flex-col items-center text-center leading-tight pl-2 text-[12pt]">
+            <div className="flex flex-col items-center text-center leading-snug pl-2 text-[12pt] min-w-[210px]">
               <svg
-                viewBox="0 0 200 180"
-                className="w-24 h-[86px] mb-0.5"
+                viewBox="22 10 156 166"
+                className="w-36 h-[134px] mb-1"
                 xmlns="http://www.w3.org/2000/svg"
                 aria-label="Western International School Logo"
               >

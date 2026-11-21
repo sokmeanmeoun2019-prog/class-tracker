@@ -1041,7 +1041,7 @@ const QUARTER_SHEET_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalon
   </cellXfs>
 </styleSheet>`;
 
-const WIS_LOGO_SVG_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" width="260" height="234">
+const WIS_LOGO_SVG_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="22 10 156 166" width="260" height="277">
   <defs>
     <clipPath id="wis-flag-w">
       <path d="M54 76 L72 76 L82 117 L93 76 L108 76 L119 117 L129 76 L147 76 L130 140 L110 140 L100 104 L90 140 L70 140 Z"/>
@@ -1125,7 +1125,7 @@ async function renderWisLogoPngBytes(): Promise<Uint8Array | null> {
   try {
     const canvas = document.createElement('canvas');
     canvas.width = 260;
-    canvas.height = 234;
+    canvas.height = 277;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
@@ -1154,11 +1154,11 @@ const WIS_DRAWING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
   <xdr:oneCellAnchor>
     <xdr:from>
       <xdr:col>1</xdr:col>
-      <xdr:colOff>304800</xdr:colOff>
+      <xdr:colOff>520000</xdr:colOff>
       <xdr:row>0</xdr:row>
-      <xdr:rowOff>19050</xdr:rowOff>
+      <xdr:rowOff>12000</xdr:rowOff>
     </xdr:from>
-    <xdr:ext cx="838200" cy="754380"/>
+    <xdr:ext cx="1066800" cy="1136500"/>
     <xdr:pic>
       <xdr:nvPicPr>
         <xdr:cNvPr id="1" name="Western_International_School_Logo"/>
@@ -1175,7 +1175,7 @@ const WIS_DRAWING_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
       <xdr:spPr>
         <a:xfrm>
           <a:off x="0" y="0"/>
-          <a:ext cx="838200" cy="754380"/>
+          <a:ext cx="1066800" cy="1136500"/>
         </a:xfrm>
         <a:prstGeom prst="rect">
           <a:avLst/>
@@ -1269,7 +1269,7 @@ function buildQuarterScoreWorksheetXml(params: {
   let sheetDataXml = '<sheetData>';
 
   // Row 1: Dedicated left space for School Logo (A1:C3) + Black Title Banner (H1:V1)
-  sheetDataXml += '<row r="1" ht="28" customHeight="1">';
+  sheetDataXml += '<row r="1" ht="32" customHeight="1">';
   if (!hasLogo) {
     sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
     sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
@@ -1281,13 +1281,13 @@ function buildQuarterScoreWorksheetXml(params: {
   sheetDataXml += '</row>';
 
   // Row 2: Teacher Name
-  sheetDataXml += '<row r="2" ht="22" customHeight="1">';
+  sheetDataXml += '<row r="2" ht="30" customHeight="1">';
   sheetDataXml += `<c r="H2" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Teacher Name:')}</t></is></c>`;
   sheetDataXml += `<c r="L2" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(teacherName)}</t></is></c>`;
   sheetDataXml += '</row>';
 
   // Row 3: Subject
-  sheetDataXml += '<row r="3" ht="22" customHeight="1">';
+  sheetDataXml += '<row r="3" ht="28" customHeight="1">';
   sheetDataXml += `<c r="H3" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Subject:')}</t></is></c>`;
   sheetDataXml += `<c r="L3" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(subject)}</t></is></c>`;
   sheetDataXml += '</row>';

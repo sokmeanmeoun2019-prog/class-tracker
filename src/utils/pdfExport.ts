@@ -178,13 +178,13 @@ export async function exportQuarterScoreSheetPdf(params: {
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
 
-  const HEADER_BLOCK_H = 248;
+  const HEADER_BLOCK_H = 300;
   const HDR_ROW1_H = 88;
   const HDR_ROW2_H = 44;
-  const DATA_ROW_H = 54;
+  const DATA_ROW_H = 52;
   const TABLE_START_Y = MARGIN_Y + HEADER_BLOCK_H;
   const DATA_START_Y = TABLE_START_Y + HDR_ROW1_H + HDR_ROW2_H;
-  const AVAILABLE_DATA_H = CANVAS_H - MARGIN_Y - 34 - DATA_START_Y;
+  const AVAILABLE_DATA_H = CANVAS_H - MARGIN_Y - 30 - DATA_START_Y;
   const ROWS_PER_PAGE = Math.max(1, Math.floor(AVAILABLE_DATA_H / DATA_ROW_H));
 
   const totalPages = Math.max(1, Math.ceil(students.length / ROWS_PER_PAGE));
@@ -201,15 +201,15 @@ export async function exportQuarterScoreSheetPdf(params: {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // 1. Top-Left School Logo & Bilingual Branding (12pt)
-    await drawWisLogoOnCanvas(ctx, MARGIN_X + 95, MARGIN_Y - 6, 150, 135);
+    // 1. Top-Left School Logo & Bilingual Branding (12pt, proportioned to match text below)
+    await drawWisLogoOnCanvas(ctx, MARGIN_X + 74, MARGIN_Y - 6, 192, 204);
 
     ctx.fillStyle = '#000000';
     drawFitText(
       ctx,
       'សាលាវ៉េស្ទើនអន្តរជាតិ',
       MARGIN_X + 170,
-      MARGIN_Y + 150,
+      MARGIN_Y + 216,
       360,
       'bold',
       FONT_12PT,
@@ -220,7 +220,7 @@ export async function exportQuarterScoreSheetPdf(params: {
       ctx,
       "Registrar's Office",
       MARGIN_X + 170,
-      MARGIN_Y + 186,
+      MARGIN_Y + 250,
       340,
       'bold',
       FONT_12PT,
@@ -231,7 +231,7 @@ export async function exportQuarterScoreSheetPdf(params: {
       ctx,
       'STD',
       MARGIN_X + 170,
-      MARGIN_Y + 220,
+      MARGIN_Y + 282,
       180,
       'bold',
       FONT_12PT,
@@ -243,14 +243,14 @@ export async function exportQuarterScoreSheetPdf(params: {
     const bannerX = CANVAS_W - MARGIN_X - 920;
     const bannerW = 920;
     ctx.fillStyle = '#000000';
-    ctx.fillRect(bannerX, MARGIN_Y + 6, bannerW, 52);
+    ctx.fillRect(bannerX, MARGIN_Y + 42, bannerW, 52);
 
     ctx.fillStyle = '#FFFFFF';
     drawFitText(
       ctx,
       'តារាងសម្រង់ពិន្ទុ / Score List',
       bannerX + bannerW / 2,
-      MARGIN_Y + 32,
+      MARGIN_Y + 68,
       bannerW - 24,
       'bold',
       FONT_12PT,
@@ -263,22 +263,22 @@ export async function exportQuarterScoreSheetPdf(params: {
     const metaValX = bannerX + 245;
 
     // Teacher Name
-    drawFitText(ctx, 'Teacher Name', metaLabelX, MARGIN_Y + 90, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, teacherName || '', metaValX, MARGIN_Y + 90, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
+    drawFitText(ctx, 'Teacher Name', metaLabelX, MARGIN_Y + 128, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, teacherName || '', metaValX, MARGIN_Y + 128, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
 
     // Subject
-    drawFitText(ctx, 'Subject', metaLabelX, MARGIN_Y + 132, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, subject || '', metaValX, MARGIN_Y + 132, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
+    drawFitText(ctx, 'Subject', metaLabelX, MARGIN_Y + 170, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, subject || '', metaValX, MARGIN_Y + 170, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
 
     // Grade & Quarter
-    drawFitText(ctx, 'Grade', metaLabelX, MARGIN_Y + 174, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, classObj.name, metaValX + 75, MARGIN_Y + 174, 210, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
-    drawFitText(ctx, 'For :', bannerX + 520, MARGIN_Y + 174, 110, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, 'Grade', metaLabelX, MARGIN_Y + 212, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, classObj.name, metaValX + 75, MARGIN_Y + 212, 210, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
+    drawFitText(ctx, 'For :', bannerX + 520, MARGIN_Y + 212, 110, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
     drawFitText(
       ctx,
       `Quarter ${quarter}`,
       bannerX + 630,
-      MARGIN_Y + 174,
+      MARGIN_Y + 212,
       280,
       'bold',
       FONT_12PT,
