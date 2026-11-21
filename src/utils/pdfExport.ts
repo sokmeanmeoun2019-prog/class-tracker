@@ -146,23 +146,25 @@ export async function exportQuarterScoreSheetPdf(params: {
   const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '' } =
     params;
 
-  const CANVAS_W = 2338; // 200 DPI A4 Landscape (297mm)
-  const CANVAS_H = 1654; // 200 DPI A4 Landscape (210mm)
-  const MARGIN_X = 76;
-  const MARGIN_Y = 60;
-  const TABLE_W = CANVAS_W - MARGIN_X * 2; // 2186px
+  const CANVAS_W = 2338; // 200 DPI A4 Landscape (297mm = 841.89pt)
+  const CANVAS_H = 1654; // 200 DPI A4 Landscape (210mm = 595.28pt)
+  const MARGIN_X = 77;
+  const MARGIN_Y = 56;
+  const TABLE_W = CANVAS_W - MARGIN_X * 2; // 2184px
+  // Exact 12pt physical size on A4 Landscape (12 * 2338 / 841.89 = 33.3px)
+  const FONT_12PT = 33;
 
   const colWidths = [
-    56,  // N°
-    320, // Name
-    250, // ឈ្មោះ
-    58,  // Sex
-    64,  // Group
-    60,  // Conduct
-    58,  // C.P.
-    82, 82, 82, 82, 82, 82, // Homework 1-6 (492)
-    82, 82, 82, 82, 82, 82, // Quizzes 1-6 (492)
-    112, 112, 112           // Monthly Test 1-3 (336)
+    52,  // N°
+    430, // Name
+    310, // ឈ្មោះ
+    56,  // Sex
+    66,  // Group
+    58,  // Conduct
+    54,  // C.P.
+    72, 72, 72, 72, 72, 72, // Homework 1-6 (432)
+    72, 72, 72, 72, 72, 72, // Quizzes 1-6 (432)
+    98, 98, 98              // Monthly Test 1-3 (294)
   ];
 
   const colXs: number[] = [];
@@ -176,13 +178,13 @@ export async function exportQuarterScoreSheetPdf(params: {
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
 
-  const HEADER_BLOCK_H = 224;
-  const HDR_ROW1_H = 62;
-  const HDR_ROW2_H = 34;
-  const DATA_ROW_H = 42;
+  const HEADER_BLOCK_H = 248;
+  const HDR_ROW1_H = 88;
+  const HDR_ROW2_H = 44;
+  const DATA_ROW_H = 54;
   const TABLE_START_Y = MARGIN_Y + HEADER_BLOCK_H;
   const DATA_START_Y = TABLE_START_Y + HDR_ROW1_H + HDR_ROW2_H;
-  const AVAILABLE_DATA_H = CANVAS_H - MARGIN_Y - 22 - DATA_START_Y;
+  const AVAILABLE_DATA_H = CANVAS_H - MARGIN_Y - 34 - DATA_START_Y;
   const ROWS_PER_PAGE = Math.max(1, Math.floor(AVAILABLE_DATA_H / DATA_ROW_H));
 
   const totalPages = Math.max(1, Math.ceil(students.length / ROWS_PER_PAGE));
@@ -199,87 +201,87 @@ export async function exportQuarterScoreSheetPdf(params: {
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // 1. Top-Left School Logo & Bilingual Branding
-    await drawWisLogoOnCanvas(ctx, MARGIN_X + 78, MARGIN_Y - 4, 158, 142);
+    // 1. Top-Left School Logo & Bilingual Branding (12pt)
+    await drawWisLogoOnCanvas(ctx, MARGIN_X + 95, MARGIN_Y - 6, 150, 135);
 
     ctx.fillStyle = '#000000';
     drawFitText(
       ctx,
       'សាលាវ៉េស្ទើនអន្តរជាតិ',
-      MARGIN_X + 157,
-      MARGIN_Y + 152,
-      300,
+      MARGIN_X + 170,
+      MARGIN_Y + 150,
+      360,
       'bold',
-      18,
+      FONT_12PT,
       KHMER_FONT_STACK,
       'center'
     );
     drawFitText(
       ctx,
       "Registrar's Office",
-      MARGIN_X + 157,
-      MARGIN_Y + 178,
-      260,
+      MARGIN_X + 170,
+      MARGIN_Y + 186,
+      340,
       'bold',
-      16,
+      FONT_12PT,
       LATIN_FONT_STACK,
       'center'
     );
     drawFitText(
       ctx,
       'STD',
-      MARGIN_X + 157,
-      MARGIN_Y + 199,
-      140,
+      MARGIN_X + 170,
+      MARGIN_Y + 220,
+      180,
       'bold',
-      14,
+      FONT_12PT,
       LATIN_FONT_STACK,
       'center'
     );
 
-    // 2. Top-Right Black Banner & Metadata
-    const bannerX = CANVAS_W - MARGIN_X - 880;
-    const bannerW = 880;
+    // 2. Top-Right Black Banner & Metadata (12pt)
+    const bannerX = CANVAS_W - MARGIN_X - 920;
+    const bannerW = 920;
     ctx.fillStyle = '#000000';
-    ctx.fillRect(bannerX, MARGIN_Y + 10, bannerW, 42);
+    ctx.fillRect(bannerX, MARGIN_Y + 6, bannerW, 52);
 
     ctx.fillStyle = '#FFFFFF';
     drawFitText(
       ctx,
       'តារាងសម្រង់ពិន្ទុ / Score List',
       bannerX + bannerW / 2,
-      MARGIN_Y + 31,
+      MARGIN_Y + 32,
       bannerW - 24,
       'bold',
-      21,
+      FONT_12PT,
       KHMER_FONT_STACK,
       'center'
     );
 
     ctx.fillStyle = '#111827';
     const metaLabelX = bannerX;
-    const metaValX = bannerX + 205;
+    const metaValX = bannerX + 245;
 
     // Teacher Name
-    drawFitText(ctx, 'Teacher Name', metaLabelX, MARGIN_Y + 80, 190, 'bold', 18, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, teacherName || '', metaValX, MARGIN_Y + 80, 650, 'bold', 18, KHMER_FONT_STACK, 'left');
+    drawFitText(ctx, 'Teacher Name', metaLabelX, MARGIN_Y + 90, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, teacherName || '', metaValX, MARGIN_Y + 90, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
 
     // Subject
-    drawFitText(ctx, 'Subject', metaLabelX, MARGIN_Y + 114, 190, 'bold', 18, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, subject || '', metaValX, MARGIN_Y + 114, 650, 'bold', 18, KHMER_FONT_STACK, 'left');
+    drawFitText(ctx, 'Subject', metaLabelX, MARGIN_Y + 132, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, subject || '', metaValX, MARGIN_Y + 132, 660, 'bold', FONT_12PT, KHMER_FONT_STACK, 'left');
 
     // Grade & Quarter
-    drawFitText(ctx, 'Grade', metaLabelX, MARGIN_Y + 148, 190, 'bold', 18, LATIN_FONT_STACK, 'left');
-    drawFitText(ctx, classObj.name, metaValX + 60, MARGIN_Y + 148, 200, 'bold', 18, LATIN_FONT_STACK, 'center');
-    drawFitText(ctx, 'For :', bannerX + 490, MARGIN_Y + 148, 90, 'bold', 18, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, 'Grade', metaLabelX, MARGIN_Y + 174, 235, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
+    drawFitText(ctx, classObj.name, metaValX + 75, MARGIN_Y + 174, 210, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
+    drawFitText(ctx, 'For :', bannerX + 520, MARGIN_Y + 174, 110, 'bold', FONT_12PT, LATIN_FONT_STACK, 'left');
     drawFitText(
       ctx,
       `Quarter ${quarter}`,
-      bannerX + 575,
-      MARGIN_Y + 148,
-      260,
+      bannerX + 630,
+      MARGIN_Y + 174,
+      280,
       'bold',
-      18,
+      FONT_12PT,
       LATIN_FONT_STACK,
       'left'
     );
@@ -288,57 +290,57 @@ export async function exportQuarterScoreSheetPdf(params: {
     ctx.fillStyle = '#F3F4F6';
     ctx.fillRect(MARGIN_X, TABLE_START_Y, TABLE_W, HDR_ROW1_H + HDR_ROW2_H);
 
-    // Draw Header Text
+    // Draw Header Text (12pt)
     ctx.fillStyle = '#000000';
     const mergedHdrMidY = TABLE_START_Y + (HDR_ROW1_H + HDR_ROW2_H) / 2;
 
-    drawFitText(ctx, 'N°', colXs[0] + colWidths[0] / 2, mergedHdrMidY, colWidths[0] - 8, 'bold', 17, LATIN_FONT_STACK, 'center');
-    drawFitText(ctx, 'Name', colXs[1] + colWidths[1] / 2, mergedHdrMidY, colWidths[1] - 16, 'bold', 18, LATIN_FONT_STACK, 'center');
-    drawFitText(ctx, 'ឈ្មោះ', colXs[2] + colWidths[2] / 2, mergedHdrMidY, colWidths[2] - 16, 'bold', 18, KHMER_FONT_STACK, 'center');
+    drawFitText(ctx, 'N°', colXs[0] + colWidths[0] / 2, mergedHdrMidY, colWidths[0] - 8, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
+    drawFitText(ctx, 'Name', colXs[1] + colWidths[1] / 2, mergedHdrMidY, colWidths[1] - 16, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
+    drawFitText(ctx, 'ឈ្មោះ', colXs[2] + colWidths[2] / 2, mergedHdrMidY, colWidths[2] - 16, 'bold', FONT_12PT, KHMER_FONT_STACK, 'center');
 
     // Vertical Sex + Khmer ភេទ
     ctx.save();
-    ctx.translate(colXs[3] + colWidths[3] / 2, TABLE_START_Y + 34);
+    ctx.translate(colXs[3] + colWidths[3] / 2, TABLE_START_Y + 42);
     ctx.rotate(Math.PI / 2);
-    ctx.font = `bold 16px ${LATIN_FONT_STACK}`;
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('Sex', 0, 0);
     ctx.restore();
-    drawFitText(ctx, 'ភេទ', colXs[3] + colWidths[3] / 2, TABLE_START_Y + 78, colWidths[3] - 6, 'bold', 14, KHMER_FONT_STACK, 'center');
+    drawFitText(ctx, 'ភេទ', colXs[3] + colWidths[3] / 2, TABLE_START_Y + 106, colWidths[3] - 4, 'bold', FONT_12PT, KHMER_FONT_STACK, 'center');
 
     // Vertical Group + Khmer ក្រុម
     ctx.save();
-    ctx.translate(colXs[4] + colWidths[4] / 2, TABLE_START_Y + 34);
+    ctx.translate(colXs[4] + colWidths[4] / 2, TABLE_START_Y + 44);
     ctx.rotate(Math.PI / 2);
-    ctx.font = `bold 15px ${LATIN_FONT_STACK}`;
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Group', 0, 0);
+    ctx.fillText('Group', 0, 0, 82);
     ctx.restore();
-    drawFitText(ctx, 'ក្រុម', colXs[4] + colWidths[4] / 2, TABLE_START_Y + 78, colWidths[4] - 6, 'bold', 14, KHMER_FONT_STACK, 'center');
+    drawFitText(ctx, 'ក្រុម', colXs[4] + colWidths[4] / 2, TABLE_START_Y + 106, colWidths[4] - 4, 'bold', FONT_12PT, KHMER_FONT_STACK, 'center');
 
     // Vertical Conduct
     ctx.save();
     ctx.translate(colXs[5] + colWidths[5] / 2, mergedHdrMidY);
     ctx.rotate(Math.PI / 2);
-    ctx.font = `bold 16px ${LATIN_FONT_STACK}`;
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Conduct', 0, 0);
+    ctx.fillText('Conduct', 0, 0, HDR_ROW1_H + HDR_ROW2_H - 12);
     ctx.restore();
 
     // Vertical C.P.
     ctx.save();
     ctx.translate(colXs[6] + colWidths[6] / 2, mergedHdrMidY);
     ctx.rotate(Math.PI / 2);
-    ctx.font = `bold 16px ${LATIN_FONT_STACK}`;
+    ctx.font = `bold ${FONT_12PT}px ${LATIN_FONT_STACK}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('C.P.', 0, 0);
+    ctx.fillText('C.P.', 0, 0, HDR_ROW1_H + HDR_ROW2_H - 12);
     ctx.restore();
 
-    // Group Header Titles (Row 1)
+    // Group Header Titles (Row 1 - 12pt)
     const hwSpanW = colWidths.slice(7, 13).reduce((a, b) => a + b, 0);
     const quizSpanW = colWidths.slice(13, 19).reduce((a, b) => a + b, 0);
     const testSpanW = colWidths.slice(19, 22).reduce((a, b) => a + b, 0);
@@ -350,7 +352,7 @@ export async function exportQuarterScoreSheetPdf(params: {
       TABLE_START_Y + HDR_ROW1_H / 2,
       hwSpanW - 16,
       'bold',
-      17,
+      FONT_12PT,
       KHMER_FONT_STACK,
       'center'
     );
@@ -361,7 +363,7 @@ export async function exportQuarterScoreSheetPdf(params: {
       TABLE_START_Y + HDR_ROW1_H / 2,
       quizSpanW - 16,
       'bold',
-      17,
+      FONT_12PT,
       KHMER_FONT_STACK,
       'center'
     );
@@ -369,10 +371,10 @@ export async function exportQuarterScoreSheetPdf(params: {
       ctx,
       'Monthly Test',
       colXs[19] + testSpanW / 2,
-      TABLE_START_Y + 21,
+      TABLE_START_Y + 26,
       testSpanW - 12,
       'bold',
-      16,
+      FONT_12PT,
       LATIN_FONT_STACK,
       'center'
     );
@@ -380,25 +382,25 @@ export async function exportQuarterScoreSheetPdf(params: {
       ctx,
       'តេស្តប្រចាំខែ',
       colXs[19] + testSpanW / 2,
-      TABLE_START_Y + 44,
+      TABLE_START_Y + 62,
       testSpanW - 12,
       'bold',
-      15,
+      FONT_12PT,
       KHMER_FONT_STACK,
       'center'
     );
 
-    // Sub-numbers Row 2
+    // Sub-numbers Row 2 (12pt)
     const subRowMidY = TABLE_START_Y + HDR_ROW1_H + HDR_ROW2_H / 2;
     for (let i = 0; i < 6; i++) {
-      drawFitText(ctx, String(i + 1), colXs[7 + i] + colWidths[7 + i] / 2, subRowMidY, colWidths[7 + i] - 8, 'bold', 16, LATIN_FONT_STACK, 'center');
-      drawFitText(ctx, String(i + 1), colXs[13 + i] + colWidths[13 + i] / 2, subRowMidY, colWidths[13 + i] - 8, 'bold', 16, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, String(i + 1), colXs[7 + i] + colWidths[7 + i] / 2, subRowMidY, colWidths[7 + i] - 8, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, String(i + 1), colXs[13 + i] + colWidths[13 + i] / 2, subRowMidY, colWidths[13 + i] - 8, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
     }
     for (let i = 0; i < 3; i++) {
-      drawFitText(ctx, String(i + 1), colXs[19 + i] + colWidths[19 + i] / 2, subRowMidY, colWidths[19 + i] - 8, 'bold', 16, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, String(i + 1), colXs[19 + i] + colWidths[19 + i] / 2, subRowMidY, colWidths[19 + i] - 8, 'bold', FONT_12PT, LATIN_FONT_STACK, 'center');
     }
 
-    // 4. Student Rows with Alternating White (#FFFFFF) / Light Gray (#F2F2F2)
+    // 4. Student Rows with Alternating White (#FFFFFF) / Light Gray (#F2F2F2) at 12pt
     const pageStudents = students.slice(pageIdx * ROWS_PER_PAGE, (pageIdx + 1) * ROWS_PER_PAGE);
 
     pageStudents.forEach((student, localIdx) => {
@@ -423,13 +425,13 @@ export async function exportQuarterScoreSheetPdf(params: {
       const groupVal = student.group && student.group.trim() !== '' ? student.group : 'III';
 
       ctx.fillStyle = '#000000';
-      drawFitText(ctx, String(student.displayNum), colXs[0] + colWidths[0] / 2, midY, colWidths[0] - 8, 'normal', 16, LATIN_FONT_STACK, 'center');
-      drawFitText(ctx, student.name, colXs[1] + 10, midY, colWidths[1] - 20, '600', 16, LATIN_FONT_STACK, 'left');
-      drawFitText(ctx, student.nameKhmer || '', colXs[2] + 10, midY, colWidths[2] - 20, 'normal', 16, KHMER_FONT_STACK, 'left');
-      drawFitText(ctx, sexShort, colXs[3] + colWidths[3] / 2, midY, colWidths[3] - 8, '600', 16, LATIN_FONT_STACK, 'center');
-      drawFitText(ctx, groupVal, colXs[4] + colWidths[4] / 2, midY, colWidths[4] - 8, '600', 16, LATIN_FONT_STACK, 'center');
-      drawFitText(ctx, score?.conduct !== undefined ? String(score.conduct) : '', colXs[5] + colWidths[5] / 2, midY, colWidths[5] - 8, '600', 16, LATIN_FONT_STACK, 'center');
-      drawFitText(ctx, cpDisplay, colXs[6] + colWidths[6] / 2, midY, colWidths[6] - 8, '600', 16, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, String(student.displayNum), colXs[0] + colWidths[0] / 2, midY, colWidths[0] - 8, 'normal', FONT_12PT, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, student.name, colXs[1] + 10, midY, colWidths[1] - 20, '600', FONT_12PT, LATIN_FONT_STACK, 'left');
+      drawFitText(ctx, student.nameKhmer || '', colXs[2] + 10, midY, colWidths[2] - 20, 'normal', FONT_12PT, KHMER_FONT_STACK, 'left');
+      drawFitText(ctx, sexShort, colXs[3] + colWidths[3] / 2, midY, colWidths[3] - 8, '600', FONT_12PT, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, groupVal, colXs[4] + colWidths[4] / 2, midY, colWidths[4] - 8, '600', FONT_12PT, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, score?.conduct !== undefined ? String(score.conduct) : '', colXs[5] + colWidths[5] / 2, midY, colWidths[5] - 8, '600', FONT_12PT, LATIN_FONT_STACK, 'center');
+      drawFitText(ctx, cpDisplay, colXs[6] + colWidths[6] / 2, midY, colWidths[6] - 8, '600', FONT_12PT, LATIN_FONT_STACK, 'center');
 
       const slots: (number | undefined)[] = [
         score?.hw1, score?.hw2, score?.hw3, score?.hw4, score?.hw5, score?.hw6,
@@ -443,9 +445,9 @@ export async function exportQuarterScoreSheetPdf(params: {
             String(val),
             colXs[7 + sIdx] + colWidths[7 + sIdx] / 2,
             midY,
-            colWidths[7 + sIdx] - 10,
+            colWidths[7 + sIdx] - 8,
             '600',
-            16,
+            FONT_12PT,
             LATIN_FONT_STACK,
             'center'
           );

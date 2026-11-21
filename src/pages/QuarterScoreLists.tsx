@@ -355,11 +355,14 @@ const QuarterScoreLists = () => {
 
       {/* Printable Official WIS Score Sheet */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-300 p-4 sm:p-6 print:p-0 print:border-none print:shadow-none print:rounded-none overflow-x-auto print:overflow-visible">
-        <div className="min-w-[960px] print:min-w-0 w-full text-black">
+        <div
+          className="min-w-[1280px] print:min-w-0 w-full text-black"
+          style={{ fontSize: '12pt' }}
+        >
           {/* Sheet Top Header matching WIS Reference */}
           <div className="flex justify-between items-start gap-6 mb-3">
             {/* Left: Official Western International School Crest & Registrar Branding */}
-            <div className="flex flex-col items-center text-center leading-tight pl-2">
+            <div className="flex flex-col items-center text-center leading-tight pl-2 text-[12pt]">
               <svg
                 viewBox="0 0 200 180"
                 className="w-24 h-[86px] mb-0.5"
@@ -460,40 +463,40 @@ const QuarterScoreLists = () => {
                   INTERNATIONAL SCHOOL
                 </text>
               </svg>
-              <div className="text-xs font-bold tracking-tight">សាលាវ៉េស្ទើនអន្តរជាតិ</div>
-              <div className="text-[11px] font-bold mt-0.5">Registrar&apos;s Office</div>
-              <div className="text-[10px] font-bold">STD</div>
+              <div className="text-[12pt] font-bold tracking-tight">សាលាវ៉េស្ទើនអន្តរជាតិ</div>
+              <div className="text-[12pt] font-bold mt-0.5">Registrar&apos;s Office</div>
+              <div className="text-[12pt] font-bold">STD</div>
             </div>
 
             {/* Right: Solid Black Title Banner + Teacher / Subject / Grade / Quarter */}
-            <div className="w-[390px] sm:w-[440px] shrink-0 pt-2">
-              <div className="bg-black text-white font-bold text-center py-1 px-4 text-sm tracking-wide">
+            <div className="w-[460px] sm:w-[520px] shrink-0 pt-2">
+              <div className="bg-black text-white font-bold text-center py-1 px-4 text-[12pt] tracking-wide">
                 តារាងសម្រង់ពិន្ទុ / Score List
               </div>
-              <div className="mt-2 space-y-1 text-xs">
+              <div className="mt-2 space-y-1 text-[12pt]">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold w-28 shrink-0">Teacher Name</span>
+                  <span className="font-semibold w-36 shrink-0">Teacher Name</span>
                   <input
                     type="text"
                     value={sheetInfo.teacherName || ''}
                     onChange={e => handleInfoChange('teacherName', e.target.value)}
                     placeholder="Enter Teacher Name..."
-                    className="flex-1 bg-transparent border-b border-dotted border-gray-400 focus:border-black outline-none font-bold text-gray-900 px-1 py-0.5 print:border-none print:placeholder-transparent"
+                    className="flex-1 bg-transparent border-b border-dotted border-gray-400 focus:border-black outline-none font-bold text-gray-900 px-1 py-0.5 text-[12pt] print:border-none print:placeholder-transparent"
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold w-28 shrink-0">Subject</span>
+                  <span className="font-semibold w-36 shrink-0">Subject</span>
                   <input
                     type="text"
                     value={sheetInfo.subject || ''}
                     onChange={e => handleInfoChange('subject', e.target.value)}
                     placeholder="Enter Subject..."
-                    className="flex-1 bg-transparent border-b border-dotted border-gray-400 focus:border-black outline-none font-bold text-gray-900 px-1 py-0.5 print:border-none print:placeholder-transparent"
+                    className="flex-1 bg-transparent border-b border-dotted border-gray-400 focus:border-black outline-none font-bold text-gray-900 px-1 py-0.5 text-[12pt] print:border-none print:placeholder-transparent"
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-0.5">
-                  <span className="font-semibold w-28 shrink-0">Grade</span>
-                  <span className="font-bold w-24 text-center">{currentClass.name}</span>
+                  <span className="font-semibold w-36 shrink-0">Grade</span>
+                  <span className="font-bold w-28 text-center">{currentClass.name}</span>
                   <span className="font-semibold ml-2">For :</span>
                   <span className="font-bold ml-2">Quarter {selectedQuarter}</span>
                 </div>
@@ -502,55 +505,55 @@ const QuarterScoreLists = () => {
           </div>
 
           {/* Official Score Grid Table */}
-          <table className="w-full table-fixed border-collapse border-[1.5px] border-black text-[11px]">
+          <table className="w-full table-fixed border-collapse border-[1.5px] border-black text-[12pt]">
             <thead>
               <tr className="bg-[#f3f4f6] print:bg-[#f3f4f6]">
-                <th rowSpan={2} className="border border-black px-1 py-1 text-center font-bold w-8">
+                <th rowSpan={2} className="border border-black px-1 py-1 text-center font-bold w-10">
                   N°
                 </th>
-                <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold w-[185px]">
+                <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold w-[250px]">
                   Name
                 </th>
                 <th
                   rowSpan={2}
-                  className="border border-black px-2 py-1 text-center font-bold w-[150px]"
+                  className="border border-black px-2 py-1 text-center font-bold w-[205px]"
                   style={{ fontFamily: "'Khmer OS Battambang', 'Khmer OS Siemreap', 'Leelawadee UI', 'Noto Sans Khmer', sans-serif" }}
                 >
                   ឈ្មោះ
                 </th>
-                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8 align-bottom">
+                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-10 align-bottom">
                   <div className="flex flex-col items-center justify-end gap-1">
-                    <span style={{ writingMode: 'vertical-rl' }} className="leading-none text-[10px]">
+                    <span style={{ writingMode: 'vertical-rl' }} className="leading-none text-[12pt]">
                       Sex
                     </span>
-                    <span className="text-[9px] leading-none">ភេទ</span>
+                    <span className="text-[12pt] leading-none">ភេទ</span>
                   </div>
                 </th>
-                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8 align-bottom">
+                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-11 align-bottom">
                   <div className="flex flex-col items-center justify-end gap-1">
-                    <span style={{ writingMode: 'vertical-rl' }} className="leading-none text-[10px]">
+                    <span style={{ writingMode: 'vertical-rl' }} className="leading-none text-[12pt]">
                       Group
                     </span>
-                    <span className="text-[9px] leading-none">ក្រុម</span>
+                    <span className="text-[12pt] leading-none">ក្រុម</span>
                   </div>
                 </th>
-                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8">
-                  <span style={{ writingMode: 'vertical-rl' }} className="leading-none inline-block">
+                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-10">
+                  <span style={{ writingMode: 'vertical-rl' }} className="leading-none inline-block text-[12pt]">
                     Conduct
                   </span>
                 </th>
-                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8">
-                  <span style={{ writingMode: 'vertical-rl' }} className="leading-none inline-block">
+                <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-10">
+                  <span style={{ writingMode: 'vertical-rl' }} className="leading-none inline-block text-[12pt]">
                     C.P.
                   </span>
                 </th>
-                <th colSpan={6} className="border border-black px-2 py-1 text-center font-bold">
+                <th colSpan={6} className="border border-black px-2 py-1 text-center font-bold text-[12pt]">
                   កិច្ចការផ្ទះ / Homework
                 </th>
-                <th colSpan={6} className="border border-black px-2 py-1 text-center font-bold">
+                <th colSpan={6} className="border border-black px-2 py-1 text-center font-bold text-[12pt]">
                   តេស្តខ្លី / Quizzes
                 </th>
-                <th colSpan={3} className="border border-black px-1.5 py-1 text-center font-bold leading-tight">
+                <th colSpan={3} className="border border-black px-1.5 py-1 text-center font-bold leading-tight text-[12pt]">
                   Monthly Test
                   <br />
                   តេស្តប្រចាំខែ
@@ -558,17 +561,17 @@ const QuarterScoreLists = () => {
               </tr>
               <tr className="bg-gray-100/80 print:bg-gray-100">
                 {[1, 2, 3, 4, 5, 6].map(num => (
-                  <th key={`hw-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-9">
+                  <th key={`hw-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-11 text-[12pt]">
                     {num}
                   </th>
                 ))}
                 {[1, 2, 3, 4, 5, 6].map(num => (
-                  <th key={`qz-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-9">
+                  <th key={`qz-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-11 text-[12pt]">
                     {num}
                   </th>
                 ))}
                 {[1, 2, 3].map(num => (
-                  <th key={`mt-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-10">
+                  <th key={`mt-hdr-${num}`} className="border border-black py-0.5 text-center font-bold w-12 text-[12pt]">
                     {num}
                   </th>
                 ))}
@@ -590,36 +593,36 @@ const QuarterScoreLists = () => {
                 return (
                   <tr
                     key={student.id}
-                    className={`h-7 transition-colors ${
+                    className={`h-9 transition-colors ${
                       idx % 2 === 0
                         ? 'bg-white hover:bg-gray-100/70 print:bg-white'
                         : 'bg-[#f2f2f2] hover:bg-gray-200/60 print:bg-[#f2f2f2]'
                     } print:hover:bg-inherit`}
                   >
-                    <td className="border border-black px-1 py-0.5 text-center font-medium align-middle">
+                    <td className="border border-black px-1 py-1 text-center font-medium align-middle text-[12pt]">
                       {student.displayNum}
                     </td>
 
-                    <td className="border border-black px-2 py-0.5 font-medium text-left align-middle whitespace-nowrap overflow-hidden text-ellipsis">
+                    <td className="border border-black px-2 py-1 font-medium text-left align-middle whitespace-nowrap overflow-hidden text-ellipsis text-[12pt]">
                       {student.name}
                     </td>
 
-                    <td className="border border-black px-1.5 py-0.5 align-middle">
+                    <td className="border border-black px-1.5 py-1 align-middle">
                       <input
                         type="text"
                         value={student.nameKhmer || ''}
                         onChange={e => handleStudentFieldChange(student, 'nameKhmer', e.target.value)}
                         style={{ fontFamily: "'Khmer OS Battambang', 'Khmer OS Siemreap', 'Leelawadee UI', 'Noto Sans Khmer', sans-serif" }}
-                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 px-0.5 py-0 text-[11px] leading-tight text-left print:p-0"
+                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 px-0.5 py-0 text-[12pt] leading-snug text-left print:p-0"
                         placeholder="-"
                       />
                     </td>
 
-                    <td className="border border-black px-0.5 py-0.5 text-center">
+                    <td className="border border-black px-0.5 py-1 text-center align-middle">
                       <select
                         value={sexValue}
                         onChange={e => handleStudentFieldChange(student, 'sex', e.target.value)}
-                        className="w-full bg-transparent outline-none text-center font-medium appearance-none cursor-pointer focus:bg-blue-50/60"
+                        className="w-full bg-transparent outline-none text-center text-[12pt] font-medium appearance-none cursor-pointer focus:bg-blue-50/60"
                         aria-label={`Sex for ${student.name}`}
                       >
                         <option value="">-</option>
@@ -628,19 +631,19 @@ const QuarterScoreLists = () => {
                       </select>
                     </td>
 
-                    <td className="border border-black px-0.5 py-0.5 text-center">
+                    <td className="border border-black px-0.5 py-1 text-center align-middle">
                       <input
                         type="text"
                         value={student.group && student.group.trim() !== '' ? student.group : 'III'}
                         onChange={e => handleStudentFieldChange(student, 'group', e.target.value)}
-                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0"
                         placeholder="III"
                         aria-label={`Group for ${student.name}`}
                       />
                     </td>
 
                     {/* Conduct */}
-                    <td className="border border-black px-0.5 py-0.5 text-center">
+                    <td className="border border-black px-0.5 py-1 text-center align-middle">
                       <input
                         type="number"
                         min={0}
@@ -654,13 +657,13 @@ const QuarterScoreLists = () => {
                             settings.maxScores.conduct
                           )
                         }
-                        className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                        className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0"
                         aria-label={`Conduct for ${student.name}`}
                       />
                     </td>
 
                     {/* C.P. */}
-                    <td className="border border-black px-0.5 py-0.5 text-center">
+                    <td className="border border-black px-0.5 py-1 text-center align-middle">
                       <input
                         type="number"
                         min={0}
@@ -674,7 +677,7 @@ const QuarterScoreLists = () => {
                             settings.maxScores.cp
                           )
                         }
-                        className={`no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0 ${
+                        className={`no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0 ${
                           score?.cpScore === undefined && rawCp > 0 ? 'text-gray-600 print:text-black' : ''
                         }`}
                         title={
@@ -688,7 +691,7 @@ const QuarterScoreLists = () => {
 
                     {/* Homework 1-6 */}
                     {HW_SLOTS.map(slot => (
-                      <td key={slot} className="border border-black px-0.5 py-0.5 text-center">
+                      <td key={slot} className="border border-black px-0.5 py-1 text-center align-middle">
                         <input
                           type="number"
                           min={0}
@@ -702,7 +705,7 @@ const QuarterScoreLists = () => {
                               settings.maxScores.hw
                             )
                           }
-                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0"
                           aria-label={`${slot} for ${student.name}`}
                         />
                       </td>
@@ -710,7 +713,7 @@ const QuarterScoreLists = () => {
 
                     {/* Quizzes 1-6 */}
                     {QUIZ_SLOTS.map(slot => (
-                      <td key={slot} className="border border-black px-0.5 py-0.5 text-center">
+                      <td key={slot} className="border border-black px-0.5 py-1 text-center align-middle">
                         <input
                           type="number"
                           min={0}
@@ -724,7 +727,7 @@ const QuarterScoreLists = () => {
                               settings.maxScores.quiz
                             )
                           }
-                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0"
                           aria-label={`${slot} for ${student.name}`}
                         />
                       </td>
@@ -732,7 +735,7 @@ const QuarterScoreLists = () => {
 
                     {/* Monthly Test 1-3 */}
                     {TEST_SLOTS.map(slot => (
-                      <td key={slot} className="border border-black px-0.5 py-0.5 text-center">
+                      <td key={slot} className="border border-black px-0.5 py-1 text-center align-middle">
                         <input
                           type="number"
                           min={0}
@@ -746,7 +749,7 @@ const QuarterScoreLists = () => {
                               settings.maxScores.test
                             )
                           }
-                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center font-medium py-0.5 print:p-0"
+                          className="no-spinner w-full bg-transparent outline-none focus:bg-blue-50/60 text-center text-[12pt] font-medium py-0.5 print:p-0"
                           aria-label={`${slot} for ${student.name}`}
                         />
                       </td>

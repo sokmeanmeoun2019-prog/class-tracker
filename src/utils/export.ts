@@ -911,48 +911,48 @@ const QUARTER_SHEET_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalon
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
   <fonts count="7">
     <font>
-      <sz val="10"/>
+      <sz val="12"/>
       <color rgb="FF111827"/>
       <name val="Calibri"/>
       <family val="2"/>
     </font>
     <font>
       <b/>
-      <sz val="10"/>
+      <sz val="12"/>
       <color rgb="FF000000"/>
       <name val="Calibri"/>
       <family val="2"/>
     </font>
     <font>
       <b/>
-      <sz val="11"/>
+      <sz val="12"/>
       <color rgb="FFFFFFFF"/>
       <name val="Leelawadee UI"/>
       <family val="2"/>
     </font>
     <font>
       <b/>
-      <sz val="11"/>
+      <sz val="12"/>
       <color rgb="FF000000"/>
       <name val="Leelawadee UI"/>
       <family val="2"/>
     </font>
     <font>
-      <sz val="10"/>
+      <sz val="12"/>
       <color rgb="FF111827"/>
       <name val="Leelawadee UI"/>
       <family val="2"/>
     </font>
     <font>
       <b/>
-      <sz val="10"/>
+      <sz val="12"/>
       <color rgb="FF000000"/>
       <name val="Leelawadee UI"/>
       <family val="2"/>
     </font>
     <font>
       <b/>
-      <sz val="9"/>
+      <sz val="12"/>
       <color rgb="FF172A58"/>
       <name val="Calibri"/>
       <family val="2"/>
@@ -1247,16 +1247,16 @@ function buildQuarterScoreWorksheetXml(params: {
   });
 
   const colWidths = [
-    5.5,
-    Math.max(24, Math.min(36, maxNameLen + 4)),
-    Math.max(20, Math.min(32, maxKhmerLen + 6)),
-    6.5,
+    6,
+    Math.max(28, Math.min(44, maxNameLen + 6)),
+    Math.max(24, Math.min(38, maxKhmerLen + 7)),
+    8,
+    8.5,
     7.5,
-    6.5,
-    6.5,
-    6, 6, 6, 6, 6, 6, // HW 1-6
-    6, 6, 6, 6, 6, 6, // Quiz 1-6
-    7.5, 7.5, 7.5     // Test 1-3
+    7.5,
+    6.5, 6.5, 6.5, 6.5, 6.5, 6.5, // HW 1-6
+    6.5, 6.5, 6.5, 6.5, 6.5, 6.5, // Quiz 1-6
+    8.5, 8.5, 8.5                 // Test 1-3
   ];
   const totalCols = colWidths.length; // 22 cols (A..V)
 
@@ -1269,7 +1269,7 @@ function buildQuarterScoreWorksheetXml(params: {
   let sheetDataXml = '<sheetData>';
 
   // Row 1: Dedicated left space for School Logo (A1:C3) + Black Title Banner (H1:V1)
-  sheetDataXml += '<row r="1" ht="26" customHeight="1">';
+  sheetDataXml += '<row r="1" ht="28" customHeight="1">';
   if (!hasLogo) {
     sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
     sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
@@ -1281,19 +1281,19 @@ function buildQuarterScoreWorksheetXml(params: {
   sheetDataXml += '</row>';
 
   // Row 2: Teacher Name
-  sheetDataXml += '<row r="2" ht="20" customHeight="1">';
+  sheetDataXml += '<row r="2" ht="22" customHeight="1">';
   sheetDataXml += `<c r="H2" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Teacher Name:')}</t></is></c>`;
   sheetDataXml += `<c r="L2" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(teacherName)}</t></is></c>`;
   sheetDataXml += '</row>';
 
   // Row 3: Subject
-  sheetDataXml += '<row r="3" ht="20" customHeight="1">';
+  sheetDataXml += '<row r="3" ht="22" customHeight="1">';
   sheetDataXml += `<c r="H3" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Subject:')}</t></is></c>`;
   sheetDataXml += `<c r="L3" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(subject)}</t></is></c>`;
   sheetDataXml += '</row>';
 
   // Row 4: School Khmer title (below logo) + Grade + For: Quarter X
-  sheetDataXml += '<row r="4" ht="19" customHeight="1">';
+  sheetDataXml += '<row r="4" ht="22" customHeight="1">';
   sheetDataXml += `<c r="A4" s="2" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ')}</t></is></c>`;
   sheetDataXml += '<c r="B4" s="0"/><c r="C4" s="0"/>';
   sheetDataXml += `<c r="H4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Grade:')}</t></is></c>`;
@@ -1303,7 +1303,7 @@ function buildQuarterScoreWorksheetXml(params: {
   sheetDataXml += '</row>';
 
   // Row 5: Registrar's Office • STD (below Khmer title)
-  sheetDataXml += '<row r="5" ht="18" customHeight="1">';
+  sheetDataXml += '<row r="5" ht="21" customHeight="1">';
   sheetDataXml += `<c r="A5" s="4" t="inlineStr"><is><t xml:space="preserve">${escapeXml("Registrar's Office • STD")}</t></is></c>`;
   sheetDataXml += '<c r="B5" s="0"/><c r="C5" s="0"/>';
   sheetDataXml += '</row>';
@@ -1321,7 +1321,7 @@ function buildQuarterScoreWorksheetXml(params: {
     { label: 'Conduct', style: 8 },
     { label: 'C.P.', style: 8 }
   ];
-  sheetDataXml += '<row r="7" ht="28" customHeight="1">';
+  sheetDataXml += '<row r="7" ht="36" customHeight="1">';
   leftHeaders.forEach((h, idx) => {
     sheetDataXml += `<c r="${colName(idx)}7" s="${h.style}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(h.label)}</t></is></c>`;
   });
@@ -1334,7 +1334,7 @@ function buildQuarterScoreWorksheetXml(params: {
   sheetDataXml += '</row>';
 
   // Row 8: Table Header Row 2 (Sub-numbers)
-  sheetDataXml += '<row r="8" ht="20" customHeight="1">';
+  sheetDataXml += '<row r="8" ht="22" customHeight="1">';
   leftHeaders.forEach((h, idx) => {
     sheetDataXml += `<c r="${colName(idx)}8" s="${h.style}"/>`;
   });
@@ -1347,7 +1347,7 @@ function buildQuarterScoreWorksheetXml(params: {
   studentRows.forEach((vals, rIdx) => {
     const rowNum = rIdx + 9;
     const isWhite = rIdx % 2 === 0;
-    sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+    sheetDataXml += `<row r="${rowNum}" ht="25" customHeight="1">`;
     vals.forEach((val, colIdx) => {
       let styleId = isWhite ? 9 : 12; // Center numeric/short
       if (colIdx === 1) styleId = isWhite ? 10 : 13; // English Name left
