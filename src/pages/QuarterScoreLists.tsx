@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useData } from '../store/DataContext';
 import { Quarter, QuarterSheetInfo, ScoreRecord, Student } from '../types';
 import { getClassRoster, getStudentQuarterTotal } from '../utils/calculations';
-import { exportQuarterScoreSheet } from '../utils/export';
+import { exportAllQuartersScoreSheet, exportQuarterScoreSheet } from '../utils/export';
 import { Download, Printer, RefreshCw, Save, Search } from 'lucide-react';
 
 type NumericScoreField =
@@ -189,6 +189,18 @@ const QuarterScoreLists = () => {
     });
   };
 
+  const handleExportAllQuarters = async () => {
+    if (!currentClass) return;
+    await exportAllQuartersScoreSheet({
+      students: classStudents,
+      scores: state.scores,
+      records: state.records,
+      classObj: currentClass,
+      settings,
+      quarterSheetInfos: state.quarterSheetInfos || []
+    });
+  };
+
   const handlePrintOrPdf = () => {
     window.print();
   };
@@ -243,8 +255,17 @@ const QuarterScoreLists = () => {
               type="button"
               onClick={handleExportExcel}
               className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+              title={`Export Quarter ${selectedQuarter} score sheet to Excel`}
             >
-              <Download size={16} /> Export Excel
+              <Download size={16} /> Export Excel (Q{selectedQuarter})
+            </button>
+            <button
+              type="button"
+              onClick={handleExportAllQuarters}
+              className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white px-3.5 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors"
+              title="Export Quarters 1–4 into one Excel workbook"
+            >
+              <Download size={16} /> Export All (Q1–Q4)
             </button>
             <button
               type="button"
@@ -458,16 +479,20 @@ const QuarterScoreLists = () => {
           </div>
 
           {/* Official Score Grid Table */}
-          <table className="w-full border-collapse border-[1.5px] border-black text-[11px]">
+          <table className="w-full table-fixed border-collapse border-[1.5px] border-black text-[11px]">
             <thead>
-              <tr className="bg-gray-100/80 print:bg-gray-100">
-                <th rowSpan={2} className="border border-black px-1.5 py-1 text-center font-bold w-8">
+              <tr className="bg-[#f3f4f6] print:bg-[#f3f4f6]">
+                <th rowSpan={2} className="border border-black px-1 py-1 text-center font-bold w-8">
                   N°
                 </th>
-                <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold min-w-[145px]">
+                <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold w-[185px]">
                   Name
                 </th>
-                <th rowSpan={2} className="border border-black px-2 py-1 text-center font-bold min-w-[120px]">
+                <th
+                  rowSpan={2}
+                  className="border border-black px-2 py-1 text-center font-bold w-[150px]"
+                  style={{ fontFamily: "'Khmer OS Battambang', 'Khmer OS Siemreap', 'Leelawadee UI', 'Noto Sans Khmer', sans-serif" }}
+                >
                   ឈ្មោះ
                 </th>
                 <th rowSpan={2} className="border border-black px-0.5 py-1 text-center font-bold w-8 align-bottom">
@@ -542,26 +567,27 @@ const QuarterScoreLists = () => {
                 return (
                   <tr
                     key={student.id}
-                    className={`transition-colors ${
+                    className={`h-7 transition-colors ${
                       idx % 2 === 0
                         ? 'bg-white hover:bg-gray-100/70 print:bg-white'
                         : 'bg-[#f2f2f2] hover:bg-gray-200/60 print:bg-[#f2f2f2]'
                     } print:hover:bg-inherit`}
                   >
-                    <td className="border border-black px-1 py-0.5 text-center font-medium">
+                    <td className="border border-black px-1 py-0.5 text-center font-medium align-middle">
                       {student.displayNum}
                     </td>
 
-                    <td className="border border-black px-2 py-0.5 font-medium text-left">
-                      <div className="leading-tight">{student.name}</div>
+                    <td className="border border-black px-2 py-0.5 font-medium text-left align-middle whitespace-nowrap overflow-hidden text-ellipsis">
+                      {student.name}
                     </td>
 
-                    <td className="border border-black px-1 py-0.5">
+                    <td className="border border-black px-1.5 py-0.5 align-middle">
                       <input
                         type="text"
                         value={student.nameKhmer || ''}
                         onChange={e => handleStudentFieldChange(student, 'nameKhmer', e.target.value)}
-                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 px-1 py-0.5 text-[11px] print:p-0"
+                        style={{ fontFamily: "'Khmer OS Battambang', 'Khmer OS Siemreap', 'Leelawadee UI', 'Noto Sans Khmer', sans-serif" }}
+                        className="w-full bg-transparent outline-none focus:bg-blue-50/60 px-0.5 py-0 text-[11px] leading-tight text-left print:p-0"
                         placeholder="-"
                       />
                     </td>

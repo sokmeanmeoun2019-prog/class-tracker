@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { Student, ParticipationRecord, Class, Quarter, GradingSettings, ScoreRecord } from '../types';
+import { Student, ParticipationRecord, Class, Quarter, GradingSettings, ScoreRecord, QuarterSheetInfo } from '../types';
 import { 
   getStudentQuarterTotal, 
   getStudentSemesterTotal, 
@@ -907,7 +907,141 @@ export const exportQuarterSummary = async (
  * Exports the official WIS-style Quarter Score List (1..6 HW, 1..6 Quizzes, 1..3 Monthly Tests)
  * with merged two-row headers and landscape print configuration.
  */
-export const exportQuarterScoreSheet = async (params: {
+const QUARTER_SHEET_STYLES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="7">
+    <font>
+      <sz val="10"/>
+      <color rgb="FF111827"/>
+      <name val="Calibri"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="10"/>
+      <color rgb="FF000000"/>
+      <name val="Calibri"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="11"/>
+      <color rgb="FFFFFFFF"/>
+      <name val="Leelawadee UI"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="11"/>
+      <color rgb="FF000000"/>
+      <name val="Leelawadee UI"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <sz val="10"/>
+      <color rgb="FF111827"/>
+      <name val="Leelawadee UI"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="10"/>
+      <color rgb="FF000000"/>
+      <name val="Leelawadee UI"/>
+      <family val="2"/>
+    </font>
+    <font>
+      <b/>
+      <sz val="9"/>
+      <color rgb="FF172A58"/>
+      <name val="Calibri"/>
+      <family val="2"/>
+    </font>
+  </fonts>
+  <fills count="6">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FF000000"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF3F4F6"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/><bgColor indexed="64"/></patternFill></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="2">
+    <border><left/><right/><top/><bottom/><diagonal/></border>
+    <border>
+      <left style="thin"><color rgb="FF000000"/></left>
+      <right style="thin"><color rgb="FF000000"/></right>
+      <top style="thin"><color rgb="FF000000"/></top>
+      <bottom style="thin"><color rgb="FF000000"/></bottom>
+      <diagonal/>
+    </border>
+  </borders>
+  <cellStyleXfs count="1">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0"/>
+  </cellStyleXfs>
+  <cellXfs count="15">
+    <!-- 0: Default -->
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <!-- 1: Black Banner (#000000) White Bold Text -->
+    <xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 2: Letterhead Khmer Bold -->
+    <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 3: Letterhead English Navy Bold -->
+    <xf numFmtId="0" fontId="6" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 4: Letterhead Subtitle Centered -->
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 5: Metadata Bold Label Left -->
+    <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 6: Metadata Value Khmer/Latin Left -->
+    <xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 7: Table Header Center (Bilingual + Wrap) -->
+    <xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" wrapText="1"/>
+    </xf>
+    <!-- 8: Table Header Vertical Rotated (Conduct / C.P.) -->
+    <xf numFmtId="0" fontId="5" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center" textRotation="90" wrapText="1"/>
+    </xf>
+    <!-- 9: White Row - Center -->
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 10: White Row - Left English -->
+    <xf numFmtId="0" fontId="0" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 11: White Row - Left Khmer (Leelawadee UI) -->
+    <xf numFmtId="0" fontId="4" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 12: Light Gray Row (#F2F2F2) - Center -->
+    <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="center" vertical="center"/>
+    </xf>
+    <!-- 13: Light Gray Row (#F2F2F2) - Left English -->
+    <xf numFmtId="0" fontId="0" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+    <!-- 14: Light Gray Row (#F2F2F2) - Left Khmer (Leelawadee UI) -->
+    <xf numFmtId="0" fontId="4" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
+      <alignment horizontal="left" vertical="center"/>
+    </xf>
+  </cellXfs>
+</styleSheet>`;
+
+function buildQuarterScoreWorksheetXml(params: {
   students: (Student & { displayNum: number })[];
   scores: ScoreRecord[];
   records: ParticipationRecord[];
@@ -916,32 +1050,25 @@ export const exportQuarterScoreSheet = async (params: {
   settings: GradingSettings;
   teacherName?: string;
   subject?: string;
-}) => {
-  const {
-    students,
-    scores,
-    records,
-    classObj,
-    quarter,
-    settings,
-    teacherName = '',
-    subject = ''
-  } = params;
-
-  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
-  const filename = `Class_${cleanClassName}_Q${quarter}_ScoreSheet.xlsx`;
+}): string {
+  const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '' } = params;
   const classScores = scores.filter(
     s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
   );
 
+  let maxNameLen = 18;
+  let maxKhmerLen = 14;
   const studentRows = students.map(student => {
+    if (student.name.length > maxNameLen) maxNameLen = student.name.length;
+    if ((student.nameKhmer || '').length > maxKhmerLen) maxKhmerLen = (student.nameKhmer || '').length;
+
     const score = classScores.find(s => s.studentId === student.id);
     const rawCp = getStudentQuarterTotal(records, student.id, quarter);
     const cappedCp = Math.min(rawCp, settings.maxScores?.cp || 10);
     const cpDisplay = score?.cpScore !== undefined ? score.cpScore : (rawCp > 0 ? cappedCp : '');
     const sexShort = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
 
-    const base: (string | number | undefined)[] = [
+    return [
       student.displayNum,
       student.name,
       student.nameKhmer || '',
@@ -965,174 +1092,345 @@ export const exportQuarterScoreSheet = async (params: {
       score?.test2 ?? '',
       score?.test3 ?? ''
     ];
-    return base;
   });
 
-  try {
-    const leftCols = [
-      { title: 'N°', sub: '', width: 6, isLeft: false },
-      { title: 'Name', sub: '', width: 24, isLeft: true },
-      { title: 'ឈ្មោះ', sub: '', width: 22, isLeft: true },
-      { title: 'Sex (ភេទ)', sub: '', width: 7, isLeft: false },
-      { title: 'Group (ក្រុម)', sub: '', width: 8, isLeft: false },
-      { title: 'Conduct', sub: '', width: 9, isLeft: false },
-      { title: 'C.P.', sub: '', width: 8, isLeft: false }
-    ];
+  const colWidths = [
+    5.5,
+    Math.max(24, Math.min(36, maxNameLen + 4)),
+    Math.max(20, Math.min(32, maxKhmerLen + 6)),
+    6.5,
+    7.5,
+    6.5,
+    6.5,
+    6, 6, 6, 6, 6, 6, // HW 1-6
+    6, 6, 6, 6, 6, 6, // Quiz 1-6
+    7.5, 7.5, 7.5     // Test 1-3
+  ];
+  const totalCols = colWidths.length; // 22 cols (A..V)
 
-    const colWidths = [
-      ...leftCols.map(c => c.width),
-      6, 6, 6, 6, 6, 6, // HW 1-6
-      6, 6, 6, 6, 6, 6, // Quiz 1-6
-      7, 7, 7           // Test 1-3
-    ];
+  let colsXml = '<cols>';
+  colWidths.forEach((w, idx) => {
+    colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`;
+  });
+  colsXml += '</cols>';
 
-    const totalCols = colWidths.length;
-    const hwStartCol = leftCols.length;
-    const quizStartCol = hwStartCol + 6;
-    const testStartCol = quizStartCol + 6;
+  let sheetDataXml = '<sheetData>';
 
-    let colsXml = '<cols>';
-    colWidths.forEach((w, idx) => {
-      colsXml += `<col min="${idx + 1}" max="${idx + 1}" width="${w}" customWidth="1"/>`;
+  // Row 1: School English branding + Black Title Banner (H1:V1)
+  sheetDataXml += '<row r="1" ht="24" customHeight="1">';
+  sheetDataXml += `<c r="A1" s="3" t="inlineStr"><is><t xml:space="preserve">${escapeXml('WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
+  sheetDataXml += '<c r="B1" s="0"/><c r="C1" s="0"/>';
+  sheetDataXml += `<c r="H1" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ / Score List')}</t></is></c>`;
+  for (let c = 8; c < totalCols; c++) {
+    sheetDataXml += `<c r="${colName(c)}1" s="1"/>`;
+  }
+  sheetDataXml += '</row>';
+
+  // Row 2: School Khmer title + Teacher Name
+  sheetDataXml += '<row r="2" ht="20" customHeight="1">';
+  sheetDataXml += `<c r="A2" s="2" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ')}</t></is></c>`;
+  sheetDataXml += '<c r="B2" s="0"/><c r="C2" s="0"/>';
+  sheetDataXml += `<c r="H2" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Teacher Name:')}</t></is></c>`;
+  sheetDataXml += `<c r="L2" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(teacherName)}</t></is></c>`;
+  sheetDataXml += '</row>';
+
+  // Row 3: Registrar's Office + Subject
+  sheetDataXml += '<row r="3" ht="19" customHeight="1">';
+  sheetDataXml += `<c r="A3" s="4" t="inlineStr"><is><t xml:space="preserve">${escapeXml("Registrar's Office • STD")}</t></is></c>`;
+  sheetDataXml += '<c r="B3" s="0"/><c r="C3" s="0"/>';
+  sheetDataXml += `<c r="H3" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Subject:')}</t></is></c>`;
+  sheetDataXml += `<c r="L3" s="6" t="inlineStr"><is><t xml:space="preserve">${escapeXml(subject)}</t></is></c>`;
+  sheetDataXml += '</row>';
+
+  // Row 4: Grade + For: Quarter X
+  sheetDataXml += '<row r="4" ht="19" customHeight="1">';
+  sheetDataXml += `<c r="H4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Grade:')}</t></is></c>`;
+  sheetDataXml += `<c r="L4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml(classObj.name)}</t></is></c>`;
+  sheetDataXml += `<c r="O4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('For :')}</t></is></c>`;
+  sheetDataXml += `<c r="R4" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Quarter ${quarter}`)}</t></is></c>`;
+  sheetDataXml += '</row>';
+
+  // Row 5: Blank spacer
+  sheetDataXml += '<row r="5" ht="8" customHeight="1"/>';
+
+  // Row 6: Table Header Row 1
+  const leftHeaders = [
+    { label: 'N°', style: 7 },
+    { label: 'Name', style: 7 },
+    { label: 'ឈ្មោះ', style: 7 },
+    { label: 'Sex\nភេទ', style: 7 },
+    { label: 'Group\nក្រុម', style: 7 },
+    { label: 'Conduct', style: 8 },
+    { label: 'C.P.', style: 8 }
+  ];
+  sheetDataXml += '<row r="6" ht="28" customHeight="1">';
+  leftHeaders.forEach((h, idx) => {
+    sheetDataXml += `<c r="${colName(idx)}6" s="${h.style}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(h.label)}</t></is></c>`;
+  });
+  sheetDataXml += `<c r="H6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('កិច្ចការផ្ទះ / Homework')}</t></is></c>`;
+  for (let i = 8; i <= 12; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
+  sheetDataXml += `<c r="N6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តេស្តខ្លី / Quizzes')}</t></is></c>`;
+  for (let i = 14; i <= 18; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
+  sheetDataXml += `<c r="T6" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Monthly Test\nតេស្តប្រចាំខែ')}</t></is></c>`;
+  for (let i = 20; i <= 21; i++) sheetDataXml += `<c r="${colName(i)}6" s="7"/>`;
+  sheetDataXml += '</row>';
+
+  // Row 7: Table Header Row 2 (Sub-numbers)
+  sheetDataXml += '<row r="7" ht="20" customHeight="1">';
+  leftHeaders.forEach((h, idx) => {
+    sheetDataXml += `<c r="${colName(idx)}7" s="${h.style}"/>`;
+  });
+  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(6 + i)}7" s="7" t="n"><v>${i}</v></c>`;
+  for (let i = 1; i <= 6; i++) sheetDataXml += `<c r="${colName(12 + i)}7" s="7" t="n"><v>${i}</v></c>`;
+  for (let i = 1; i <= 3; i++) sheetDataXml += `<c r="${colName(18 + i)}7" s="7" t="n"><v>${i}</v></c>`;
+  sheetDataXml += '</row>';
+
+  // Data Rows starting Row 8 (White on Row 8, Light Gray on Row 9, alternating)
+  studentRows.forEach((vals, rIdx) => {
+    const rowNum = rIdx + 8;
+    const isWhite = rIdx % 2 === 0;
+    sheetDataXml += `<row r="${rowNum}" ht="22" customHeight="1">`;
+    vals.forEach((val, colIdx) => {
+      let styleId = isWhite ? 9 : 12; // Center numeric/short
+      if (colIdx === 1) styleId = isWhite ? 10 : 13; // English Name left
+      else if (colIdx === 2) styleId = isWhite ? 11 : 14; // Khmer Name left (Leelawadee UI)
+      sheetDataXml += renderCell(`${colName(colIdx)}${rowNum}`, val, styleId);
     });
-    colsXml += '</cols>';
-
-    let sheetDataXml = '<sheetData>';
-
-    // Row 1: School + Score List title
-    sheetDataXml += '<row r="1" ht="24" customHeight="1">';
-    sheetDataXml += `<c r="A1" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('សាលាវ៉េស្ទើនអន្តរជាតិ / WESTERN INTERNATIONAL SCHOOL')}</t></is></c>`;
-    const titleCol = colName(Math.max(hwStartCol, 7));
-    sheetDataXml += `<c r="${titleCol}1" s="5" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តារាងសម្រង់ពិន្ទុ / Score List')}</t></is></c>`;
     sheetDataXml += '</row>';
+  });
 
-    // Row 2: Teacher Name + Grade + Quarter
-    sheetDataXml += '<row r="2" ht="20" customHeight="1">';
-    sheetDataXml += `<c r="B2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Teacher Name: ${teacherName}`)}</t></is></c>`;
-    sheetDataXml += `<c r="D2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Subject: ${subject}`)}</t></is></c>`;
-    sheetDataXml += `<c r="${colName(hwStartCol)}2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`Grade: ${classObj.name}`)}</t></is></c>`;
-    sheetDataXml += `<c r="${colName(quizStartCol)}2" s="7" t="inlineStr"><is><t xml:space="preserve">${escapeXml(`For: Quarter ${quarter}`)}</t></is></c>`;
-    sheetDataXml += '</row>';
+  sheetDataXml += '</sheetData>';
 
-    // Row 3: Blank spacer
-    sheetDataXml += '<row r="3" ht="8" customHeight="1"/>';
+  const merges: string[] = [
+    'A1:C1',
+    'H1:V1',
+    'A2:C2',
+    'H2:K2',
+    'L2:V2',
+    'A3:C3',
+    'H3:K3',
+    'L3:V3',
+    'H4:K4',
+    'L4:N4',
+    'O4:Q4',
+    'R4:V4',
+    'A6:A7',
+    'B6:B7',
+    'C6:C7',
+    'D6:D7',
+    'E6:E7',
+    'F6:F7',
+    'G6:G7',
+    'H6:M6',
+    'N6:S6',
+    'T6:V6'
+  ];
 
-    // Row 4: Top group headers
-    sheetDataXml += '<row r="4" ht="24" customHeight="1">';
-    leftCols.forEach((c, idx) => {
-      sheetDataXml += `<c r="${colName(idx)}4" s="${c.isLeft ? 2 : 1}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(c.title)}</t></is></c>`;
-    });
-    sheetDataXml += `<c r="${colName(hwStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('កិច្ចការផ្ទះ / Homework')}</t></is></c>`;
-    for (let i = 1; i < 6; i++) sheetDataXml += `<c r="${colName(hwStartCol + i)}4" s="1"/>`;
-    sheetDataXml += `<c r="${colName(quizStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('តេស្តខ្លី / Quizzes')}</t></is></c>`;
-    for (let i = 1; i < 6; i++) sheetDataXml += `<c r="${colName(quizStartCol + i)}4" s="1"/>`;
-    sheetDataXml += `<c r="${colName(testStartCol)}4" s="1" t="inlineStr"><is><t xml:space="preserve">${escapeXml('Monthly Test / តេស្តប្រចាំខែ')}</t></is></c>`;
-    for (let i = 1; i < 3; i++) sheetDataXml += `<c r="${colName(testStartCol + i)}4" s="1"/>`;
-    sheetDataXml += '</row>';
+  const mergeXml = `<mergeCells count="${merges.length}">${merges
+    .map(ref => `<mergeCell ref="${ref}"/>`)
+    .join('')}</mergeCells>`;
 
-    // Row 5: Sub-column numbers (1-6, 1-6, 1-3)
-    sheetDataXml += '<row r="5" ht="20" customHeight="1">';
-    leftCols.forEach((c, idx) => {
-      sheetDataXml += `<c r="${colName(idx)}5" s="${c.isLeft ? 2 : 1}"/>`;
-    });
-    for (let i = 1; i <= 6; i++) {
-      sheetDataXml += `<c r="${colName(hwStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
-    }
-    for (let i = 1; i <= 6; i++) {
-      sheetDataXml += `<c r="${colName(quizStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
-    }
-    for (let i = 1; i <= 3; i++) {
-      sheetDataXml += `<c r="${colName(testStartCol + i - 1)}5" s="1" t="n"><v>${i}</v></c>`;
-    }
-    sheetDataXml += '</row>';
+  const lastColLetter = colName(totalCols - 1);
+  const totalSheetRows = Math.max(studentRows.length + 7, 7);
 
-    // Data rows starting at row 6
-    studentRows.forEach((vals, rIdx) => {
-      const rowNum = rIdx + 6;
-      const isWhiteRow = rIdx % 2 === 0;
-      const sCenter = isWhiteRow ? 6 : 10;
-      const sLeft = isWhiteRow ? 7 : 11;
-
-      sheetDataXml += `<row r="${rowNum}" ht="21" customHeight="1">`;
-      vals.forEach((val, colIdx) => {
-        const isLeftCol = colIdx < leftCols.length && leftCols[colIdx].isLeft;
-        sheetDataXml += renderCell(`${colName(colIdx)}${rowNum}`, val, isLeftCol ? sLeft : sCenter);
-      });
-      sheetDataXml += '</row>';
-    });
-
-    sheetDataXml += '</sheetData>';
-
-    // Merged cells for header groups
-    const merges: string[] = [
-      `A1:${colName(hwStartCol - 1)}1`,
-      `${titleCol}1:${colName(totalCols - 1)}1`
-    ];
-    leftCols.forEach((_, idx) => {
-      const c = colName(idx);
-      merges.push(`${c}4:${c}5`);
-    });
-    merges.push(`${colName(hwStartCol)}4:${colName(hwStartCol + 5)}4`);
-    merges.push(`${colName(quizStartCol)}4:${colName(quizStartCol + 5)}4`);
-    merges.push(`${colName(testStartCol)}4:${colName(testStartCol + 2)}4`);
-
-    const mergeXml = `<mergeCells count="${merges.length}">${merges
-      .map(ref => `<mergeCell ref="${ref}"/>`)
-      .join('')}</mergeCells>`;
-
-    const lastColLetter = colName(totalCols - 1);
-    const totalSheetRows = studentRows.length + 5;
-    const worksheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <dimension ref="A1:${lastColLetter}${totalSheetRows}"/>
   <sheetViews>
-    <sheetView tabSelected="1" workbookViewId="0">
-      <pane ySplit="5" topLeftCell="A6" activePane="bottomLeft" state="frozen"/>
+    <sheetView showGridLines="1" tabSelected="1" workbookViewId="0">
+      <pane ySplit="7" topLeftCell="A8" activePane="bottomLeft" state="frozen"/>
     </sheetView>
   </sheetViews>
   <sheetFormatPr defaultRowHeight="20"/>
   ${colsXml}
   ${sheetDataXml}
   ${mergeXml}
-  <pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>
+  <pageMargins left="0.35" right="0.35" top="0.45" bottom="0.45" header="0.25" footer="0.25"/>
   <pageSetup orientation="landscape" paperSize="9" fitToWidth="1" fitToHeight="0"/>
 </worksheet>`;
+}
 
-    const encoder = new TextEncoder();
-    const zipFiles: ZipFileItem[] = [
-      { name: '[Content_Types].xml', data: encoder.encode(CONTENT_TYPES_XML) },
-      { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
-      { name: 'xl/workbook.xml', data: encoder.encode(getWorkbookXml(`Q${quarter} Score List`)) },
-      { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(WORKBOOK_RELS_XML) },
-      { name: 'xl/styles.xml', data: encoder.encode(STYLES_XML) },
-      { name: 'xl/worksheets/sheet1.xml', data: encoder.encode(worksheetXml) }
-    ];
+function buildMultiSheetExcelArchive(sheets: { name: string; xml: string }[], stylesXml: string): Uint8Array {
+  const encoder = new TextEncoder();
 
-    const zipBuffer = buildZipArchive(zipFiles);
+  const sheetOverrides = sheets
+    .map(
+      (_, i) =>
+        `  <Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`
+    )
+    .join('\n');
+
+  const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+${sheetOverrides}
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`;
+
+  const sheetTags = sheets
+    .map((s, i) => {
+      const safeName = s.name.replace(/[\\/?*[\]:]/g, '_').substring(0, 31);
+      return `    <sheet name="${escapeXml(safeName)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`;
+    })
+    .join('\n');
+
+  const workbookXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <bookViews>
+    <workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="12000"/>
+  </bookViews>
+  <sheets>
+${sheetTags}
+  </sheets>
+  <calcPr calcId="124511"/>
+</workbook>`;
+
+  const sheetRels = sheets
+    .map(
+      (_, i) =>
+        `  <Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`
+    )
+    .join('\n');
+
+  const workbookRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sheetRels}
+  <Relationship Id="rId${sheets.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+  const zipFiles: ZipFileItem[] = [
+    { name: '[Content_Types].xml', data: encoder.encode(contentTypesXml) },
+    { name: '_rels/.rels', data: encoder.encode(ROOT_RELS_XML) },
+    { name: 'xl/workbook.xml', data: encoder.encode(workbookXml) },
+    { name: 'xl/_rels/workbook.xml.rels', data: encoder.encode(workbookRelsXml) },
+    { name: 'xl/styles.xml', data: encoder.encode(stylesXml) },
+    ...sheets.map((s, i) => ({
+      name: `xl/worksheets/sheet${i + 1}.xml`,
+      data: encoder.encode(s.xml)
+    }))
+  ];
+
+  return buildZipArchive(zipFiles);
+}
+
+/**
+ * Exports the official WIS-style Quarter Score List (1..6 HW, 1..6 Quizzes, 1..3 Monthly Tests)
+ * with exact matching visual styling, black table borders, zebra rows, Khmer font, and landscape print setup.
+ */
+export const exportQuarterScoreSheet = async (params: {
+  students: (Student & { displayNum: number })[];
+  scores: ScoreRecord[];
+  records: ParticipationRecord[];
+  classObj: Class;
+  quarter: Quarter;
+  settings: GradingSettings;
+  teacherName?: string;
+  subject?: string;
+}) => {
+  const { students, scores, records, classObj, quarter, settings, teacherName = '', subject = '' } = params;
+  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
+  const filename = `Class_${cleanClassName}_Q${quarter}_ScoreSheet.xlsx`;
+
+  try {
+    const worksheetXml = buildQuarterScoreWorksheetXml({
+      students,
+      scores,
+      records,
+      classObj,
+      quarter,
+      settings,
+      teacherName,
+      subject
+    });
+    const zipBuffer = buildMultiSheetExcelArchive(
+      [{ name: `Quarter ${quarter}`, xml: worksheetXml }],
+      QUARTER_SHEET_STYLES_XML
+    );
     downloadExcelBlob(zipBuffer, filename);
   } catch (error) {
     console.error('Styled Quarter Score Sheet export error, falling back:', error);
-    const fallbackRows = studentRows.map(r => {
-      const obj: Record<string, string | number | undefined> = {
-        'No.': r[0],
-        'Name': r[1],
-        'Name in Khmer': r[2],
-        'Sex': r[3],
-        'Group': r[4],
-        'Conduct': r[5],
-        'C.P.': r[6]
+    const classScores = scores.filter(
+      s => (!s.classId || s.classId === classObj.id) && Number(s.quarter) === Number(quarter)
+    );
+    const fallbackRows = students.map(student => {
+      const score = classScores.find(s => s.studentId === student.id);
+      const rawCp = getStudentQuarterTotal(records, student.id, quarter);
+      const cappedCp = Math.min(rawCp, settings.maxScores?.cp || 10);
+      const cpDisplay = score?.cpScore !== undefined ? score.cpScore : (rawCp > 0 ? cappedCp : '');
+      const sexShort = student.sex === 'Male' ? 'M' : student.sex === 'Female' ? 'F' : (student.sex || '');
+      return {
+        'No.': student.displayNum,
+        'Name': student.name,
+        'Name in Khmer': student.nameKhmer || '',
+        'Sex': sexShort,
+        'Group': student.group || '',
+        'Conduct': score?.conduct ?? '',
+        'C.P.': cpDisplay,
+        'HW1': score?.hw1 ?? '',
+        'HW2': score?.hw2 ?? '',
+        'HW3': score?.hw3 ?? '',
+        'HW4': score?.hw4 ?? '',
+        'HW5': score?.hw5 ?? '',
+        'HW6': score?.hw6 ?? '',
+        'Quiz1': score?.quiz1 ?? '',
+        'Quiz2': score?.quiz2 ?? '',
+        'Quiz3': score?.quiz3 ?? '',
+        'Quiz4': score?.quiz4 ?? '',
+        'Quiz5': score?.quiz5 ?? '',
+        'Quiz6': score?.quiz6 ?? '',
+        'Monthly Test 1': score?.test1 ?? '',
+        'Monthly Test 2': score?.test2 ?? '',
+        'Monthly Test 3': score?.test3 ?? ''
       };
-      let offset = 7;
-      for (let i = 1; i <= 6; i++) obj[`HW${i}`] = r[offset++];
-      for (let i = 1; i <= 6; i++) obj[`Quiz${i}`] = r[offset++];
-      for (let i = 1; i <= 3; i++) obj[`Monthly Test ${i}`] = r[offset++];
-      return obj;
     });
     const ws = XLSX.utils.json_to_sheet(fallbackRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, `Q${quarter} Score List`);
+    XLSX.utils.book_append_sheet(wb, ws, `Quarter ${quarter}`);
     XLSX.writeFile(wb, filename);
   }
+};
+
+/**
+ * Exports all 4 Quarters (Q1–Q4) into a single styled multi-sheet Excel workbook.
+ */
+export const exportAllQuartersScoreSheet = async (params: {
+  students: (Student & { displayNum: number })[];
+  scores: ScoreRecord[];
+  records: ParticipationRecord[];
+  classObj: Class;
+  settings: GradingSettings;
+  quarterSheetInfos: QuarterSheetInfo[];
+}) => {
+  const { students, scores, records, classObj, settings, quarterSheetInfos } = params;
+  const cleanClassName = classObj.name.replace(/[^a-zA-Z0-9_-]/g, '_').replace(/^Class_?/i, '');
+  const filename = `Class_${cleanClassName}_All_Quarters_ScoreSheet.xlsx`;
+
+  const fallbackMeta = quarterSheetInfos.find(
+    i => i.classId === classObj.id && (i.teacherName || i.subject)
+  );
+
+  const quarters: Quarter[] = [1, 2, 3, 4];
+  const sheets = quarters.map(q => {
+    const info = quarterSheetInfos.find(i => i.id === `${classObj.id}-${q}`);
+    return {
+      name: `Quarter ${q}`,
+      xml: buildQuarterScoreWorksheetXml({
+        students,
+        scores,
+        records,
+        classObj,
+        quarter: q,
+        settings,
+        teacherName: info?.teacherName || fallbackMeta?.teacherName || '',
+        subject: info?.subject || fallbackMeta?.subject || ''
+      })
+    };
+  });
+
+  const zipBuffer = buildMultiSheetExcelArchive(sheets, QUARTER_SHEET_STYLES_XML);
+  downloadExcelBlob(zipBuffer, filename);
 };
 
 /**
